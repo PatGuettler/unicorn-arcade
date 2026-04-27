@@ -17,6 +17,7 @@ import LoginView from "./components/shared/loginView";
 import CategoryView from "./components/shared/categoryView";
 import DashBoardView from "./components/shared/dashboardView";
 import AdBar from "./components/shared/adBar";
+import { calculateCoins } from "./utils/useGameManager";
 
 export default function App() {
   const [currentView, setCurrentView] = useState("login");
@@ -233,8 +234,6 @@ export default function App() {
       setCurrentView("home");
     else if (currentView === "room") setCurrentView("alley");
   };
-
-  const calculateCoins = (lvl) => 10 + lvl * 5;
 
   // Determine if we should show the ad bar
   // Show ads everywhere except login screen

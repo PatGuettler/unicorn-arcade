@@ -4,6 +4,7 @@ import GlobalHeader from "../../components/shared/globalHeader";
 import GameHUD from "../../components/shared/gameHUD";
 import { useGameSystem } from "../../components/shared/useGameSystem";
 import { Coin } from "../../components/assets/gameAssets";
+import { formatTime } from "../../utils/useGameManager";
 
 const CoinCountGame = ({
   onExit,
@@ -35,7 +36,6 @@ const CoinCountGame = ({
   const [current, setCurrent] = useState(0);
 
   const formatMoney = (c) => `$${(c / 100).toFixed(2)}`;
-  const formatTime = (ms) => (ms / 1000).toFixed(2);
 
   const coinTypes = [
     { id: "p", v: 1, t: "penny" },

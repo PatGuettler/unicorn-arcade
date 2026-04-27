@@ -22,7 +22,6 @@ const VictoryModal = ({
           {state === "failed" ? "OOPS!" : "COMPLETE!"}
         </h2>
 
-        {/* NEW: Coin Reward Display */}
         {state !== "failed" && coinsEarned > 0 && (
           <div className="bg-slate-950/50 rounded-xl p-4 mb-6 border border-yellow-500/30">
             <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">

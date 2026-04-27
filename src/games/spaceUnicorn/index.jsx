@@ -5,6 +5,7 @@ import GameWorld from "./gameWorld";
 import { Timer } from "lucide-react";
 import { useGameSystem } from "../../components/shared/useGameSystem";
 import GameHUD from "../../components/shared/gameHUD";
+import { formatTime } from "../../utils/useGameManager";
 
 const WORD_LISTS = {
   easy: ["cat", "dog", "sun", "fun", "run", "hot", "pot", "top", "hop", "pop"],
@@ -296,8 +297,6 @@ const SpaceUnicornGame = ({
       if (inputRef.current) inputRef.current.value = "";
     }
   };
-
-  const formatTime = (ms) => (ms / 1000).toFixed(2);
 
   return (
     <div

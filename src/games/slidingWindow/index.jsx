@@ -6,7 +6,7 @@ import GlobalHeader from "../../components/shared/globalHeader";
 import GameHUD from "../../components/shared/gameHUD";
 import { useGameSystem } from "../../components/shared/useGameSystem";
 import { OpponentAI } from "./opponentAI";
-
+import { formatTime } from "../../utils/useGameManager";
 import { PlayerTrack } from "./player";
 import { OpponentTrack } from "./bot";
 
@@ -57,8 +57,6 @@ const SlidingWindowGame = ({
 
   const opponentRef = useRef(null);
   const containerRef = useRef(null);
-
-  const formatTime = (ms) => (ms / 1000).toFixed(2);
 
   useEffect(() => {
     let startLvl = lastCompletedLevel;

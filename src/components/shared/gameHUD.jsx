@@ -1,5 +1,6 @@
 import React from "react";
 import { Timer, HelpCircle } from "lucide-react";
+import { formatTime } from "../../utils/useGameManager";
 
 const GameHUD = ({
   title,
@@ -14,8 +15,6 @@ const GameHUD = ({
   progress,
   target,
 }) => {
-  const formatTime = (ms) => (ms / 1000).toFixed(2);
-
   return (
     <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 pointer-events-none w-full justify-center px-4">
       {/* Main Info Pill */}

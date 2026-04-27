@@ -3,6 +3,7 @@ import VictoryModal from "../../components/shared/victoryModal";
 import GlobalHeader from "../../components/shared/globalHeader";
 import GameHUD from "../../components/shared/gameHUD";
 import { useGameSystem } from "../../components/shared/useGameSystem";
+import { formatTime } from "../../utils/useGameManager";
 
 const MathSwipeGame = ({
   onExit,
@@ -38,8 +39,6 @@ const MathSwipeGame = ({
   const [targetProblems, setTargetProblems] = useState(0);
 
   const startPosRef = useRef({ x: 0, y: 0 });
-
-  const formatTime = (ms) => (ms / 1000).toFixed(2);
 
   useEffect(() => {
     let startLvl = lastCompletedLevel;

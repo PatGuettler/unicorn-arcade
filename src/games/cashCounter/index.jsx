@@ -4,7 +4,7 @@ import GlobalHeader from "../../components/shared/globalHeader";
 import GameHUD from "../../components/shared/gameHUD";
 import { Bill } from "../../components/assets/gameAssets";
 import { useGameSystem } from "../../components/shared/useGameSystem";
-
+import { formatTime } from "../../utils/useGameManager";
 const CashCounterGame = ({
   onExit,
   lastCompletedLevel = 0,
@@ -35,7 +35,6 @@ const CashCounterGame = ({
   const [current, setCurrent] = useState(0);
 
   const bills = [1, 5, 10, 20, 50, 100];
-  const formatTime = (ms) => (ms / 1000).toFixed(2);
 
   useEffect(() => {
     let startLvl = lastCompletedLevel;

@@ -6,6 +6,7 @@ import GlobalHeader from "../../components/shared/globalHeader";
 import GameHUD from "../../components/shared/gameHUD";
 import GameWorld from "./gameWorld";
 import { useUnicornGame } from "./useUnicornGame";
+import { formatTime } from "../../utils/useGameManager";
 
 const UnicornJumpGame = ({
   onExit,
@@ -39,7 +40,6 @@ const UnicornJumpGame = ({
     viewport
   );
 
-  const formatTime = (ms) => (ms / 1000).toFixed(2);
   const handleDown = (e) => viewport.startDrag(e);
   const handleMove = (e) => viewport.doDrag(e);
   const handleUp = () => viewport.endDrag();
