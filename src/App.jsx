@@ -439,6 +439,8 @@ export default function App() {
             onHome={goHome}
             coins={userData.coins}
             onSpendCoins={handleSpendCoins}
+            unicornImage={unicornImage}
+            unicornId={equippedId}
           />
           {/* {shouldShowAdBar && <AdBar />} */}
         </>

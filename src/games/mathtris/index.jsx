@@ -5,6 +5,8 @@ export default function MathtrisGame({
   onHome,
   coins = 0,
   onSpendCoins,
+  unicornImage,
+  unicornId,
 }) {
   return (
     <Mathtris
@@ -12,6 +14,8 @@ export default function MathtrisGame({
       onHome={onHome}
       coins={coins}
       onSpendCoins={onSpendCoins}
+      unicornImage={unicornImage}
+      unicornId={unicornId}
     />
   );
 }
