@@ -51,6 +51,12 @@ export const GAMES = {
       icon: "🎯",
       desc: "Swipe the Right Answer",
     },
+    {
+      id: "mathtris",
+      title: "Mathtris",
+      icon: "🔢",
+      desc: "Number Drop! Tetris-style math",
+    },
   ],
   word: [
     // {
