@@ -8,6 +8,7 @@ import CoinCountGame from "./games/coinCount";
 import CashCounterGame from "./games/cashCounter";
 import MathSwipeGame from "./games/mathSwipe";
 import MathtrisGame from "./games/mathtris";
+import { WORD_GAMES, WORD_GAME_IDS, isWordGameId } from "./games/wordGames/registry";
 import ProfileView from "./components/shared/profileView";
 import HomeView from "./components/shared/homeView";
 import ShopView from "./components/shared/shopView";
@@ -43,6 +44,9 @@ export default function App() {
     if (!data.ownedUnicorns) data.ownedUnicorns = ["sparkle"];
     if (!data.equippedUnicorn) data.equippedUnicorn = "sparkle";
     if (!data.furniture) data.furniture = { inventory: {}, placements: {} };
+    WORD_GAME_IDS.forEach((id) => {
+      if (!data[id]) data[id] = { maxLevel: 0, times: [] };
+    });
     return data;
   };
 
@@ -95,6 +99,9 @@ export default function App() {
         mathSwipe: { maxLevel: 0, times: [] },
         mathtris: { maxLevel: 0, times: [] },
       };
+      WORD_GAME_IDS.forEach((id) => {
+        db.users[user][id] = { maxLevel: 0, times: [] };
+      });
     }
 
     saveDB(db);
@@ -445,6 +452,27 @@ export default function App() {
           {/* {shouldShowAdBar && <AdBar />} */}
         </>
       );
+
+    if (isWordGameId(activeGame)) {
+      const WordGame = WORD_GAMES[activeGame];
+      return (
+        <>
+          <WordGame
+            onExit={goBack}
+            onHome={goHome}
+            coins={userData.coins}
+            onSpendCoins={handleSpendCoins}
+            unicornImage={unicornImage}
+            unicornId={equippedId}
+            lastCompletedLevel={userData[activeGame]?.maxLevel ?? 0}
+            onSaveProgress={(lvl, time) =>
+              handleSaveProgress(activeGame, lvl, time)
+            }
+            calcCoins={calculateCoins}
+          />
+        </>
+      );
+    }
 
     return <div className="text-white">Game Not Found</div>;
   }

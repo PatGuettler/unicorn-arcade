@@ -2,6 +2,7 @@ import GlobalHeader from "./globalHeader";
 import { User, Armchair } from "lucide-react";
 import { FURNITURE } from "../../utils/storage";
 import { LogOut } from "lucide-react";
+import { WORD_GAME_IDS, WORD_GAME_TITLES } from "../../games/wordGames/registry";
 
 const ProfileView = ({ user, data, onBack, onHome, handleLogout }) => {
   return (
@@ -45,35 +46,19 @@ const ProfileView = ({ user, data, onBack, onHome, handleLogout }) => {
           </h3>
           <div className="space-y-4 mb-8">
             {[
-              "unicorn",
-              "sliding",
-              "coin",
-              "cash",
-              "spaceUnicorn",
-              "mathSwipe",
-              "mathtris",
-            ].map((g) => (
+              ["unicorn", "Unicorn Jump"],
+              ["sliding", "Sliding Window"],
+              ["coin", "Coin Count"],
+              ["cash", "Cash Counter"],
+              ["mathSwipe", "Math Swipe"],
+              ["mathtris", "Mathtris"],
+              ...WORD_GAME_IDS.map((id) => [id, WORD_GAME_TITLES[id]]),
+            ].map(([g, title]) => (
               <div
                 key={g}
                 className="bg-slate-900 border border-slate-800 rounded-2xl p-6 flex justify-between items-center"
               >
-                <h4 className="font-bold text-white capitalize">
-                  {g === "unicorn"
-                    ? "Unicorn Jump"
-                    : g === "sliding"
-                    ? "Sliding Window"
-                    : g === "coin"
-                    ? "Coin Count"
-                    : g === "cash"
-                    ? "Cash Counter"
-                    : // : g === "spaceUnicorn"
-                    // ? "Space Unicorn"
-                    g === "mathSwipe"
-                    ? "Math Swipe"
-                    : g === "mathtris"
-                    ? "Mathtris"
-                    : "Unknown"}
-                </h4>
+                <h4 className="font-bold text-white">{title}</h4>
                 <div className="bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">
                   <span className="text-slate-400 text-xs">MAX LVL</span>{" "}
                   <span className="text-white font-bold ml-1">
