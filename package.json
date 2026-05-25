@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:gh-pages": "vite preview --base /unicorn-arcade/"
   },
   "dependencies": {
     "@capacitor/android": "5.7.8",
