@@ -51,6 +51,7 @@ const ProfileView = ({ user, data, onBack, onHome, handleLogout }) => {
               "cash",
               "spaceUnicorn",
               "mathSwipe",
+              "mathtris",
             ].map((g) => (
               <div
                 key={g}
@@ -69,6 +70,8 @@ const ProfileView = ({ user, data, onBack, onHome, handleLogout }) => {
                     // ? "Space Unicorn"
                     g === "mathSwipe"
                     ? "Math Swipe"
+                    : g === "mathtris"
+                    ? "Mathtris"
                     : "Unknown"}
                 </h4>
                 <div className="bg-slate-800 px-3 py-1 rounded-lg border border-slate-700">

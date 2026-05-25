@@ -13,21 +13,33 @@ const GameHUD = ({
   isFreeHint = false,
   progress,
   target,
+  layout = "floating",
 }) => {
   const formatTime = (ms) => (ms / 1000).toFixed(2);
+  const stacked = layout === "stacked";
 
   return (
-    <div className="absolute top-24 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 pointer-events-none w-full justify-center px-4">
+    <div
+      className={
+        stacked
+          ? "relative z-20 flex flex-wrap items-center justify-center gap-2 w-full px-3 py-2 pointer-events-none shrink-0"
+          : "absolute top-24 left-1/2 -translate-x-1/2 z-20 flex items-center gap-3 pointer-events-none w-full justify-center px-4"
+      }
+    >
       {/* Main Info Pill */}
-      <div className="bg-slate-900/80 backdrop-blur px-6 py-2 rounded-2xl border border-slate-700 shadow-xl pointer-events-auto flex items-center gap-4">
-        <div>
-          <div className="text-cyan-400 text-[10px] font-bold tracking-widest uppercase leading-none mb-1">
+      <div
+        className={`bg-slate-900/80 backdrop-blur px-4 sm:px-6 py-2 rounded-2xl border border-slate-700 shadow-xl pointer-events-auto flex items-center gap-3 sm:gap-4 ${
+          stacked ? "max-w-full" : ""
+        }`}
+      >
+        <div className="min-w-0">
+          <div className="text-cyan-400 text-[10px] font-bold tracking-widest uppercase leading-none mb-1 truncate">
             {title}
           </div>
-          <div className="text-xl font-bold flex items-center gap-4 leading-none text-white">
+          <div className="text-lg sm:text-xl font-bold flex flex-wrap items-center gap-2 sm:gap-4 leading-none text-white">
             <span>Lvl {level}</span>
-            <div className="flex items-center gap-2 text-slate-400 font-mono border-l border-slate-700 pl-4 ml-2">
-              <Timer size={16} /> {formatTime(elapsedTime)}s
+            <div className="flex items-center gap-2 text-slate-400 font-mono text-sm sm:text-base sm:border-l sm:border-slate-700 sm:pl-4 sm:ml-2">
+              <Timer size={16} className="shrink-0" /> {formatTime(elapsedTime)}s
             </div>
           </div>
         </div>

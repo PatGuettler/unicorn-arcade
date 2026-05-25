@@ -95,6 +95,7 @@ npx cap sync
 - **Coin Count**: Learn to count coins and make change
 - **Cash Counter**: Practice with bills and larger amounts
 - **Math Swipe**: Solve equations by swiping the correct answer
+- **Mathtris**: Drop blocks and clear equations like Tetris
 
 ### Word Games
 

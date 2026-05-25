@@ -7,6 +7,7 @@ import SlidingWindowGame from "./games/slidingWindow";
 import CoinCountGame from "./games/coinCount";
 import CashCounterGame from "./games/cashCounter";
 import MathSwipeGame from "./games/mathSwipe";
+import MathtrisGame from "./games/mathtris";
 import ProfileView from "./components/shared/profileView";
 import HomeView from "./components/shared/homeView";
 import ShopView from "./components/shared/shopView";
@@ -92,6 +93,7 @@ export default function App() {
         cash: { maxLevel: 0, times: [] },
         spaceUnicorn: { maxLevel: 0, times: [] },
         mathSwipe: { maxLevel: 0, times: [] },
+        mathtris: { maxLevel: 0, times: [] },
       };
     }
 
@@ -425,6 +427,20 @@ export default function App() {
             onHome={goHome}
             coins={userData.coins}
             onSpendCoins={handleSpendCoins}
+          />
+          {/* {shouldShowAdBar && <AdBar />} */}
+        </>
+      );
+    if (activeGame === "mathtris")
+      return (
+        <>
+          <MathtrisGame
+            onExit={goBack}
+            onHome={goHome}
+            coins={userData.coins}
+            onSpendCoins={handleSpendCoins}
+            unicornImage={unicornImage}
+            unicornId={equippedId}
           />
           {/* {shouldShowAdBar && <AdBar />} */}
         </>
