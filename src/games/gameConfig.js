@@ -59,12 +59,66 @@ export const GAMES = {
     },
   ],
   word: [
-    // {
-    //   id: "spaceUnicorn",
-    //   title: "Space Unicorn",
-    //   icon: "✨",
-    //   desc: "Type to Cast Magic",
-    // },
+    {
+      id: "unicornBlast",
+      title: "Unicorn Blast",
+      icon: "🎯",
+      desc: "Type words — cannon fires your unicorn!",
+    },
+    {
+      id: "rhymeRally",
+      title: "Rhyme Rally",
+      icon: "🎵",
+      desc: "Hop with rhymes",
+    },
+    {
+      id: "sentenceSprout",
+      title: "Sentence Sprout",
+      icon: "🌱",
+      desc: "Grow sentences word by word",
+    },
+    {
+      id: "missingMagic",
+      title: "Missing Magic",
+      icon: "✨",
+      desc: "Fill the story blank",
+    },
+    {
+      id: "sightSpark",
+      title: "Sight Spark",
+      icon: "⚡",
+      desc: "Flash words — type from memory",
+    },
+    {
+      id: "prefixPotion",
+      title: "Prefix Potion",
+      icon: "🧪",
+      desc: "Brew prefix + root words",
+    },
+    {
+      id: "vowelVines",
+      title: "Vowel Vines",
+      icon: "🌿",
+      desc: "Climb the right vowel vines",
+    },
+    {
+      id: "letterLift",
+      title: "Letter Lift",
+      icon: "🪜",
+      desc: "Type letters — unicorn climbs",
+    },
+    {
+      id: "syllableStamp",
+      title: "Syllable Stamp",
+      icon: "🦄",
+      desc: "Stamp syllables in order",
+    },
+    {
+      id: "captionQuest",
+      title: "Caption Quest",
+      icon: "📸",
+      desc: "Caption emoji scenes",
+    },
   ],
   future: [],
 };

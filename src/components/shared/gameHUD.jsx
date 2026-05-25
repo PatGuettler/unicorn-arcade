@@ -13,6 +13,8 @@ const GameHUD = ({
   isFreeHint = false,
   progress,
   target,
+  progressLabel = "PROGRESS",
+  lives,
   layout = "floating",
 }) => {
   const formatTime = (ms) => (ms / 1000).toFixed(2);
@@ -49,11 +51,24 @@ const GameHUD = ({
             <div className="w-px h-8 bg-slate-700" /> {/* Vertical Divider */}
             <div>
               <div className="text-cyan-400 text-[10px] font-bold tracking-widest uppercase leading-none mb-1">
-                PROGRESS
+                {progressLabel}
               </div>
               <div className="text-xl font-bold text-white leading-none">
                 {progress} / {target}
               </div>
+            </div>
+          </>
+        )}
+
+        {typeof lives === "number" && (
+          <>
+            <div className="w-px h-8 bg-slate-700 shrink-0" />
+            <div className="flex items-center gap-0.5 text-lg leading-none">
+              {[...Array(3)].map((_, i) => (
+                <span key={i} className={i < lives ? "" : "opacity-25"}>
+                  ❤️
+                </span>
+              ))}
             </div>
           </>
         )}
