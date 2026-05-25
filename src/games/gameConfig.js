@@ -55,7 +55,7 @@ export const GAMES = {
       id: "mathtris",
       title: "Mathtris",
       icon: "🔢",
-      desc: "Number Drop! Tetris-style math",
+      desc: "Tetris-style math equations",
     },
   ],
   word: [

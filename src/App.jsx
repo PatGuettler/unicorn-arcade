@@ -434,7 +434,12 @@ export default function App() {
     if (activeGame === "mathtris")
       return (
         <>
-          <MathtrisGame onExit={goBack} onHome={goHome} />
+          <MathtrisGame
+            onExit={goBack}
+            onHome={goHome}
+            coins={userData.coins}
+            onSpendCoins={handleSpendCoins}
+          />
           {/* {shouldShowAdBar && <AdBar />} */}
         </>
       );
