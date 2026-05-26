@@ -140,11 +140,35 @@ function kitUsesOnlyAllowed(kit, allowed) {
   return kit.every((t) => allowed.includes(t));
 }
 
-/** Drop interval (ms) — keeps getting faster past level 10 */
-function getDropInterval(level) {
-  if (level <= 10) return Math.max(300, 1000 - (level - 1) * 78);
-  if (level <= 20) return Math.max(220, 298 - (level - 11) * 8);
-  return Math.max(150, 218 - (level - 21) * 3);
+/** Drop interval (ms) — level, blocks placed, and time in round (Tetris-style ramp) */
+function getDropInterval(level, dropsPlaced = 0, elapsedSec = 0) {
+  let ms;
+  if (level <= 10) ms = 950 - (level - 1) * 70;
+  else if (level <= 20) ms = 280 - (level - 11) * 7;
+  else ms = 200 - (level - 21) * 4;
+
+  ms -= Math.min(240, dropsPlaced * 5);
+  ms -= Math.min(200, Math.floor(elapsedSec) * 4);
+
+  return Math.max(90, ms);
+}
+
+function getOpenSpawnColumns(board) {
+  const open = [];
+  for (let c = 0; c < COLS; c++) {
+    if (!board[0][c]) open.push(c);
+  }
+  return open;
+}
+
+/** Random open column; avoid repeating the same lane when possible */
+function pickSpawnColumn(board, lastCol = -1) {
+  const open = getOpenSpawnColumns(board);
+  if (!open.length) return -1;
+  if (open.length === 1) return open[0];
+  const choices = lastCol >= 0 ? open.filter((c) => c !== lastCol) : open;
+  const pool = choices.length ? choices : open;
+  return pool[Math.floor(Math.random() * pool.length)];
 }
 
 function getLevelConfig(level) {
@@ -366,9 +390,9 @@ function initSpawnState(g) {
   g.powerCharge = 0;
   g.powerReady = false;
   g.dropSlowUntil = 0;
+  g.dropsPlaced = 0;
+  g.lastSpawnCol = -1;
 }
-
-const SPAWN_COL = Math.floor(COLS / 2);
 
 function boardHasEquation(board) {
   return findEqs(board).length > 0;
@@ -523,6 +547,8 @@ export default function Mathtris({
     powerCharge: 0,
     powerReady: false,
     dropSlowUntil: 0,
+    dropsPlaced: 0,
+    lastSpawnCol: -1,
   });
 
   // Single state tick forces React re-render from ref mutations
@@ -702,6 +728,7 @@ export default function Mathtris({
     const nb = g.board.map((r) => [...r]);
     nb[fb.row][fb.col] = { value: fb.value };
     g.falling = null;
+    g.dropsPlaced = (g.dropsPlaced || 0) + 1;
     if (!handleClear(nb)) {
       g.board = nb;
       g.blocksSinceClear += 1;
@@ -709,16 +736,28 @@ export default function Mathtris({
     }
   }, [handleClear, draw]);
 
+  const spawnNextPiece = useCallback((g) => {
+    const col = pickSpawnColumn(g.board, g.lastSpawnCol);
+    if (col < 0) {
+      g.phase = "over";
+      return false;
+    }
+    g.lastSpawnCol = col;
+    g.falling = { ...g.next, row: 0, col };
+    g.next = pickNextBlock(g);
+    return true;
+  }, []);
+
   // ── Advance the game one tick ────────────────────────────────────────────
   const doStep = useCallback(() => {
     const g = G.current;
     if (g.phase !== "playing") return;
 
     if (!g.falling) {
-      // Spawn new block
-      if (g.board[0][SPAWN_COL]) { g.phase = "over"; draw(); return; }
-      g.falling = { ...g.next, row: 0, col: SPAWN_COL };
-      g.next = pickNextBlock(g);
+      if (!spawnNextPiece(g)) {
+        draw();
+        return;
+      }
       draw();
       return;
     }
@@ -731,7 +770,7 @@ export default function Mathtris({
       g.falling = { ...fb, row: nr };
       draw();
     }
-  }, [doSettle, draw]);
+  }, [doSettle, draw, spawnNextPiece]);
 
   stepRef.current = doStep;
 
@@ -742,7 +781,13 @@ export default function Mathtris({
       const g = G.current;
       if (g.phase !== "playing") { last = Date.now(); return; }
       const slow = g.dropSlowUntil > Date.now();
-      const speed = getDropInterval(g.level) * (slow ? 2.35 : 1);
+      const elapsedSec =
+        timerStartRef.current > 0
+          ? (Date.now() - timerStartRef.current) / 1000
+          : 0;
+      const speed =
+        getDropInterval(g.level, g.dropsPlaced || 0, elapsedSec) *
+        (slow ? 2.35 : 1);
       const now = Date.now();
       if (now - last >= speed) {
         last = now;
@@ -1204,9 +1249,11 @@ export default function Mathtris({
           {g.level <= 5 && (
             <div className="col-span-2 sm:col-span-1" style={{ background: "rgba(255,255,255,0.07)", borderRadius: 14, padding: "12px 14px", border: "2px solid rgba(255,255,255,0.12)", fontSize: "0.82rem", lineHeight: 1.8 }}>
               <div style={{ color: "#FFD700", fontWeight: "bold", marginBottom: 4, fontSize: "0.9rem" }}>How to play:</div>
+              <div>🎲 Blocks fall in random columns</div>
               <div>⬅️ ➡️ Move block</div>
               <div>⬇️ Drop faster</div>
               <div>👆 Tap 2 blocks to swap!</div>
+              <div style={{ opacity: 0.75, fontSize: "0.75rem" }}>Speed rises over time!</div>
               <div>🦄 Solve 3 equations, then tap unicorn power!</div>
               <div style={{ marginTop: 10, borderTop: "1px solid rgba(255,255,255,0.12)", paddingTop: 10, color: "#a0f0c0" }}>
                 <div style={{ color: "#FECA57", marginBottom: 4 }}>Make equations (across or down):</div>
@@ -1256,7 +1303,7 @@ export default function Mathtris({
       </div>
 
       <p className="text-center text-white/35 text-xs px-2 pb-1 max-w-sm">
-        Tap blocks to swap • Equations across or down • Unicorn powers vary by pet
+        Random columns • Swap to solve • Falls faster as you play
       </p>
       </div>
     </div>
