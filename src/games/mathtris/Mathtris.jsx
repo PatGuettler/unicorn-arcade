@@ -7,6 +7,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import GlobalHeader from "../../components/shared/globalHeader";
 import GameHUD from "../../components/shared/gameHUD";
 import { UnicornAvatar } from "../../components/assets/gameAssets";
+import { guardTap } from "../../utils/mobileTouch";
 import {
   applyUnicornPower,
   getUnicornPowerDef,
@@ -951,7 +952,7 @@ export default function Mathtris({
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div
-      className="w-full h-[100dvh] flex flex-col overflow-hidden font-sans"
+      className="w-full h-app flex flex-col overflow-hidden font-sans"
       style={{
         background: "linear-gradient(155deg, #0d0b1e 0%, #1a1240 45%, #0c1f3f 100%)",
         fontFamily: "'Fredoka One', 'Comic Sans MS', cursive",
@@ -981,7 +982,7 @@ export default function Mathtris({
         layout="stacked"
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col items-center px-2 py-2 gap-2">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col items-center px-2 py-2 pb-safe gap-2">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
 
@@ -1206,6 +1207,7 @@ export default function Mathtris({
             <button
               type="button"
               onClick={activatePower}
+              onTouchStart={guardTap}
               disabled={!powerReady || g.phase !== "playing"}
               className={`col-span-2 sm:col-span-1 relative z-30 flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all touch-manipulation pointer-events-auto ${
                 powerReady && g.phase === "playing"
@@ -1280,12 +1282,12 @@ export default function Mathtris({
             </div>
           )}
 
-          <div className="flex flex-col items-center gap-2 w-full bg-white/5 rounded-xl p-3 border border-white/10">
+          <div className="flex flex-col items-center gap-2 w-full bg-white/5 rounded-xl p-3 border border-white/10 pb-safe">
             <div className="text-xs opacity-60">Move falling block</div>
             <div className="flex gap-3 justify-center w-full">
-              <button className="ctrl-btn" onClick={moveLeft}  style={ctrlBtn} title="Move Left">⬅️</button>
-              <button className="ctrl-btn" onClick={moveDown}  style={ctrlBtn} title="Drop Down">⬇️</button>
-              <button className="ctrl-btn" onClick={moveRight} style={ctrlBtn} title="Move Right">➡️</button>
+              <button type="button" className="ctrl-btn" onClick={moveLeft}  style={ctrlBtn} title="Move Left">⬅️</button>
+              <button type="button" className="ctrl-btn" onClick={moveDown}  style={ctrlBtn} title="Drop Down">⬇️</button>
+              <button type="button" className="ctrl-btn" onClick={moveRight} style={ctrlBtn} title="Move Right">➡️</button>
             </div>
           </div>
 

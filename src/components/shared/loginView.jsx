@@ -9,7 +9,7 @@ const LoginView = ({ user, setUser, handleLogin }) => {
   };
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex items-center justify-center p-4">
+    <div className="w-full h-app bg-slate-950 flex items-center justify-center p-4">
       <div className="w-full max-w-md flex flex-col">
         {/* Logo section - above the box */}
         <div className="w-full aspect-[16/9] bg-gradient-to-br from-cyan-500 via-purple-500 to-pink-500 rounded-t-3xl p-1 shadow-2xl shadow-purple-500/20">

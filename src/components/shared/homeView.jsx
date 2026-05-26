@@ -19,7 +19,7 @@ const HomeView = ({
   const unicornName = currentUnicorn ? currentUnicorn.name : "Companion";
 
   return (
-    <div className="w-full h-screen bg-slate-950 overflow-hidden relative flex flex-col items-center select-none">
+    <div className="w-full h-app bg-slate-950 overflow-hidden relative flex flex-col items-center select-none">
       <GlobalHeader
         user={user}
         coins={userData?.coins || 0}
@@ -27,7 +27,7 @@ const HomeView = ({
         onHome={onHome}
       />
 
-      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-md relative z-10">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col items-center justify-center w-full max-w-md relative z-10 px-2">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="text-center mb-8 animate-pop-in relative z-20">
@@ -52,19 +52,21 @@ const HomeView = ({
           />
         </div>
 
-        <div className="w-full px-6 relative z-20 flex flex-col gap-4">
+        <div className="w-full px-6 pb-safe relative z-20 flex flex-col gap-4">
           <div className="grid grid-cols-3 gap-4">
             <button
+              type="button"
               onClick={onProfile}
-              className="flex flex-col items-center justify-center gap-2 aspect-square bg-slate-800 rounded-3xl border-b-4 border-slate-950 active:border-b-0 active:translate-y-1 transition-all hover:bg-slate-700 text-slate-400 font-bold cursor-pointer hover:text-white"
+              className="flex flex-col items-center justify-center gap-2 aspect-square bg-slate-800 rounded-3xl border-b-4 border-slate-950 active:border-b-0 active:translate-y-1 transition-all hover:bg-slate-700 text-slate-400 font-bold cursor-pointer hover:text-white touch-manipulation"
             >
               <Trophy size={28} />
               <span className="text-xs">PROFILE</span>
             </button>
 
             <button
+              type="button"
               onClick={onPlay}
-              className="col-span-1 flex flex-col items-center justify-center gap-2 aspect-square bg-gradient-to-b from-emerald-400 to-emerald-600 rounded-3xl border-b-4 border-emerald-800 active:border-b-0 active:translate-y-1 transition-all shadow-[0_0_30px_rgba(16,185,129,0.4)] group cursor-pointer hover:brightness-110"
+              className="col-span-1 flex flex-col items-center justify-center gap-2 aspect-square bg-gradient-to-b from-emerald-400 to-emerald-600 rounded-3xl border-b-4 border-emerald-800 active:border-b-0 active:translate-y-1 transition-all shadow-[0_0_30px_rgba(16,185,129,0.4)] group cursor-pointer hover:brightness-110 touch-manipulation"
             >
               <div className="bg-white/20 p-3 rounded-full group-hover:scale-110 transition-transform">
                 <Play size={32} className="text-white fill-current ml-1" />
@@ -75,16 +77,18 @@ const HomeView = ({
             </button>
 
             <button
+              type="button"
               onClick={onShop}
-              className="flex flex-col items-center justify-center gap-2 aspect-square bg-slate-800 rounded-3xl border-b-4 border-slate-950 active:border-b-0 active:translate-y-1 transition-all hover:bg-slate-700 text-purple-400 font-bold cursor-pointer hover:text-purple-300"
+              className="flex flex-col items-center justify-center gap-2 aspect-square bg-slate-800 rounded-3xl border-b-4 border-slate-950 active:border-b-0 active:translate-y-1 transition-all hover:bg-slate-700 text-purple-400 font-bold cursor-pointer hover:text-purple-300 touch-manipulation"
             >
               <ShoppingBag size={28} />
               <span className="text-xs">SHOP</span>
             </button>
           </div>
           <button
+            type="button"
             onClick={onAlley}
-            className="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 rounded-3xl border-b-4 border-rose-800 active:border-b-0 active:translate-y-1 transition-all shadow-lg flex items-center justify-center gap-3 group"
+            className="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 rounded-3xl border-b-4 border-rose-800 active:border-b-0 active:translate-y-1 transition-all shadow-lg flex items-center justify-center gap-3 group touch-manipulation"
           >
             <Warehouse className="text-white fill-current/20" />
             <span className="text-white font-black text-lg tracking-widest uppercase">

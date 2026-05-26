@@ -6,7 +6,7 @@ import { WORD_GAME_IDS, WORD_GAME_TITLES } from "../../games/wordGames/registry"
 
 const ProfileView = ({ user, data, onBack, onHome, handleLogout }) => {
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col animate-fade-in">
+    <div className="w-full h-app bg-slate-950 flex flex-col animate-fade-in">
       <GlobalHeader
         coins={data?.coins || 0}
         onBack={onBack}

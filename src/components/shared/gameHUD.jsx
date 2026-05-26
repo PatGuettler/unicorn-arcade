@@ -1,5 +1,6 @@
 import React from "react";
 import { Timer, HelpCircle } from "lucide-react";
+import { guardTap } from "../../utils/mobileTouch";
 
 const GameHUD = ({
   title,
@@ -77,7 +78,9 @@ const GameHUD = ({
       {/* Hint Button */}
       {gameState === "playing" && (
         <button
+          type="button"
           onClick={onBuyHint}
+          onTouchStart={guardTap}
           disabled={(!isFreeHint && coins < hintCost) || showHint}
           className={`
             pointer-events-auto px-4 py-2 rounded-xl font-bold flex items-center gap-2 border-2 transition-all shadow-xl h-[58px]

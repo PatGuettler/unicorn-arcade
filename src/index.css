@@ -2,16 +2,72 @@
 @tailwind components;
 @tailwind utilities;
 
+/* iOS Safari: 100vh includes browser chrome; 100dvh tracks visible area */
+html {
+  height: -webkit-fill-available;
+}
+
 body {
-  touch-action: none;
+  margin: 0;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
   overflow: hidden;
   background-color: #020617;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
   user-select: none;
   -webkit-user-select: none;
-  padding-top: env(safe-area-inset-top);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+}
+
+#root {
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+}
+
+/* App / screen height — prefer over h-screen on mobile */
+.h-app {
+  height: 100dvh;
+  height: -webkit-fill-available;
+  max-height: 100dvh;
+  max-height: -webkit-fill-available;
+}
+
+.min-h-app {
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+}
+
+/* Safe areas for notch + home indicator (use with viewport-fit=cover) */
+.pt-safe {
+  padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+
+.pb-safe {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+}
+
+.px-safe {
+  padding-left: max(0.5rem, env(safe-area-inset-left));
+  padding-right: max(0.5rem, env(safe-area-inset-right));
+}
+
+.bottom-safe {
+  bottom: max(1.5rem, env(safe-area-inset-bottom));
+}
+
+/* Pan/zoom game surfaces only — not on body (breaks button taps on iOS) */
+.game-surface {
+  touch-action: none;
+}
+
+button,
+a,
+input,
+textarea,
+select,
+[role="button"],
+[data-tap] {
+  touch-action: manipulation;
 }
 
 .no-scrollbar::-webkit-scrollbar {
@@ -28,14 +84,6 @@ body {
 
 .animate-pop-in {
   animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-.safe-top {
-  padding-top: max(1rem, env(safe-area-inset-top));
-}
-
-.safe-bottom {
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
 }
 
 @keyframes fadeIn {
@@ -58,7 +106,6 @@ body {
   }
 }
 
-/* Animation for ad bar content transitions */
 @keyframes slideInUp {
   from {
     opacity: 0;
@@ -68,8 +115,4 @@ body {
     opacity: 1;
     transform: translateY(0);
   }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.5s ease-out forwards;
 }

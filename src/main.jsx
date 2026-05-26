@@ -18,6 +18,8 @@ hideStatusBar();
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <div className="h-app w-full overflow-hidden">
+      <App />
+    </div>
   </React.StrictMode>,
 )

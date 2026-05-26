@@ -87,7 +87,7 @@ const CoinCountGame = ({
   const pct = Math.min(100, (current / target) * 100);
 
   return (
-    <div className="w-full h-screen bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 flex flex-col relative font-sans text-white overflow-hidden">
+    <div className="w-full h-app bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 flex flex-col relative font-sans text-white overflow-hidden">
       <div className="absolute top-0 left-0 w-full z-30 pointer-events-none">
         <div className="pointer-events-auto">
           <GlobalHeader
@@ -111,7 +111,7 @@ const CoinCountGame = ({
         isFreeHint={level === 1}
       />
 
-      <div className="flex-1 flex flex-col items-center justify-center gap-12 pt-20">
+      <div className="flex-1 flex flex-col items-center justify-center gap-12 pt-20 pb-safe px-2">
         <div className="relative w-64 h-64 flex items-center justify-center">
           <svg
             className="absolute inset-0 w-full h-full rotate-[-90deg]"

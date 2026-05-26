@@ -45,7 +45,7 @@ const RoomView = ({
   };
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col overflow-hidden">
+    <div className="w-full h-app bg-slate-950 flex flex-col overflow-hidden">
       <GlobalHeader
         coins={userData.coins}
         onBack={onBack}
@@ -103,7 +103,7 @@ const RoomView = ({
         </div>
       </div>
 
-      <div className="absolute bottom-6 right-6 z-50">
+      <div className="absolute bottom-safe right-4 z-50">
         <button
           onClick={() => setIsBagOpen(true)}
           className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-lg border-4 border-white/20 flex items-center justify-center text-yellow-950 animate-bounce"
