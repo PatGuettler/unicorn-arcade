@@ -373,7 +373,7 @@ const SpaceUnicornGame = ({
       </div>
 
       {/* Input - Absolute at bottom to prevent keyboard shift */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 w-full max-w-md px-6 z-30">
+      <div className="absolute bottom-safe left-1/2 -translate-x-1/2 w-full max-w-md px-6 z-30 pb-safe">
         <div className="bg-slate-900/90 backdrop-blur border-2 border-cyan-500/50 rounded-2xl p-4 shadow-2xl">
           <div className="text-center mb-3">
             <div className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">

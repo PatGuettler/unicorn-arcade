@@ -10,7 +10,7 @@ const DashBoardView = ({
   onHome,
 }) => {
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col">
+    <div className="w-full h-app bg-slate-950 flex flex-col">
       <GlobalHeader
         user={user}
         coins={userData?.coins || 0}
@@ -20,7 +20,7 @@ const DashBoardView = ({
         onHome={onHome}
       />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-6 pb-safe">
         <div className="max-w-md mx-auto">
           <div className="grid gap-4">
             {categories.map((cat) => (

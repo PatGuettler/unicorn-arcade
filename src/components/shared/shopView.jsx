@@ -15,7 +15,7 @@ const ShopView = ({
   const [tab, setTab] = useState("unicorns");
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col">
+    <div className="w-full h-app bg-slate-950 flex flex-col">
       <GlobalHeader
         coins={userData.coins}
         onBack={onBack}

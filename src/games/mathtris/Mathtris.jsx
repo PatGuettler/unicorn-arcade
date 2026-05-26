@@ -7,6 +7,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import GlobalHeader from "../../components/shared/globalHeader";
 import GameHUD from "../../components/shared/gameHUD";
 import { UnicornAvatar } from "../../components/assets/gameAssets";
+import { guardTap } from "../../utils/mobileTouch";
+import { useMathtrisLayout } from "../../utils/playArea";
 import {
   applyUnicornPower,
   getUnicornPowerDef,
@@ -16,41 +18,7 @@ import {
 // ─── Constants ────────────────────────────────────────────────────────────────
 const COLS = 8;
 const ROWS = 14;
-const CELL_MAX = 40;
-const CELL_MIN = 24;
-
-function useBoardCellSize() {
-  const [cell, setCell] = useState(34);
-
-  useEffect(() => {
-    const update = () => {
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      const headerReserve = vw < 640 ? 210 : 196;
-      const footerReserve = vw < 640 ? 88 : 36;
-      const maxBoardWidth = vw - 20;
-      const fromWidth = Math.floor(
-        (maxBoardWidth - 12 - (COLS - 1) * 2) / COLS
-      );
-      const fromHeight = Math.floor(
-        (vh - headerReserve - footerReserve - (ROWS - 1) * 2) / ROWS
-      );
-      setCell(
-        Math.max(CELL_MIN, Math.min(CELL_MAX, Math.min(fromWidth, fromHeight)))
-      );
-    };
-
-    update();
-    window.addEventListener("resize", update);
-    window.visualViewport?.addEventListener("resize", update);
-    return () => {
-      window.removeEventListener("resize", update);
-      window.visualViewport?.removeEventListener("resize", update);
-    };
-  }, []);
-
-  return cell;
-}
+const MATRIS_GRID = { cols: COLS, rows: ROWS, gap: 2, gridPadding: 8 };
 
 // Block visual config
 const BLOCK_CFG = {
@@ -559,7 +527,8 @@ export default function Mathtris({
   const [hintInfo, setHintInfo] = useState({ cells: [], message: "" });
   const [elapsedTime, setElapsedTime] = useState(0);
   const timerStartRef = useRef(0);
-  const cell = useBoardCellSize();
+  const { cell, cellFont: layoutCellFont, boardMaxWidth, stackedControls } =
+    useMathtrisLayout(MATRIS_GRID);
 
   const dismissHint = useCallback(() => setShowHint(false), []);
 
@@ -943,7 +912,7 @@ export default function Mathtris({
     touchAction: "manipulation",
     transition: "transform 0.08s, background 0.1s",
   };
-  const cellFont = `${Math.max(0.95, cell * 0.034)}rem`;
+  const cellFont = layoutCellFont;
   const powerCharge = g.powerCharge || 0;
   const powerReady = g.powerReady;
   const cloudActive = g.dropSlowUntil > Date.now();
@@ -951,7 +920,7 @@ export default function Mathtris({
   // ── Render ───────────────────────────────────────────────────────────────
   return (
     <div
-      className="w-full h-[100dvh] flex flex-col overflow-hidden font-sans"
+      className="w-full h-app flex flex-col overflow-hidden font-sans"
       style={{
         background: "linear-gradient(155deg, #0d0b1e 0%, #1a1240 45%, #0c1f3f 100%)",
         fontFamily: "'Fredoka One', 'Comic Sans MS', cursive",
@@ -981,7 +950,7 @@ export default function Mathtris({
         layout="stacked"
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col items-center px-2 py-2 gap-2">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col items-center px-2 py-2 pb-safe gap-2">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
 
@@ -1019,7 +988,14 @@ export default function Mathtris({
         .play-btn:active { transform: scale(0.95); }
       `}</style>
 
-      <div className="flex flex-col sm:flex-row items-center sm:items-start justify-center gap-3 w-full max-w-[min(100%,420px)] mx-auto">
+      <div
+        className={`flex items-center justify-center gap-3 w-full mx-auto ${
+          stackedControls
+            ? "flex-col max-w-full"
+            : "flex-col sm:flex-row sm:items-start max-w-[min(100%,480px)]"
+        }`}
+        style={stackedControls ? { maxWidth: boardMaxWidth } : undefined}
+      >
 
         <div className="relative shrink-0 mx-auto">
 
@@ -1201,11 +1177,16 @@ export default function Mathtris({
           )}
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3 text-white w-full sm:w-[148px] max-w-[320px] shrink-0">
+        <div
+          className={`grid grid-cols-2 sm:grid-cols-1 gap-2 sm:gap-3 text-white w-full shrink-0 ${
+            stackedControls ? "max-w-full" : "sm:w-[148px] max-w-[320px]"
+          }`}
+        >
           {unicornImage && hudGameState === "playing" && (
             <button
               type="button"
               onClick={activatePower}
+              onTouchStart={guardTap}
               disabled={!powerReady || g.phase !== "playing"}
               className={`col-span-2 sm:col-span-1 relative z-30 flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all touch-manipulation pointer-events-auto ${
                 powerReady && g.phase === "playing"
@@ -1280,12 +1261,12 @@ export default function Mathtris({
             </div>
           )}
 
-          <div className="flex flex-col items-center gap-2 w-full bg-white/5 rounded-xl p-3 border border-white/10">
+          <div className="flex flex-col items-center gap-2 w-full bg-white/5 rounded-xl p-3 border border-white/10 pb-safe">
             <div className="text-xs opacity-60">Move falling block</div>
             <div className="flex gap-3 justify-center w-full">
-              <button className="ctrl-btn" onClick={moveLeft}  style={ctrlBtn} title="Move Left">⬅️</button>
-              <button className="ctrl-btn" onClick={moveDown}  style={ctrlBtn} title="Drop Down">⬇️</button>
-              <button className="ctrl-btn" onClick={moveRight} style={ctrlBtn} title="Move Right">➡️</button>
+              <button type="button" className="ctrl-btn" onClick={moveLeft}  style={ctrlBtn} title="Move Left">⬅️</button>
+              <button type="button" className="ctrl-btn" onClick={moveDown}  style={ctrlBtn} title="Drop Down">⬇️</button>
+              <button type="button" className="ctrl-btn" onClick={moveRight} style={ctrlBtn} title="Move Right">➡️</button>
             </div>
           </div>
 

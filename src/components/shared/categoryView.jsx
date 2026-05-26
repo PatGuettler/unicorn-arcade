@@ -13,7 +13,7 @@ const CategoryView = ({
   const gameList = GAMES[activeCategory] || [];
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col">
+    <div className="w-full h-app bg-slate-950 flex flex-col">
       <GlobalHeader
         coins={userData?.coins || 0}
         onBack={goBack}
@@ -22,7 +22,7 @@ const CategoryView = ({
         onHome={onHome}
       />
 
-      <div className="flex-1 overflow-y-auto p-6">
+      <div className="flex-1 overflow-y-auto p-6 pb-safe">
         <div className="max-w-md mx-auto">
           <div className="flex items-center gap-4 mb-8">
             <div

@@ -22,7 +22,7 @@ const UnicornAlleyView = ({ userData, onEnterRoom, onBack, onHome }) => {
   };
 
   return (
-    <div className="w-full h-screen bg-slate-950 flex flex-col relative overflow-hidden">
+    <div className="w-full h-app bg-slate-950 flex flex-col relative overflow-hidden">
       <GlobalHeader
         coins={userData.coins}
         onBack={onBack}

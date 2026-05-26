@@ -6,6 +6,7 @@ import GlobalHeader from "../../components/shared/globalHeader";
 import GameHUD from "../../components/shared/gameHUD";
 import GameWorld from "./gameWorld";
 import { useUnicornGame } from "./useUnicornGame";
+import { ignoreIfInteractive } from "../../utils/mobileTouch";
 
 const UnicornJumpGame = ({
   onExit,
@@ -52,15 +53,15 @@ const UnicornJumpGame = ({
 
   return (
     <div
-      className="w-full h-screen bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 overflow-hidden text-white select-none relative"
-      onMouseDown={handleDown}
+      className="w-full h-app game-surface bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 overflow-hidden text-white select-none relative"
+      onMouseDown={ignoreIfInteractive(handleDown)}
       onMouseMove={handleMove}
       onMouseUp={handleUp}
       onMouseLeave={handleUp}
-      onTouchStart={(e) => {
+      onTouchStart={ignoreIfInteractive((e) => {
         viewport.touchStart(e);
         viewport.startDrag(e);
-      }}
+      })}
       onTouchMove={(e) => {
         viewport.touchMove(e);
         handleMove(e);
@@ -95,16 +96,18 @@ const UnicornJumpGame = ({
         isFreeHint={level === 1 && visitedIndices.length <= 2}
       />
 
-      <div className="absolute bottom-6 right-6 z-30 flex flex-col gap-2 pointer-events-auto">
+      <div className="absolute bottom-safe right-4 z-40 flex flex-col gap-2 pointer-events-auto">
         <button
+          type="button"
           onClick={() => viewport.applyZoom(0.1)}
-          className="p-3 bg-slate-800 rounded-full text-cyan-400 border border-slate-600 hover:bg-slate-700"
+          className="p-3 min-w-[48px] min-h-[48px] bg-slate-800 rounded-full text-cyan-400 border border-slate-600 hover:bg-slate-700"
         >
           <ZoomIn />
         </button>
         <button
+          type="button"
           onClick={() => viewport.applyZoom(-0.1)}
-          className="p-3 bg-slate-800 rounded-full text-slate-400 border border-slate-600 hover:bg-slate-700"
+          className="p-3 min-w-[48px] min-h-[48px] bg-slate-800 rounded-full text-slate-400 border border-slate-600 hover:bg-slate-700"
         >
           <ZoomOut />
         </button>
