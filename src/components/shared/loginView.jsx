@@ -1,3 +1,7 @@
+import loginHero from "../assets/sparkle.png";
+
+const loginIconSrc = `${import.meta.env.BASE_URL}loginIcon.png`;
+
 const LoginView = ({ user, setUser, handleLogin }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -11,9 +15,13 @@ const LoginView = ({ user, setUser, handleLogin }) => {
         <div className="w-full aspect-[16/9] bg-gradient-to-br from-cyan-500 via-purple-500 to-pink-500 rounded-t-3xl p-1 shadow-2xl shadow-purple-500/20">
           <div className="w-full h-full bg-slate-900 rounded-t-[1.35rem] overflow-hidden">
             <img
-              src="/loginIcon.png"
+              src={loginIconSrc}
               alt="Unicorn Arcade"
               className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = loginHero;
+              }}
             />
           </div>
         </div>

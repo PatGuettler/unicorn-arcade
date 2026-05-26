@@ -1,5 +1,5 @@
-# Builds the Vite app and publishes dist/ to the gh-pages branch.
-# In repo Settings → Pages: Source = "Deploy from a branch", branch = gh-pages, folder = / (root)
+# Builds dist/ and pushes ONLY that folder to gh-pages.
+# Repo Settings → Pages → Deploy from branch → gh-pages → / (root)
 
 name: Deploy GitHub Pages
 
@@ -32,15 +32,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build for GitHub Pages
+      - name: Build static site
         run: npm run build
-        env:
-          GITHUB_ACTIONS: true
-          GITHUB_REPOSITORY: ${{ github.repository }}
 
-      - name: Publish dist to gh-pages branch
+      - name: Verify build output
+        run: node scripts/verify-pages-build.mjs
+
+      - name: Add GitHub Pages SPA fallback
+        run: cp dist/index.html dist/404.html
+
+      - name: Publish to gh-pages branch
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
+          publish_branch: gh-pages
           force_orphan: true
