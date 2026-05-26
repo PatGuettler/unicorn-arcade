@@ -19,6 +19,12 @@ import {
 const COLS = 8;
 const ROWS = 14;
 const MATRIS_GRID = { cols: COLS, rows: ROWS, gap: 2, gridPadding: 8 };
+const SWIPE_MIN_PX = 22;
+const TAP_MAX_PX = 12;
+
+function isFallingAt(g, r, c) {
+  return g.falling && g.falling.row === r && g.falling.col === c;
+}
 
 // Block visual config
 const BLOCK_CFG = {
@@ -807,55 +813,169 @@ export default function Mathtris({
     return () => window.removeEventListener("keydown", onKey);
   }, [doSettle, draw]);
 
-  // ── Swap click handler ───────────────────────────────────────────────────
-  const onCellClick = useCallback(
-    (r, c) => {
+  // ── Swap (tap or swipe) ─────────────────────────────────────────────────
+  const swapCells = useCallback(
+    (sr, sc, tr, tc) => {
       const g = G.current;
-      if (g.phase !== "playing") return;
-      if (!g.board[r][c]) { g.selected = null; draw(); return; }
-      if (g.falling && g.falling.row === r && g.falling.col === c) return;
-
-      if (!g.selected) {
-        g.selected = { r, c }; draw();
-      } else {
-        const { r: sr, c: sc } = g.selected;
-        if (sr === r && sc === c) { g.selected = null; draw(); return; }
-        const dr = Math.abs(sr - r), dc = Math.abs(sc - c);
-        if ((dr === 1 && dc === 0) || (dr === 0 && dc === 1)) {
-          // Perform swap
-          const nb = g.board.map((row) => [...row]);
-          [nb[sr][sc], nb[r][c]] = [nb[r][c], nb[sr][sc]];
-          g.selected = null;
-          if (!handleClear(nb, 150)) { g.board = nb; draw(); }
-        } else {
-          g.selected = { r, c }; draw();
-        }
+      if (g.phase !== "playing") return false;
+      if (!g.board[sr]?.[sc] || !g.board[tr]?.[tc]) return false;
+      if (isFallingAt(g, sr, sc) || isFallingAt(g, tr, tc)) return false;
+      const dr = Math.abs(sr - tr);
+      const dc = Math.abs(sc - tc);
+      if (!((dr === 1 && dc === 0) || (dr === 0 && dc === 1))) return false;
+      const nb = g.board.map((row) => [...row]);
+      [nb[sr][sc], nb[tr][tc]] = [nb[tr][tc], nb[sr][sc]];
+      g.selected = null;
+      if (!handleClear(nb, 150)) {
+        g.board = nb;
+        draw();
       }
+      return true;
     },
     [handleClear, draw]
   );
 
-  // ── On-screen button helpers ─────────────────────────────────────────────
-  const moveLeft = () => {
-    const g = G.current;
-    if (g.phase !== "playing" || !g.falling) return;
-    const fb = g.falling;
-    if (fb.col > 0 && !g.board[fb.row][fb.col - 1]) { g.falling = { ...fb, col: fb.col - 1 }; draw(); }
-  };
-  const moveRight = () => {
-    const g = G.current;
-    if (g.phase !== "playing" || !g.falling) return;
-    const fb = g.falling;
-    if (fb.col < COLS - 1 && !g.board[fb.row][fb.col + 1]) { g.falling = { ...fb, col: fb.col + 1 }; draw(); }
-  };
-  const moveDown = () => {
-    const g = G.current;
-    if (g.phase !== "playing" || !g.falling) return;
-    const fb = g.falling;
-    const nr = fb.row + 1;
-    if (nr >= ROWS || g.board[nr][fb.col]) doSettle();
-    else { g.falling = { ...fb, row: nr }; draw(); }
-  };
+  const onCellClick = useCallback(
+    (r, c) => {
+      const g = G.current;
+      if (g.phase !== "playing") return;
+      if (!g.board[r][c]) {
+        g.selected = null;
+        draw();
+        return;
+      }
+      if (isFallingAt(g, r, c)) return;
+
+      if (!g.selected) {
+        g.selected = { r, c };
+        draw();
+      } else {
+        const { r: sr, c: sc } = g.selected;
+        if (sr === r && sc === c) {
+          g.selected = null;
+          draw();
+          return;
+        }
+        if (swapCells(sr, sc, r, c)) return;
+        g.selected = { r, c };
+        draw();
+      }
+    },
+    [swapCells, draw]
+  );
+
+  const nudgeFalling = useCallback(
+    (dir) => {
+      const g = G.current;
+      if (g.phase !== "playing" || !g.falling) return;
+      const fb = g.falling;
+      if (dir === "left" && fb.col > 0 && !g.board[fb.row][fb.col - 1]) {
+        g.falling = { ...fb, col: fb.col - 1 };
+        draw();
+      } else if (dir === "right" && fb.col < COLS - 1 && !g.board[fb.row][fb.col + 1]) {
+        g.falling = { ...fb, col: fb.col + 1 };
+        draw();
+      } else if (dir === "down") {
+        const nr = fb.row + 1;
+        if (nr >= ROWS || g.board[nr][fb.col]) doSettle();
+        else {
+          g.falling = { ...fb, row: nr };
+          draw();
+        }
+      }
+    },
+    [doSettle, draw]
+  );
+
+  const gridPointerRef = useRef(null);
+  const skipClickRef = useRef(false);
+
+  const handleGridPointerUp = useCallback(
+    (e) => {
+      const start = gridPointerRef.current;
+      gridPointerRef.current = null;
+      if (!start || start.pointerId !== e.pointerId) return;
+
+      const dx = e.clientX - start.x;
+      const dy = e.clientY - start.y;
+      const dist = Math.hypot(dx, dy);
+      const g = G.current;
+      const { r, c } = start;
+
+      skipClickRef.current = true;
+      window.setTimeout(() => {
+        skipClickRef.current = false;
+      }, 350);
+
+      if (dist < TAP_MAX_PX) {
+        onCellClick(r, c);
+        return;
+      }
+      if (dist < SWIPE_MIN_PX || g.phase !== "playing") return;
+
+      let dr = 0;
+      let dc = 0;
+      if (Math.abs(dx) > Math.abs(dy)) dc = dx > 0 ? 1 : -1;
+      else if (Math.abs(dy) > Math.abs(dx)) dr = dy > 0 ? 1 : -1;
+      else return;
+
+      if (isFallingAt(g, r, c)) {
+        if (dc === -1) nudgeFalling("left");
+        else if (dc === 1) nudgeFalling("right");
+        else if (dr === 1) nudgeFalling("down");
+        return;
+      }
+
+      const tr = r + dr;
+      const tc = c + dc;
+      if (tr < 0 || tr >= ROWS || tc < 0 || tc >= COLS) return;
+
+      if (g.board[r][c] && g.board[tr][tc]) {
+        swapCells(r, c, tr, tc);
+        return;
+      }
+
+      if (g.selected && g.board[g.selected.r]?.[g.selected.c] && g.board[tr]?.[tc]) {
+        swapCells(g.selected.r, g.selected.c, tr, tc);
+      }
+    },
+    [onCellClick, swapCells, nudgeFalling]
+  );
+
+  const onGridPointerDown = useCallback((e) => {
+    if (G.current.phase !== "playing") return;
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    const cell = e.target.closest("[data-mcell]");
+    if (!cell) return;
+    gridPointerRef.current = {
+      r: Number(cell.dataset.r),
+      c: Number(cell.dataset.c),
+      x: e.clientX,
+      y: e.clientY,
+      pointerId: e.pointerId,
+    };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  const onGridPointerUp = useCallback(
+    (e) => {
+      handleGridPointerUp(e);
+      try {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
+    },
+    [handleGridPointerUp]
+  );
+
+  const moveLeft = () => nudgeFalling("left");
+  const moveRight = () => nudgeFalling("right");
+  const moveDown = () => nudgeFalling("down");
 
   const startGame = useCallback(() => {
     const g = G.current;
@@ -1023,6 +1143,11 @@ export default function Mathtris({
 
           <div
             className="mathtris-grid"
+            onPointerDown={onGridPointerDown}
+            onPointerUp={onGridPointerUp}
+            onPointerCancel={() => {
+              gridPointerRef.current = null;
+            }}
             style={{
               display: "grid",
               gridTemplateColumns: `repeat(${COLS}, ${cell}px)`,
@@ -1034,6 +1159,7 @@ export default function Mathtris({
               border: "3px solid rgba(90,80,220,0.35)",
               boxShadow: "0 0 50px rgba(60,50,200,0.25), inset 0 0 30px rgba(0,0,40,0.6)",
               maxWidth: "100%",
+              touchAction: hudGameState === "playing" ? "none" : "auto",
             }}
           >
             {display.map((row, ri) =>
@@ -1048,7 +1174,13 @@ export default function Mathtris({
                 return (
                   <div
                     key={key}
-                    onClick={() => onCellClick(ri, ci)}
+                    data-mcell
+                    data-r={ri}
+                    data-c={ci}
+                    onClick={() => {
+                      if (skipClickRef.current) return;
+                      onCellClick(ri, ci);
+                    }}
                     className={
                       isFlash         ? "cell-pop"  :
                       isSel           ? "cell-sel"  :
@@ -1064,7 +1196,7 @@ export default function Mathtris({
                       justifyContent: "center",
                       fontSize: cellFont,
                       fontWeight: "bold",
-                      cursor: boardCell && !boardCell.isFalling ? "pointer" : "default",
+                      cursor: boardCell ? "pointer" : "default",
                       userSelect: "none",
                       WebkitUserSelect: "none",
                       background: cfg
@@ -1247,7 +1379,8 @@ export default function Mathtris({
               <div>🎲 Blocks fall in random columns</div>
               <div>⬅️ ➡️ Move block</div>
               <div>⬇️ Drop faster</div>
-              <div>👆 Tap 2 blocks to swap!</div>
+              <div>👆 Tap or swipe to swap blocks!</div>
+              <div>👆 Swipe the falling block to move it!</div>
               <div style={{ opacity: 0.75, fontSize: "0.75rem" }}>Speed rises over time!</div>
               <div>🦄 Solve 3 equations → tap unicorn to blast!</div>
               <div style={{ marginTop: 10, borderTop: "1px solid rgba(255,255,255,0.12)", paddingTop: 10, color: "#a0f0c0" }}>
@@ -1291,7 +1424,7 @@ export default function Mathtris({
 
           {g.selected && (
             <div className="col-span-2 sm:col-span-1" style={{ background: "rgba(255,220,40,0.15)", borderRadius: 12, padding: "10px 12px", border: "2px solid rgba(255,220,40,0.4)", fontSize: "0.82rem", color: "#FFD700", textAlign: "center", animation: "glowPulse 0.65s infinite" }}>
-              ✨ Now tap a block next to it to swap!
+              ✨ Tap or swipe to a neighbor to swap!
             </div>
           )}
         </div>
