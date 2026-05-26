@@ -21,4 +21,9 @@ if (!html.includes("./assets/") && !html.includes('assets/')) {
   process.exit(1);
 }
 
+if (!existsSync("dist/favicon.svg")) {
+  console.error("dist/favicon.svg missing — add public/favicon.svg");
+  process.exit(1);
+}
+
 console.log("Pages build OK:", indexPath);
