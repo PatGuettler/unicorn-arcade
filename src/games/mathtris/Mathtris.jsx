@@ -686,6 +686,8 @@ export default function Mathtris({
     const g = G.current;
     if (!g.powerReady || g.phase !== "playing") return;
 
+    dismissHint();
+
     const ctx = {
       ...powerContextRef.current,
       level: g.level,
@@ -694,12 +696,18 @@ export default function Mathtris({
 
     if (!result.ok) {
       g.message = result.message;
+      const hint = findHintInfo(g.board, g.level);
+      if (hint.cells?.length) {
+        setHintInfo(hint);
+        setShowHint(true);
+      }
       draw();
       return;
     }
 
     g.powerReady = false;
     g.powerCharge = 0;
+    g.message = "";
 
     if (result.slowDropMs) {
       g.dropSlowUntil = Date.now() + result.slowDropMs;
@@ -712,13 +720,19 @@ export default function Mathtris({
       return;
     }
 
+    if (g.falling) {
+      const fb = g.falling;
+      g.board[fb.row][fb.col] = { value: fb.value };
+      g.falling = null;
+    }
+
     runClearAnimation(result.board, result.flashCells, {
       scoreBonus: result.scoreBonus,
       message: result.message,
       clearEntireBoard: result.clearEntireBoard,
       clearDelay: result.clearEntireBoard ? 1100 : 780,
     });
-  }, [unicornId, runClearAnimation, draw]);
+  }, [unicornId, runClearAnimation, draw, dismissHint]);
 
   // ── Settle a fallen block ────────────────────────────────────────────────
   const doSettle = useCallback(() => {
@@ -1192,11 +1206,11 @@ export default function Mathtris({
             <button
               type="button"
               onClick={activatePower}
-              disabled={!powerReady}
-              className={`col-span-2 sm:col-span-1 flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all touch-manipulation ${
-                powerReady
+              disabled={!powerReady || g.phase !== "playing"}
+              className={`col-span-2 sm:col-span-1 relative z-30 flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left transition-all touch-manipulation pointer-events-auto ${
+                powerReady && g.phase === "playing"
                   ? "border-pink-400/70 bg-pink-950/60 cursor-pointer hover:brightness-110 active:scale-[0.98] shadow-[0_0_20px_rgba(236,72,153,0.35)]"
-                  : "border-pink-500/30 bg-pink-950/40 cursor-default"
+                  : "border-pink-500/30 bg-pink-950/40 cursor-default opacity-80"
               }`}
               style={powerReady ? { animation: "glowPulse 1.2s infinite" } : undefined}
             >
@@ -1254,7 +1268,7 @@ export default function Mathtris({
               <div>⬇️ Drop faster</div>
               <div>👆 Tap 2 blocks to swap!</div>
               <div style={{ opacity: 0.75, fontSize: "0.75rem" }}>Speed rises over time!</div>
-              <div>🦄 Solve 3 equations, then tap unicorn power!</div>
+              <div>🦄 Solve 3 equations → tap unicorn to blast!</div>
               <div style={{ marginTop: 10, borderTop: "1px solid rgba(255,255,255,0.12)", paddingTop: 10, color: "#a0f0c0" }}>
                 <div style={{ color: "#FECA57", marginBottom: 4 }}>Make equations (across or down):</div>
                 <div>1 + 1 = 2 ✅</div>
