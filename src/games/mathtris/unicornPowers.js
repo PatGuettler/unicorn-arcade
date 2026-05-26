@@ -4,7 +4,7 @@ export const SOLVES_FOR_POWER = 3;
 export const UNICORN_POWER_DEFS = {
   sparkle: {
     name: "Sparkle Burst",
-    short: "Clear one equation",
+    short: "Fix & clear an equation",
     emoji: "✨",
   },
   rainbow: {
@@ -68,7 +68,7 @@ function columnWithMostBlocks(board) {
   return bestCol;
 }
 
-function findBestEquationFix(board, level, helpers) {
+function findBestEquationFix(board, level, helpers, maxWrong = 1) {
   const cfg = helpers.getLevelConfig(level);
   let best = null;
   let bestScore = -1;
@@ -77,15 +77,19 @@ function findBestEquationFix(board, level, helpers) {
     for (const kit of cfg.equationKits) {
       let matches = 0;
       let wrong = 0;
+      let empty = 0;
       for (let i = 0; i < 5; i++) {
         const { r, c } = positions[i];
         const cell = board[r][c];
-        if (!cell) continue;
+        if (!cell) {
+          empty++;
+          continue;
+        }
         if (cell.value === kit[i]) matches++;
         else wrong++;
       }
-      if (wrong > 1) continue;
-      const score = matches * 3 - wrong * 2;
+      if (wrong > maxWrong || empty > 2) continue;
+      const score = matches * 3 - wrong * 2 - empty;
       if (score > bestScore && matches >= 2) {
         bestScore = score;
         best = { positions, kit };
@@ -94,6 +98,76 @@ function findBestEquationFix(board, level, helpers) {
   });
 
   return best;
+}
+
+/** Last resort: complete the fullest 5-cell line so Sparkle always helps when charged */
+function forceSparkleRescue(board, level, helpers) {
+  const { findEqs, ROWS } = helpers;
+  const cfg = helpers.getLevelConfig(level);
+  const kits = cfg.equationKits;
+  if (!kits?.length) return null;
+
+  let bestSeg = null;
+  let bestFilled = -1;
+
+  helpers.forEachSegment5((positions) => {
+    let filled = 0;
+    for (const { r, c } of positions) {
+      if (board[r][c]) filled++;
+    }
+    if (filled > bestFilled) {
+      bestFilled = filled;
+      bestSeg = positions;
+    }
+  });
+
+  if (!bestSeg) {
+    bestSeg = Array.from({ length: 5 }, (_, i) => ({ r: ROWS - 1, c: i }));
+  }
+
+  let bestKit = kits[0];
+  let bestMatches = -1;
+  for (const kit of kits) {
+    let matches = 0;
+    for (let i = 0; i < 5; i++) {
+      const cell = board[bestSeg[i].r][bestSeg[i].c];
+      if (cell?.value === kit[i]) matches++;
+    }
+    if (matches > bestMatches) {
+      bestMatches = matches;
+      bestKit = kit;
+    }
+  }
+
+  const fixed = applyKitToBoard(board, bestSeg, bestKit);
+  const hits = findEqs(fixed);
+  if (!hits.length) return null;
+  return { board: fixed, hits };
+}
+
+/** Sparkle: clear existing equation, or magically complete the closest one */
+function resolveSparkleClear(board, level, helpers) {
+  const { findEqs } = helpers;
+  let hits = findEqs(board);
+  if (hits.length) {
+    return { ok: true, board, hits };
+  }
+
+  const fix = findBestEquationFix(board, level, helpers, 2);
+  if (fix) {
+    const fixed = applyKitToBoard(board, fix.positions, fix.kit);
+    hits = findEqs(fixed);
+    if (hits.length) {
+      return { ok: true, board: fixed, hits };
+    }
+  }
+
+  const rescued = forceSparkleRescue(board, level, helpers);
+  if (rescued) {
+    return { ok: true, board: rescued.board, hits: rescued.hits };
+  }
+
+  return { ok: false };
 }
 
 function applyKitToBoard(board, positions, kit) {
@@ -123,16 +197,19 @@ export function applyUnicornPower(unicornId, board, context) {
 
   switch (unicornId) {
     case "sparkle": {
-      const hits = findEqs(board);
-      if (!hits.length) {
-        return { ok: false, message: "No equation yet — keep swapping!" };
+      const resolved = resolveSparkleClear(board, context.level, context);
+      if (!resolved.ok) {
+        return {
+          ok: false,
+          message: "Swap blocks closer together, then try again!",
+        };
       }
       return {
         ok: true,
         message: `${def.emoji} ${def.name}!`,
-        flashCells: hits,
-        board,
-        scoreBonus: hits.length * 80,
+        flashCells: resolved.hits,
+        board: resolved.board,
+        scoreBonus: resolved.hits.length * 80,
         runClearAfter: true,
       };
     }
@@ -180,7 +257,7 @@ export function applyUnicornPower(unicornId, board, context) {
       };
 
     case "dream": {
-      const fix = findBestEquationFix(board, context.level, context);
+      const fix = findBestEquationFix(board, context.level, context, 1);
       if (!fix) {
         return { ok: false, message: "No puzzle close enough to fix yet!" };
       }
