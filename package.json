@@ -6,8 +6,9 @@
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
+    "build:verify": "npm run build && node scripts/verify-pages-build.mjs",
     "preview": "vite preview",
-    "preview:gh-pages": "vite preview --base /unicorn-arcade/"
+    "preview:gh-pages": "npm run build && vite preview --open"
   },
   "dependencies": {
     "@capacitor/android": "5.7.8",

@@ -1,12 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 
-/** Project Pages URL: https://<user>.github.io/<repo>/ */
-const repoName = process.env.GITHUB_REPOSITORY?.split("/")?.[1];
-const base =
-  process.env.GITHUB_ACTIONS === "true" && repoName ? `/${repoName}/` : "/";
-
-export default defineConfig({
+// Relative base on production build so GitHub Pages works at /repo-name/ without env vars
+export default defineConfig(({ command }) => ({
   plugins: [react()],
-  base,
-});
+  base: command === "build" ? "./" : "/",
+}));
