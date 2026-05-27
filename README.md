@@ -49,6 +49,18 @@ npm run build
 npm run preview
 ```
 
+### GitHub Pages (live site)
+
+The site must deploy the **built** `dist/` folder, not the raw `src/` sources.
+
+1. **Settings → Pages → Source:** choose **GitHub Actions** (not Jekyll, not `main` branch).
+2. Pushes to `main` run `.github/workflows/deploy-github-pages.yml` (Vite build + deploy).
+3. Do **not** use the auto-generated Jekyll workflow — it serves `index.html` with `/src/main.jsx` and causes 404 errors.
+
+```bash
+npm run build:verify   # local check before push
+```
+
 ## 📱 Mobile Deployment
 
 ### Sync Native Projects
