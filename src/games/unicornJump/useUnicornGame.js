@@ -58,7 +58,7 @@ export const useUnicornGame = (
   };
 
   const handleNodeClick = (idx) => {
-    if (viewport.isDragging || gameState !== "playing") return;
+    if (viewport.didDrag?.() || gameState !== "playing") return;
     const power = levelData[currentIndex];
     const dist = idx - currentIndex;
 

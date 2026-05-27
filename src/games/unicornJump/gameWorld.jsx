@@ -99,8 +99,12 @@ const GameWorld = ({
           return (
             <div
               key={idx}
+              data-game-node
+              role="button"
+              tabIndex={0}
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={() => onNodeClick(idx)}
-              className={`absolute flex flex-col items-center justify-center w-16 h-16 rounded-full border-4 text-xl font-black transition-all duration-300 cursor-pointer ${baseClasses}`}
+              className={`absolute flex flex-col items-center justify-center w-16 h-16 rounded-full border-4 text-xl font-black transition-all duration-300 cursor-pointer touch-manipulation ${baseClasses}`}
               style={{ left: pos.x - 32, top: pos.y - 32 }}
             >
               <span className="relative z-10 drop-shadow-md">{val}</span>
@@ -137,8 +141,12 @@ const GameWorld = ({
           const isVisited = visitedIndices.includes(lastIdx);
           return (
             <div
+              data-game-node
+              role="button"
+              tabIndex={0}
+              onPointerDown={(e) => e.stopPropagation()}
               onClick={() => onNodeClick(lastIdx)}
-              className={`absolute flex items-center justify-center w-16 h-16 rounded-full border-4 transition-transform z-10 cursor-pointer ${
+              className={`absolute flex items-center justify-center w-16 h-16 rounded-full border-4 transition-transform z-10 cursor-pointer touch-manipulation ${
                 isVisited
                   ? "bg-emerald-500 border-emerald-300 scale-110 shadow-[0_0_50px_rgba(16,185,129,0.8)] animate-pulse"
                   : "bg-slate-900 border-slate-700 opacity-60 hover:opacity-100 hover:scale-105 hover:border-emerald-500/50"

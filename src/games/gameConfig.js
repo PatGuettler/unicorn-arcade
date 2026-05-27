@@ -120,5 +120,40 @@ export const GAMES = {
       desc: "Caption emoji scenes",
     },
   ],
-  future: [],
+  future: [
+    {
+      id: "spaceUnicorn",
+      title: "Space Unicorn",
+      icon: "🚀",
+      desc: "Type words to blast asteroids",
+    },
+  ],
 };
+
+/** Profile: games grouped by category (single source of truth) */
+export function getProfileGameSections() {
+  return CATEGORIES.map((category) => ({
+    ...category,
+    games: GAMES[category.id] || [],
+  })).filter((section) => section.games.length > 0);
+}
+
+/** Best time per completed level from saved runs */
+export function getGameLevelSummary(gameData) {
+  if (!gameData) return { maxLevel: 0, levels: [] };
+
+  const maxLevel = gameData.maxLevel || 0;
+  const bestByLevel = new Map();
+
+  (gameData.times || []).forEach(({ level, time }) => {
+    if (level == null) return;
+    const prev = bestByLevel.get(level);
+    if (prev == null || time < prev) bestByLevel.set(level, time);
+  });
+
+  const levels = [...bestByLevel.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([level, time]) => ({ level, time }));
+
+  return { maxLevel, levels };
+}
