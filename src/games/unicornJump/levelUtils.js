@@ -1,5 +1,3 @@
-import { useState, useEffect } from "react";
-
 export const NODE_SPACING_Y = 110;
 export const PATH_WIDTH = 150;
 

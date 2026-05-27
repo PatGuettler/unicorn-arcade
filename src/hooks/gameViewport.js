@@ -9,6 +9,7 @@ export const useGameViewport = (initialZoom = 1) => {
     zoom: initialZoom,
     pan: { x: 0, y: 0 },
     isDragging: false,
+    dragMoved: false,
     dragStart: { x: 0, y: 0, panX: 0, panY: 0 },
     pinchStartDist: 0,
     pinchStartZoom: 1,
@@ -37,6 +38,8 @@ export const useGameViewport = (initialZoom = 1) => {
       panX: stateRef.current.pan.x,
       panY: stateRef.current.pan.y,
     };
+    stateRef.current.dragMoved = false;
+    stateRef.current.isDragging = true;
 
     setIsDragging(true);
   };
@@ -53,6 +56,10 @@ export const useGameViewport = (initialZoom = 1) => {
     const dx = x - stateRef.current.dragStart.x;
     const dy = y - stateRef.current.dragStart.y;
 
+    if (Math.hypot(dx, dy) > 8) {
+      stateRef.current.dragMoved = true;
+    }
+
     setPan({
       x: stateRef.current.dragStart.panX + dx,
       y: stateRef.current.dragStart.panY + dy,
@@ -60,8 +67,12 @@ export const useGameViewport = (initialZoom = 1) => {
   };
 
   const endDrag = () => {
+    stateRef.current.isDragging = false;
     setIsDragging(false);
   };
+
+  /** True if the last pointer gesture moved enough to count as a pan (not a tap) */
+  const didDrag = () => stateRef.current.dragMoved;
 
   // ------------------------------
   //      PINCH-TO-ZOOM SUPPORT
@@ -136,6 +147,7 @@ export const useGameViewport = (initialZoom = 1) => {
 
   const touchEnd = () => {
     stateRef.current.isPinching = false;
+    stateRef.current.isDragging = false;
     setIsDragging(false);
   };
 
@@ -184,6 +196,7 @@ export const useGameViewport = (initialZoom = 1) => {
     startDrag,
     doDrag,
     endDrag,
+    didDrag,
     applyZoom,
     // centerOn,
     touchStart,

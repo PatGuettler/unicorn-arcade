@@ -1,6 +1,6 @@
 /** Elements that should receive taps instead of parent pan/zoom handlers */
 const INTERACTIVE_SELECTOR =
-  'button, a, input, textarea, select, label, [data-tap], [role="button"]';
+  'button, a, input, textarea, select, label, [data-tap], [data-game-node], [role="button"]';
 
 export function isInteractiveTouch(e) {
   const target = e.target;
