@@ -14,7 +14,6 @@ export default function ChainLinkGame({
   const [round, setRound] = useState(0);
   const [target, setTarget] = useState(5);
   const [link, setLink] = useState(null);
-  const [chain, setChain] = useState([]);
 
   const loadLink = (lvl, r) => {
     const data = pickForLevel(CHAIN_LINKS, lvl + r);
@@ -24,7 +23,6 @@ export default function ChainLinkGame({
   const launch = (lvl) => {
     setRound(0);
     setTarget(targetForLevel(lvl));
-    setChain([]);
     startGame(lvl);
     loadLink(lvl, 0);
   };
@@ -34,8 +32,6 @@ export default function ChainLinkGame({
   const extend = (word) => {
     if (gameState !== "playing" || !link) return;
     if (word === link.answer) {
-      const newChain = [...chain, link.start, word];
-      setChain(newChain);
       const nr = round + 1;
       if (nr >= target) completeLevel();
       else {
@@ -71,11 +67,6 @@ export default function ChainLinkGame({
           <div className="w-20 h-20">
             <UnicornAvatar image={unicornImage} className="w-full h-full" />
           </div>
-        )}
-        {chain.length > 0 && (
-          <p className="text-xs text-slate-500 truncate max-w-xs">
-            Chain: {chain.join(" → ")}
-          </p>
         )}
         <div className="flex items-center gap-2 text-2xl font-black">
           <span className="px-4 py-3 bg-slate-800 rounded-xl border border-slate-600">{link?.start}</span>

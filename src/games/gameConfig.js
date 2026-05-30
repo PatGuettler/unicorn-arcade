@@ -27,6 +27,45 @@ export const CATEGORIES = [
 /** Sub-sections inside Word Games only (not top-level dashboard categories) */
 export const WORD_GAME_SECTIONS = [
   {
+    id: "mysteries",
+    title: "Word Mysteries",
+    desc: "Detective logic — opposites, chains, sorting & secrets",
+    icon: "🔍",
+    accent: "from-indigo-600/25 to-violet-900/20 border-indigo-400/40",
+    games: [
+      {
+        id: "oppositeOrbit",
+        title: "Opposite Orbit",
+        icon: "🌓",
+        desc: "Spin to the word that means the opposite",
+      },
+      {
+        id: "scrambleSpell",
+        title: "Scramble Spell",
+        icon: "🔤",
+        desc: "Tap scrambled letters in the right order",
+      },
+      {
+        id: "oddOneOut",
+        title: "Odd One Out",
+        icon: "🕵️",
+        desc: "Find the item that does not belong",
+      },
+      {
+        id: "sizeLineUp",
+        title: "Size Line-Up",
+        icon: "📏",
+        desc: "Tap words shortest → longest",
+      },
+      {
+        id: "chainLink",
+        title: "Chain Link",
+        icon: "🔗",
+        desc: "Pick the word that continues the letter chain",
+      },
+    ],
+  },
+  {
     id: "playground",
     title: "Word Playground",
     desc: "Rhymes, sentences, spelling & vocab",
@@ -92,45 +131,6 @@ export const WORD_GAME_SECTIONS = [
         title: "Caption Quest",
         icon: "📸",
         desc: "Caption emoji scenes",
-      },
-    ],
-  },
-  {
-    id: "mysteries",
-    title: "Word Mysteries",
-    desc: "Detective logic — opposites, chains, sorting & secrets",
-    icon: "🔍",
-    accent: "from-indigo-600/25 to-violet-900/20 border-indigo-400/40",
-    games: [
-      {
-        id: "oppositeOrbit",
-        title: "Opposite Orbit",
-        icon: "🌓",
-        desc: "Spin to the word that means the opposite",
-      },
-      {
-        id: "scrambleSpell",
-        title: "Scramble Spell",
-        icon: "🔤",
-        desc: "Tap scrambled letters in the right order",
-      },
-      {
-        id: "oddOneOut",
-        title: "Odd One Out",
-        icon: "🕵️",
-        desc: "Find the item that does not belong",
-      },
-      {
-        id: "sizeLineUp",
-        title: "Size Line-Up",
-        icon: "📏",
-        desc: "Tap words shortest → longest",
-      },
-      {
-        id: "chainLink",
-        title: "Chain Link",
-        icon: "🔗",
-        desc: "Pick the word that continues the letter chain",
       },
     ],
   },

@@ -1,4 +1,9 @@
 import { FURNITURE, FURNITURE_CATEGORIES } from "../data/furnitureCatalog";
+import {
+  isCompanionItemId,
+  getCompanionDef,
+  getCompanionUnicornId,
+} from "./companionItems";
 
 export { FURNITURE, FURNITURE_CATEGORIES };
 
@@ -6,6 +11,7 @@ export const SELL_BACK_RATIO = 0.5;
 export const GRID_SNAP_PERCENT = 8;
 
 export function inferCategory(itemId) {
+  if (isCompanionItemId(itemId)) return "companions";
   if (itemId.startsWith("bed_")) return "beds";
   if (itemId.startsWith("table_") || itemId === "desk_office") return "tables";
   if (
@@ -47,7 +53,23 @@ export function inferCategory(itemId) {
 }
 
 export function getFurnitureDef(itemId) {
+  if (isCompanionItemId(itemId)) {
+    return getCompanionDef(getCompanionUnicornId(itemId));
+  }
   return FURNITURE.find((f) => f.id === itemId);
+}
+
+/** Items available in the furniture bag for a specific room */
+export function getBagItemsForRoom(unicornId, furniture) {
+  const bag = [];
+  FURNITURE.forEach((f) => {
+    if (getAvailableCount(f.id, furniture) > 0) bag.push(f);
+  });
+  const companion = getCompanionDef(unicornId);
+  if (companion && getAvailableCount(companion.id, furniture) > 0) {
+    bag.unshift(companion);
+  }
+  return bag;
 }
 
 export function getAvailableCount(itemId, furniture) {
@@ -77,7 +99,9 @@ export function getOwnedFurniture(furniture) {
 
 export function filterByCategory(items, categoryId) {
   if (!categoryId || categoryId === "all") return items;
-  return items.filter((f) => (f.category || inferCategory(f.id)) === categoryId);
+  return items.filter(
+    (f) => (f.category || inferCategory(f.id)) === categoryId
+  );
 }
 
 export function searchFurniture(items, query) {

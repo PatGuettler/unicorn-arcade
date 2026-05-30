@@ -90,7 +90,7 @@ export default function OddOneOutGame({
       hudProgressLabel="Cases"
       lives={lives}
       victory={{
-        failReason: "Detective needs hearts — find the odd one!",
+        failReason: "Find the one that does not belong!",
         coinsEarned: gameState === "levelComplete" && calcCoins ? calcCoins(level) : 0,
         onAction: gameState === "failed" ? () => launch(level) : () => launch(level + 1),
       }}
@@ -116,7 +116,7 @@ export default function OddOneOutGame({
                 key={item.label}
                 type="button"
                 onClick={() => investigate(item.label)}
-                className={`py-5 rounded-2xl border-2 flex flex-col items-center gap-2 font-bold transition-all active:scale-95 ${
+                className={`py-5 rounded-2xl border-2 flex flex-col items-center gap-2 font-bold active:scale-95 ${
                   highlight
                     ? "border-yellow-400 bg-yellow-900/30"
                     : "border-slate-600 bg-slate-800 hover:border-indigo-400"

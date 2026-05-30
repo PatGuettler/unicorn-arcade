@@ -8,6 +8,7 @@ import {
   normalizePlacedItem,
   getAvailableCount,
 } from "./utils/furnitureUtils";
+import { syncCompanionInventory } from "./utils/companionItems";
 import UnicornJumpGame from "./games/unicornJump";
 import SlidingWindowGame from "./games/slidingWindow";
 import CoinCountGame from "./games/coinCount";
@@ -58,6 +59,7 @@ export default function App() {
     WORD_GAME_IDS.forEach((id) => {
       if (!data[id]) data[id] = { maxLevel: 0, times: [] };
     });
+    syncCompanionInventory(data);
     return data;
   };
 
@@ -158,6 +160,7 @@ export default function App() {
     if (currentUserData.coins >= cost) {
       currentUserData.coins -= cost;
       currentUserData.ownedUnicorns.push(id);
+      syncCompanionInventory(currentUserData);
       db.users[user] = currentUserData;
       saveDB(db);
       setUserData({ ...currentUserData });
@@ -231,6 +234,7 @@ export default function App() {
   const handleSellFurniture = (itemId, refundAmount) => {
     const db = getDB();
     const currentUserData = ensureDataStructure(db.users[user]);
+    if (itemId.startsWith("companion_")) return;
     const available = getAvailableCount(itemId, currentUserData.furniture);
     if (available <= 0) return;
 
