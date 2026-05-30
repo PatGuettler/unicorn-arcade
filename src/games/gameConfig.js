@@ -174,9 +174,9 @@ export const GAMES = {
   future: [
     {
       id: "spaceUnicorn",
-      title: "Space Unicorn",
+      title: "Galaxy Unicorn",
       icon: "🚀",
-      desc: "Type words to blast asteroids",
+      desc: "Fly & blast — Galaxy Attack style space shooter",
     },
   ],
 };

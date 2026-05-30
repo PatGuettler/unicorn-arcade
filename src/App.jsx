@@ -15,6 +15,7 @@ import CoinCountGame from "./games/coinCount";
 import CashCounterGame from "./games/cashCounter";
 import MathSwipeGame from "./games/mathSwipe";
 import MathtrisGame from "./games/mathtris";
+import SpaceUnicornGame from "./games/spaceUnicorn";
 import { WORD_GAMES, WORD_GAME_IDS, isWordGameId } from "./games/wordGames/registry";
 import ProfileView from "./components/shared/profileView";
 import HomeView from "./components/shared/homeView";
@@ -521,6 +522,23 @@ export default function App() {
             unicornId={equippedId}
           />
           {/* {shouldShowAdBar && <AdBar />} */}
+        </>
+      );
+
+    if (activeGame === "spaceUnicorn")
+      return (
+        <>
+          <SpaceUnicornGame
+            onExit={goBack}
+            onHome={goHome}
+            lastCompletedLevel={(userData.spaceUnicorn?.maxLevel ?? 0) + 1}
+            onSaveProgress={(lvl, time) =>
+              handleSaveProgress("spaceUnicorn", lvl, time)
+            }
+            calcCoins={calculateCoins}
+            coins={userData.coins}
+            unicornImage={unicornImage}
+          />
         </>
       );
 
