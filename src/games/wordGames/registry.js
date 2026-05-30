@@ -52,6 +52,22 @@ export const WORD_GAME_TITLES = {
   chainLink: "Chain Link",
 };
 
+export const MYSTERY_GAME_IDS = [
+  "oppositeOrbit",
+  "scrambleSpell",
+  "oddOneOut",
+  "sizeLineUp",
+  "chainLink",
+];
+
+export const CLASSIC_WORD_GAME_IDS = WORD_GAME_IDS.filter(
+  (id) => !MYSTERY_GAME_IDS.includes(id)
+);
+
 export function isWordGameId(id) {
   return id in WORD_GAMES;
+}
+
+export function isMysteryGameId(id) {
+  return MYSTERY_GAME_IDS.includes(id);
 }

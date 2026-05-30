@@ -1,4 +1,4 @@
-import { Calculator, Type, Rocket } from "lucide-react";
+import { Calculator, Type, Search, Rocket } from "lucide-react";
 
 export const CATEGORIES = [
   {
@@ -13,7 +13,14 @@ export const CATEGORIES = [
     title: "Word Games",
     icon: Type,
     color: "bg-purple-500",
-    desc: "Vocab, spelling & word puzzles",
+    desc: "Vocab, spelling & rhymes",
+  },
+  {
+    id: "wordMysteries",
+    title: "Word Mysteries",
+    icon: Search,
+    color: "bg-indigo-500",
+    desc: "Detective word puzzles",
   },
   {
     id: "future",
@@ -21,125 +28,6 @@ export const CATEGORIES = [
     icon: Rocket,
     color: "bg-emerald-500",
     desc: "Experimental",
-  },
-];
-
-/** Original word games — flat grid, same as before the Mysteries add-on */
-export const CLASSIC_WORD_GAMES = [
-      {
-        id: "unicornBlast",
-        title: "Unicorn Blast",
-        icon: "🎯",
-        desc: "Type words — cannon fires your unicorn!",
-      },
-      {
-        id: "rhymeRally",
-        title: "Rhyme Rally",
-        icon: "🎵",
-        desc: "Hop with rhymes",
-      },
-      {
-        id: "sentenceSprout",
-        title: "Sentence Sprout",
-        icon: "🌱",
-        desc: "Grow sentences word by word",
-      },
-      {
-        id: "missingMagic",
-        title: "Missing Magic",
-        icon: "✨",
-        desc: "Fill the story blank",
-      },
-      {
-        id: "sightSpark",
-        title: "Sight Spark",
-        icon: "⚡",
-        desc: "Flash words — type from memory",
-      },
-      {
-        id: "prefixPotion",
-        title: "Prefix Potion",
-        icon: "🧪",
-        desc: "Brew prefix + root words",
-      },
-      {
-        id: "vowelVines",
-        title: "Vowel Vines",
-        icon: "🌿",
-        desc: "Climb the right vowel vines",
-      },
-      {
-        id: "letterLift",
-        title: "Letter Lift",
-        icon: "🪜",
-        desc: "Type letters — unicorn climbs",
-      },
-      {
-        id: "syllableStamp",
-        title: "Syllable Stamp",
-        icon: "🦄",
-        desc: "Stamp syllables in order",
-      },
-      {
-        id: "captionQuest",
-        title: "Caption Quest",
-        icon: "📸",
-        desc: "Caption emoji scenes",
-      },
-];
-
-/** New sub-category under Word Games (in addition to classics above) */
-export const WORD_MYSTERIES_GAMES = [
-  {
-    id: "oppositeOrbit",
-    title: "Opposite Orbit",
-    icon: "🌓",
-    desc: "Spin to the word that means the opposite",
-  },
-  {
-    id: "scrambleSpell",
-    title: "Scramble Spell",
-    icon: "🔤",
-    desc: "Tap scrambled letters in the right order",
-  },
-  {
-    id: "oddOneOut",
-    title: "Odd One Out",
-    icon: "🕵️",
-    desc: "Find the item that does not belong",
-  },
-  {
-    id: "sizeLineUp",
-    title: "Size Line-Up",
-    icon: "📏",
-    desc: "Tap words shortest → longest",
-  },
-  {
-    id: "chainLink",
-    title: "Chain Link",
-    icon: "🔗",
-    desc: "Pick the word that continues the letter chain",
-  },
-];
-
-/** Sub-sections inside Word Games (classic first, then Mysteries) */
-export const WORD_GAME_SECTIONS = [
-  {
-    id: "classic",
-    title: null,
-    desc: null,
-    icon: null,
-    accent: null,
-    classicLayout: true,
-    games: CLASSIC_WORD_GAMES,
-  },
-  {
-    id: "mysteries",
-    title: "Word Mysteries",
-    desc: "Detective logic — opposites, chains, sorting & secrets",
-    icon: "🔍",
-    accent: "from-indigo-600/25 to-violet-900/20 border-indigo-400/40",
-    games: WORD_MYSTERIES_GAMES,
   },
 ];
 
@@ -177,7 +65,100 @@ export const GAMES = {
       desc: "Tetris-style math equations",
     },
   ],
-  word: WORD_GAME_SECTIONS.flatMap((s) => s.games),
+  word: [
+    {
+      id: "unicornBlast",
+      title: "Unicorn Blast",
+      icon: "🎯",
+      desc: "Type words — cannon fires your unicorn!",
+    },
+    {
+      id: "rhymeRally",
+      title: "Rhyme Rally",
+      icon: "🎵",
+      desc: "Hop with rhymes",
+    },
+    {
+      id: "sentenceSprout",
+      title: "Sentence Sprout",
+      icon: "🌱",
+      desc: "Grow sentences word by word",
+    },
+    {
+      id: "missingMagic",
+      title: "Missing Magic",
+      icon: "✨",
+      desc: "Fill the story blank",
+    },
+    {
+      id: "sightSpark",
+      title: "Sight Spark",
+      icon: "⚡",
+      desc: "Flash words — type from memory",
+    },
+    {
+      id: "prefixPotion",
+      title: "Prefix Potion",
+      icon: "🧪",
+      desc: "Brew prefix + root words",
+    },
+    {
+      id: "vowelVines",
+      title: "Vowel Vines",
+      icon: "🌿",
+      desc: "Climb the right vowel vines",
+    },
+    {
+      id: "letterLift",
+      title: "Letter Lift",
+      icon: "🪜",
+      desc: "Type letters — unicorn climbs",
+    },
+    {
+      id: "syllableStamp",
+      title: "Syllable Stamp",
+      icon: "🦄",
+      desc: "Stamp syllables in order",
+    },
+    {
+      id: "captionQuest",
+      title: "Caption Quest",
+      icon: "📸",
+      desc: "Caption emoji scenes",
+    },
+  ],
+  wordMysteries: [
+    {
+      id: "oppositeOrbit",
+      title: "Opposite Orbit",
+      icon: "🌓",
+      desc: "Spin to the word that means the opposite",
+    },
+    {
+      id: "scrambleSpell",
+      title: "Scramble Spell",
+      icon: "🔤",
+      desc: "Tap scrambled letters in the right order",
+    },
+    {
+      id: "oddOneOut",
+      title: "Odd One Out",
+      icon: "🕵️",
+      desc: "Find the item that does not belong",
+    },
+    {
+      id: "sizeLineUp",
+      title: "Size Line-Up",
+      icon: "📏",
+      desc: "Tap words shortest → longest",
+    },
+    {
+      id: "chainLink",
+      title: "Chain Link",
+      icon: "🔗",
+      desc: "Pick the word that continues the letter chain",
+    },
+  ],
   future: [
     {
       id: "spaceUnicorn",
@@ -190,22 +171,10 @@ export const GAMES = {
 
 /** Profile: games grouped by category (single source of truth) */
 export function getProfileGameSections() {
-  return CATEGORIES.map((category) => {
-    if (category.id === "word") {
-      return {
-        ...category,
-        subsections: WORD_GAME_SECTIONS.map((sec) => ({
-          title: sec.title,
-          games: sec.games,
-        })),
-        games: GAMES.word,
-      };
-    }
-    return {
-      ...category,
-      games: GAMES[category.id] || [],
-    };
-  }).filter((section) => section.games.length > 0);
+  return CATEGORIES.map((category) => ({
+    ...category,
+    games: GAMES[category.id] || [],
+  })).filter((section) => section.games.length > 0);
 }
 
 /** Best time per completed level from saved runs */
