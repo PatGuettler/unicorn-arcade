@@ -24,54 +24,8 @@ export const CATEGORIES = [
   },
 ];
 
-/** Sub-sections inside Word Games only (not top-level dashboard categories) */
-export const WORD_GAME_SECTIONS = [
-  {
-    id: "mysteries",
-    title: "Word Mysteries",
-    desc: "Detective logic — opposites, chains, sorting & secrets",
-    icon: "🔍",
-    accent: "from-indigo-600/25 to-violet-900/20 border-indigo-400/40",
-    games: [
-      {
-        id: "oppositeOrbit",
-        title: "Opposite Orbit",
-        icon: "🌓",
-        desc: "Spin to the word that means the opposite",
-      },
-      {
-        id: "scrambleSpell",
-        title: "Scramble Spell",
-        icon: "🔤",
-        desc: "Tap scrambled letters in the right order",
-      },
-      {
-        id: "oddOneOut",
-        title: "Odd One Out",
-        icon: "🕵️",
-        desc: "Find the item that does not belong",
-      },
-      {
-        id: "sizeLineUp",
-        title: "Size Line-Up",
-        icon: "📏",
-        desc: "Tap words shortest → longest",
-      },
-      {
-        id: "chainLink",
-        title: "Chain Link",
-        icon: "🔗",
-        desc: "Pick the word that continues the letter chain",
-      },
-    ],
-  },
-  {
-    id: "playground",
-    title: "Word Playground",
-    desc: "Rhymes, sentences, spelling & vocab",
-    icon: "🎪",
-    accent: "from-purple-600/20 to-pink-600/10 border-purple-500/30",
-    games: [
+/** Original word games — flat grid, same as before the Mysteries add-on */
+export const CLASSIC_WORD_GAMES = [
       {
         id: "unicornBlast",
         title: "Unicorn Blast",
@@ -132,7 +86,60 @@ export const WORD_GAME_SECTIONS = [
         icon: "📸",
         desc: "Caption emoji scenes",
       },
-    ],
+];
+
+/** New sub-category under Word Games (in addition to classics above) */
+export const WORD_MYSTERIES_GAMES = [
+  {
+    id: "oppositeOrbit",
+    title: "Opposite Orbit",
+    icon: "🌓",
+    desc: "Spin to the word that means the opposite",
+  },
+  {
+    id: "scrambleSpell",
+    title: "Scramble Spell",
+    icon: "🔤",
+    desc: "Tap scrambled letters in the right order",
+  },
+  {
+    id: "oddOneOut",
+    title: "Odd One Out",
+    icon: "🕵️",
+    desc: "Find the item that does not belong",
+  },
+  {
+    id: "sizeLineUp",
+    title: "Size Line-Up",
+    icon: "📏",
+    desc: "Tap words shortest → longest",
+  },
+  {
+    id: "chainLink",
+    title: "Chain Link",
+    icon: "🔗",
+    desc: "Pick the word that continues the letter chain",
+  },
+];
+
+/** Sub-sections inside Word Games (classic first, then Mysteries) */
+export const WORD_GAME_SECTIONS = [
+  {
+    id: "classic",
+    title: null,
+    desc: null,
+    icon: null,
+    accent: null,
+    classicLayout: true,
+    games: CLASSIC_WORD_GAMES,
+  },
+  {
+    id: "mysteries",
+    title: "Word Mysteries",
+    desc: "Detective logic — opposites, chains, sorting & secrets",
+    icon: "🔍",
+    accent: "from-indigo-600/25 to-violet-900/20 border-indigo-400/40",
+    games: WORD_MYSTERIES_GAMES,
   },
 ];
 

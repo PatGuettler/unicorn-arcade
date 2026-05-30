@@ -42,49 +42,57 @@ const CategoryView = ({
 
       <div className="flex-1 overflow-y-auto p-6 pb-safe">
         <div className="max-w-md mx-auto">
-          <div className="flex items-center gap-4 mb-6">
+          <div className="flex items-center gap-4 mb-8">
             <div
               className={`w-12 h-12 ${category.color} rounded-xl flex items-center justify-center text-slate-900`}
             >
               <category.icon size={24} />
             </div>
-            <div>
-              <h2 className="text-3xl font-black text-white">{category.title}</h2>
-              {isWordCategory && (
-                <p className="text-slate-500 text-sm mt-1">
-                  Two collections — pick a section below
-                </p>
-              )}
-            </div>
+            <h2 className="text-3xl font-black text-white">{category.title}</h2>
           </div>
 
           {isWordCategory ? (
             <div className="space-y-8">
               {WORD_GAME_SECTIONS.map((section) => (
                 <div key={section.id}>
-                  <div
-                    className={`rounded-2xl border bg-gradient-to-r p-4 mb-4 ${section.accent}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <span className="text-3xl">{section.icon}</span>
-                      <div>
-                        <h3 className="text-lg font-black text-white">
-                          {section.title}
-                        </h3>
-                        <p className="text-xs text-slate-400">{section.desc}</p>
-                      </div>
+                  {section.classicLayout ? (
+                    <div className="grid grid-cols-2 gap-4">
+                      {section.games.map((game) => (
+                        <GameCard
+                          key={game.id}
+                          game={game}
+                          userData={userData}
+                          selectGame={selectGame}
+                        />
+                      ))}
                     </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    {section.games.map((game) => (
-                      <GameCard
-                        key={game.id}
-                        game={game}
-                        userData={userData}
-                        selectGame={selectGame}
-                      />
-                    ))}
-                  </div>
+                  ) : (
+                    <>
+                      <div
+                        className={`rounded-2xl border bg-gradient-to-r p-4 mb-4 ${section.accent}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-3xl">{section.icon}</span>
+                          <div>
+                            <h3 className="text-lg font-black text-white">
+                              {section.title}
+                            </h3>
+                            <p className="text-xs text-slate-400">{section.desc}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        {section.games.map((game) => (
+                          <GameCard
+                            key={game.id}
+                            game={game}
+                            userData={userData}
+                            selectGame={selectGame}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  )}
                 </div>
               ))}
             </div>
