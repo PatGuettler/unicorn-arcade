@@ -5,7 +5,8 @@ const STAR_COUNT = 48;
 function drawStarfield(ctx, w, h, scroll) {
   for (let i = 0; i < STAR_COUNT; i++) {
     const sx = ((i * 97) % 1000) / 1000;
-    const sy = (((i * 53 + scroll * (0.3 + (i % 5) * 0.1)) % 1000) + 1000) % 1000) / 1000;
+    const raw = (i * 53 + scroll * (0.3 + (i % 5) * 0.1)) % 1000;
+    const sy = ((raw + 1000) % 1000) / 1000;
     const size = 1 + (i % 3);
     const alpha = 0.3 + (i % 4) * 0.15;
     ctx.fillStyle = `rgba(255,255,255,${alpha})`;
