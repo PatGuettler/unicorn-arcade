@@ -8,6 +8,11 @@ import VowelVinesGame from "./vowelVines";
 import LetterLiftGame from "./letterLift";
 import SyllableStampGame from "./syllableStamp";
 import CaptionQuestGame from "./captionQuest";
+import OppositeOrbitGame from "./oppositeOrbit";
+import ScrambleSpellGame from "./scrambleSpell";
+import OddOneOutGame from "./oddOneOut";
+import SizeLineUpGame from "./sizeLineUp";
+import ChainLinkGame from "./chainLink";
 
 export const WORD_GAMES = {
   unicornBlast: UnicornBlastGame,
@@ -20,6 +25,11 @@ export const WORD_GAMES = {
   letterLift: LetterLiftGame,
   syllableStamp: SyllableStampGame,
   captionQuest: CaptionQuestGame,
+  oppositeOrbit: OppositeOrbitGame,
+  scrambleSpell: ScrambleSpellGame,
+  oddOneOut: OddOneOutGame,
+  sizeLineUp: SizeLineUpGame,
+  chainLink: ChainLinkGame,
 };
 
 export const WORD_GAME_IDS = Object.keys(WORD_GAMES);
@@ -35,6 +45,11 @@ export const WORD_GAME_TITLES = {
   letterLift: "Letter Lift",
   syllableStamp: "Syllable Stamp",
   captionQuest: "Caption Quest",
+  oppositeOrbit: "Opposite Orbit",
+  scrambleSpell: "Scramble Spell",
+  oddOneOut: "Odd One Out",
+  sizeLineUp: "Size Line-Up",
+  chainLink: "Chain Link",
 };
 
 export function isWordGameId(id) {
