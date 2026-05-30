@@ -1,7 +1,7 @@
 import { useState } from "react";
 import GlobalHeader from "./globalHeader";
 import { User, Armchair, LogOut, ChevronDown } from "lucide-react";
-import { FURNITURE } from "../../utils/storage";
+import { FURNITURE, FURNITURE_CATEGORIES, getFurnitureSummary, getPlacedCount, getAvailableCount } from "../../utils/furnitureUtils";
 import {
   getProfileGameSections,
   getGameLevelSummary,
@@ -213,23 +213,63 @@ const ProfileView = ({ user, data, onBack, onHome, handleLogout }) => {
           </div>
 
           <h3 className="text-slate-400 font-bold uppercase text-sm mb-4 pl-2 flex items-center gap-2">
-            <Armchair size={16} /> Inventory
+            <Armchair size={16} /> Decor Collection
           </h3>
+
+          {data?.furniture && (
+            <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 mb-4">
+              <div className="text-xs text-slate-500 font-bold uppercase mb-3">
+                By category
+              </div>
+              <div className="space-y-2">
+                {FURNITURE_CATEGORIES.filter((c) => c.id !== "all").map((cat) => {
+                  const summary = getFurnitureSummary(data.furniture)[cat.id];
+                  if (!summary || summary.owned === 0) return null;
+                  return (
+                    <div
+                      key={cat.id}
+                      className="flex items-center justify-between text-sm py-1 border-b border-slate-800/60 last:border-0"
+                    >
+                      <span className="text-slate-300 font-bold">
+                        {cat.icon} {cat.label}
+                      </span>
+                      <span className="text-slate-500 text-xs">
+                        <span className="text-cyan-400">{summary.owned}</span> owned ·{" "}
+                        <span className="text-amber-400">{summary.placed}</span> placed ·{" "}
+                        <span className="text-emerald-400">{summary.available}</span> in bag
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4">
             {Object.keys(data?.furniture?.inventory || {}).length === 0 ? (
               <div className="text-center text-slate-600 py-4">
                 No items purchased yet.
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 {Object.entries(data.furniture.inventory).map(([id, count]) => {
                   const item = FURNITURE.find((f) => f.id === id);
                   if (!item || count === 0) return null;
+                  const placed = getPlacedCount(id, data.furniture);
+                  const available = getAvailableCount(id, data.furniture);
                   return (
-                    <div key={id} className="flex flex-col items-center">
-                      <div className="text-3xl mb-1">{item.icon}</div>
-                      <div className="text-[10px] font-bold text-slate-500">
-                        x{count}
+                    <div
+                      key={id}
+                      className="flex items-center gap-3 bg-slate-950/50 rounded-xl p-2 border border-slate-800"
+                    >
+                      <div className="text-2xl">{item.icon}</div>
+                      <div className="min-w-0 flex-1">
+                        <div className="text-xs font-bold text-white truncate">
+                          {item.name}
+                        </div>
+                        <div className="text-[10px] text-slate-500">
+                          {count} owned · {placed} placed · {available} free
+                        </div>
                       </div>
                     </div>
                   );

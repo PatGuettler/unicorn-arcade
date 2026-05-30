@@ -13,7 +13,7 @@ export const CATEGORIES = [
     title: "Word Games",
     icon: Type,
     color: "bg-purple-500",
-    desc: "Vocab & Spelling",
+    desc: "Vocab, spelling & word puzzles",
   },
   {
     id: "future",
@@ -21,6 +21,118 @@ export const CATEGORIES = [
     icon: Rocket,
     color: "bg-emerald-500",
     desc: "Experimental",
+  },
+];
+
+/** Sub-sections inside Word Games only (not top-level dashboard categories) */
+export const WORD_GAME_SECTIONS = [
+  {
+    id: "playground",
+    title: "Word Playground",
+    desc: "Rhymes, sentences, spelling & vocab",
+    icon: "🎪",
+    accent: "from-purple-600/20 to-pink-600/10 border-purple-500/30",
+    games: [
+      {
+        id: "unicornBlast",
+        title: "Unicorn Blast",
+        icon: "🎯",
+        desc: "Type words — cannon fires your unicorn!",
+      },
+      {
+        id: "rhymeRally",
+        title: "Rhyme Rally",
+        icon: "🎵",
+        desc: "Hop with rhymes",
+      },
+      {
+        id: "sentenceSprout",
+        title: "Sentence Sprout",
+        icon: "🌱",
+        desc: "Grow sentences word by word",
+      },
+      {
+        id: "missingMagic",
+        title: "Missing Magic",
+        icon: "✨",
+        desc: "Fill the story blank",
+      },
+      {
+        id: "sightSpark",
+        title: "Sight Spark",
+        icon: "⚡",
+        desc: "Flash words — type from memory",
+      },
+      {
+        id: "prefixPotion",
+        title: "Prefix Potion",
+        icon: "🧪",
+        desc: "Brew prefix + root words",
+      },
+      {
+        id: "vowelVines",
+        title: "Vowel Vines",
+        icon: "🌿",
+        desc: "Climb the right vowel vines",
+      },
+      {
+        id: "letterLift",
+        title: "Letter Lift",
+        icon: "🪜",
+        desc: "Type letters — unicorn climbs",
+      },
+      {
+        id: "syllableStamp",
+        title: "Syllable Stamp",
+        icon: "🦄",
+        desc: "Stamp syllables in order",
+      },
+      {
+        id: "captionQuest",
+        title: "Caption Quest",
+        icon: "📸",
+        desc: "Caption emoji scenes",
+      },
+    ],
+  },
+  {
+    id: "mysteries",
+    title: "Word Mysteries",
+    desc: "Detective logic — opposites, chains, sorting & secrets",
+    icon: "🔍",
+    accent: "from-indigo-600/25 to-violet-900/20 border-indigo-400/40",
+    games: [
+      {
+        id: "oppositeOrbit",
+        title: "Opposite Orbit",
+        icon: "🌓",
+        desc: "Spin to the word that means the opposite",
+      },
+      {
+        id: "scrambleSpell",
+        title: "Scramble Spell",
+        icon: "🔤",
+        desc: "Tap scrambled letters in the right order",
+      },
+      {
+        id: "oddOneOut",
+        title: "Odd One Out",
+        icon: "🕵️",
+        desc: "Find the item that does not belong",
+      },
+      {
+        id: "sizeLineUp",
+        title: "Size Line-Up",
+        icon: "📏",
+        desc: "Tap words shortest → longest",
+      },
+      {
+        id: "chainLink",
+        title: "Chain Link",
+        icon: "🔗",
+        desc: "Pick the word that continues the letter chain",
+      },
+    ],
   },
 ];
 
@@ -58,68 +170,7 @@ export const GAMES = {
       desc: "Tetris-style math equations",
     },
   ],
-  word: [
-    {
-      id: "unicornBlast",
-      title: "Unicorn Blast",
-      icon: "🎯",
-      desc: "Type words — cannon fires your unicorn!",
-    },
-    {
-      id: "rhymeRally",
-      title: "Rhyme Rally",
-      icon: "🎵",
-      desc: "Hop with rhymes",
-    },
-    {
-      id: "sentenceSprout",
-      title: "Sentence Sprout",
-      icon: "🌱",
-      desc: "Grow sentences word by word",
-    },
-    {
-      id: "missingMagic",
-      title: "Missing Magic",
-      icon: "✨",
-      desc: "Fill the story blank",
-    },
-    {
-      id: "sightSpark",
-      title: "Sight Spark",
-      icon: "⚡",
-      desc: "Flash words — type from memory",
-    },
-    {
-      id: "prefixPotion",
-      title: "Prefix Potion",
-      icon: "🧪",
-      desc: "Brew prefix + root words",
-    },
-    {
-      id: "vowelVines",
-      title: "Vowel Vines",
-      icon: "🌿",
-      desc: "Climb the right vowel vines",
-    },
-    {
-      id: "letterLift",
-      title: "Letter Lift",
-      icon: "🪜",
-      desc: "Type letters — unicorn climbs",
-    },
-    {
-      id: "syllableStamp",
-      title: "Syllable Stamp",
-      icon: "🦄",
-      desc: "Stamp syllables in order",
-    },
-    {
-      id: "captionQuest",
-      title: "Caption Quest",
-      icon: "📸",
-      desc: "Caption emoji scenes",
-    },
-  ],
+  word: WORD_GAME_SECTIONS.flatMap((s) => s.games),
   future: [
     {
       id: "spaceUnicorn",
@@ -132,10 +183,22 @@ export const GAMES = {
 
 /** Profile: games grouped by category (single source of truth) */
 export function getProfileGameSections() {
-  return CATEGORIES.map((category) => ({
-    ...category,
-    games: GAMES[category.id] || [],
-  })).filter((section) => section.games.length > 0);
+  return CATEGORIES.map((category) => {
+    if (category.id === "word") {
+      return {
+        ...category,
+        subsections: WORD_GAME_SECTIONS.map((sec) => ({
+          title: sec.title,
+          games: sec.games,
+        })),
+        games: GAMES.word,
+      };
+    }
+    return {
+      ...category,
+      games: GAMES[category.id] || [],
+    };
+  }).filter((section) => section.games.length > 0);
 }
 
 /** Best time per completed level from saved runs */
