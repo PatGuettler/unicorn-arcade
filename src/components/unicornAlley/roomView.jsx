@@ -1,7 +1,26 @@
-// components/unicornAlley/roomView.jsx
-import React, { useState, useRef, useEffect } from "react";
-import { Briefcase, X, RotateCw, Scaling } from "lucide-react";
-import { UNICORNS, FURNITURE } from "../../utils/storage";
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import {
+  Briefcase,
+  X,
+  RotateCw,
+  Scaling,
+  Grid3x3,
+  Trash2,
+  ChevronUp,
+  ChevronDown,
+} from "lucide-react";
+import { UNICORNS } from "../../utils/storage";
+import {
+  FURNITURE_CATEGORIES,
+  getFurnitureDef,
+  getAvailableCount,
+  getOwnedFurniture,
+  filterByCategory,
+  snapToGrid,
+  sortByZIndex,
+  getNextZIndex,
+} from "../../utils/furnitureUtils";
+import { UnicornAvatar } from "../assets/gameAssets";
 import GlobalHeader from "../shared/globalHeader";
 
 const RoomView = ({
@@ -9,43 +28,65 @@ const RoomView = ({
   userData,
   onPlaceItem,
   onRemoveItem,
+  onReorderItem,
+  onResetRoom,
   onBack,
   onHome,
 }) => {
   const [isBagOpen, setIsBagOpen] = useState(false);
+  const [bagCategory, setBagCategory] = useState("all");
+  const [gridSnap, setGridSnap] = useState(true);
+  const [selectedId, setSelectedId] = useState(null);
+  const [confirmReset, setConfirmReset] = useState(false);
+
   const unicorn = UNICORNS.find((u) => u.id === unicornId);
-
   const roomContainerRef = useRef(null);
-  const placedItems = userData.furniture.placements[unicornId] || [];
 
-  const getAvailableCount = (itemId) => {
-    const totalPurchased = userData.furniture.inventory[itemId] || 0;
-    let totalPlaced = 0;
-    Object.values(userData.furniture.placements).forEach((roomItems) => {
-      roomItems.forEach((i) => {
-        if (i.itemId === itemId) totalPlaced++;
-      });
-    });
-    return Math.max(0, totalPurchased - totalPlaced);
-  };
+  const placedItems = useMemo(
+    () => sortByZIndex(userData.furniture.placements[unicornId] || []),
+    [userData.furniture.placements, unicornId]
+  );
+
+  const ownedInBag = useMemo(() => {
+    const owned = getOwnedFurniture(userData.furniture);
+    return filterByCategory(owned, bagCategory).filter(
+      (f) => getAvailableCount(f.id, userData.furniture) > 0
+    );
+  }, [userData.furniture, bagCategory]);
 
   const spawnItem = (itemId) => {
-    if (getAvailableCount(itemId) > 0) {
-      const instanceId = Date.now().toString();
-      onPlaceItem(unicornId, {
-        instanceId,
-        itemId,
-        x: 50,
-        y: 50,
-        rotation: 0,
-        scale: 1,
-      });
-      setIsBagOpen(false);
+    if (getAvailableCount(itemId, userData.furniture) <= 0) return;
+    const instanceId = Date.now().toString();
+    const x = snapToGrid(50, gridSnap);
+    const y = snapToGrid(50, gridSnap);
+    onPlaceItem(unicornId, {
+      instanceId,
+      itemId,
+      x,
+      y,
+      rotation: 0,
+      scale: 1,
+      zIndex: getNextZIndex(placedItems),
+    });
+    setSelectedId(instanceId);
+    setIsBagOpen(false);
+  };
+
+  const handleReset = () => {
+    if (!confirmReset) {
+      setConfirmReset(true);
+      return;
     }
+    onResetRoom(unicornId);
+    setConfirmReset(false);
+    setSelectedId(null);
   };
 
   return (
-    <div className="w-full h-app bg-slate-950 flex flex-col overflow-hidden">
+    <div
+      className="w-full h-app bg-slate-950 flex flex-col overflow-hidden"
+      onClick={() => setSelectedId(null)}
+    >
       <GlobalHeader
         coins={userData.coins}
         onBack={onBack}
@@ -54,48 +95,98 @@ const RoomView = ({
         title={`${unicorn?.name}'s Room`}
       />
 
+      <div className="px-4 py-2 flex items-center justify-between gap-2 border-b border-slate-800/80">
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            setGridSnap((v) => !v);
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border ${
+            gridSnap
+              ? "bg-cyan-600/20 border-cyan-500 text-cyan-300"
+              : "bg-slate-900 border-slate-700 text-slate-400"
+          }`}
+        >
+          <Grid3x3 size={14} /> Grid Snap
+        </button>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            handleReset();
+          }}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold border ${
+            confirmReset
+              ? "bg-rose-600/30 border-rose-500 text-rose-300"
+              : "bg-slate-900 border-slate-700 text-slate-400"
+          }`}
+        >
+          <Trash2 size={14} />
+          {confirmReset ? "Confirm Reset?" : "Reset Room"}
+        </button>
+      </div>
+
       <div className="flex-1 flex items-center justify-center p-1 overflow-hidden w-full h-full relative">
-        {/* GAME BOARD WRAPPER */}
         <div
           ref={roomContainerRef}
-          className={`
-                relative shadow-2xl 
-                ${
-                  unicorn?.bgImage
-                    ? "rounded-2xl border border-slate-800 bg-slate-900"
-                    : "w-full h-full"
-                }
-            `}
+          className={`relative shadow-2xl ${
+            unicorn?.bgImage
+              ? "rounded-2xl border border-slate-800 bg-slate-900"
+              : "w-full h-full"
+          }`}
+          onClick={(e) => e.stopPropagation()}
         >
-          {/* 1. BACKGROUND LAYER */}
           {unicorn?.bgImage ? (
             <img
               src={unicorn.bgImage}
               alt="Room"
               style={{ backgroundColor: "#0f172a" }}
-              className="max-w-full max-h-[calc(100vh-6rem)] w-auto h-auto block rounded-2xl object-contain pointer-events-none select-none"
+              className="max-w-full max-h-[calc(100vh-8rem)] w-auto h-auto block rounded-2xl object-contain pointer-events-none select-none"
             />
           ) : (
-            // CSS MODE
             <div className={`absolute inset-0 ${unicorn?.style} opacity-100`}>
               <div className="absolute bottom-0 w-full h-1/3 bg-white/5 backdrop-blur-sm border-t border-white/10" />
             </div>
           )}
 
-          {/* 2. FURNITURE OVERLAY LAYER */}
+          {unicorn?.image && (
+            <div
+              className="absolute bottom-[12%] left-1/2 -translate-x-1/2 w-28 h-28 z-[5] pointer-events-none drop-shadow-2xl"
+              style={{ transform: "translateX(-50%)" }}
+            >
+              <UnicornAvatar
+                image={unicorn.image}
+                className="w-full h-full animate-float"
+                style={{ transform: `scale(${unicorn.scale ?? 1})` }}
+              />
+            </div>
+          )}
+
           <div className="absolute inset-0 overflow-hidden rounded-2xl">
             {placedItems.map((item) => {
-              const def = FURNITURE.find((f) => f.id === item.itemId);
+              const def = getFurnitureDef(item.itemId);
+              const isSelected = selectedId === item.instanceId;
               return (
                 <DraggableItem
                   key={item.instanceId}
                   def={def}
                   data={item}
+                  isSelected={isSelected}
+                  gridSnap={gridSnap}
                   containerRef={roomContainerRef}
+                  onSelect={() => setSelectedId(item.instanceId)}
                   onSave={(updates) =>
                     onPlaceItem(unicornId, { ...item, ...updates })
                   }
-                  onRemove={() => onRemoveItem(unicornId, item.instanceId)}
+                  onRemove={() => {
+                    onRemoveItem(unicornId, item.instanceId);
+                    if (selectedId === item.instanceId) setSelectedId(null);
+                  }}
+                  onSendBack={() =>
+                    onReorderItem(unicornId, item.instanceId, "back")
+                  }
+                  onBringFront={() =>
+                    onReorderItem(unicornId, item.instanceId, "front")
+                  }
                 />
               );
             })}
@@ -105,7 +196,10 @@ const RoomView = ({
 
       <div className="absolute bottom-safe right-4 z-50">
         <button
-          onClick={() => setIsBagOpen(true)}
+          onClick={(e) => {
+            e.stopPropagation();
+            setIsBagOpen(true);
+          }}
           className="w-16 h-16 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full shadow-lg border-4 border-white/20 flex items-center justify-center text-yellow-950 animate-bounce"
         >
           <Briefcase size={28} />
@@ -113,9 +207,15 @@ const RoomView = ({
       </div>
 
       {isBagOpen && (
-        <div className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end animate-fade-in">
-          <div className="w-full bg-slate-900 rounded-t-3xl p-6 border-t border-slate-700 h-[60vh] flex flex-col">
-            <div className="flex justify-between items-center mb-6">
+        <div
+          className="absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end animate-fade-in"
+          onClick={() => setIsBagOpen(false)}
+        >
+          <div
+            className="w-full bg-slate-900 rounded-t-3xl p-6 border-t border-slate-700 h-[65vh] flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
               <h2 className="text-white font-bold text-xl">Furniture Bag</h2>
               <button
                 onClick={() => setIsBagOpen(false)}
@@ -125,36 +225,60 @@ const RoomView = ({
               </button>
             </div>
 
-            <div className="grid grid-cols-3 gap-4 overflow-y-auto pb-8">
-              {FURNITURE.map((f) => {
-                const available = getAvailableCount(f.id);
-                return (
-                  <button
-                    key={f.id}
-                    onClick={() => spawnItem(f.id)}
-                    disabled={available <= 0}
-                    className={`p-4 rounded-xl border-2 flex flex-col items-center gap-2 relative ${
-                      available > 0
-                        ? "bg-slate-800 border-slate-700 active:border-cyan-500"
-                        : "bg-slate-900 border-slate-800 opacity-50 cursor-not-allowed"
-                    }`}
-                  >
-                    <div className="text-3xl">{f.icon}</div>
-                    <div className="text-xs text-slate-400 font-bold">
-                      {f.name}
-                    </div>
-                    <div
-                      className={`absolute top-2 right-2 text-[10px] font-black px-2 py-0.5 rounded-full ${
-                        available > 0
-                          ? "bg-emerald-500 text-emerald-950"
-                          : "bg-slate-700 text-slate-500"
-                      }`}
+            <div className="flex gap-2 overflow-x-auto pb-3 mb-2">
+              {FURNITURE_CATEGORIES.filter((c) => c.id !== "all").map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setBagCategory(cat.id)}
+                  className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border ${
+                    bagCategory === cat.id
+                      ? "bg-cyan-600/20 border-cyan-500 text-cyan-300"
+                      : "bg-slate-800 border-slate-700 text-slate-400"
+                  }`}
+                >
+                  {cat.icon} {cat.label}
+                </button>
+              ))}
+              <button
+                onClick={() => setBagCategory("all")}
+                className={`shrink-0 px-2.5 py-1.5 rounded-lg text-[10px] font-bold border ${
+                  bagCategory === "all"
+                    ? "bg-cyan-600/20 border-cyan-500 text-cyan-300"
+                    : "bg-slate-800 border-slate-700 text-slate-400"
+                }`}
+              >
+                ✨ All
+              </button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 overflow-y-auto pb-8">
+              {ownedInBag.length === 0 ? (
+                <p className="col-span-3 text-center text-slate-500 py-8 text-sm">
+                  No items in this category. Visit the Marketplace Decor tab!
+                </p>
+              ) : (
+                ownedInBag.map((f) => {
+                  const available = getAvailableCount(
+                    f.id,
+                    userData.furniture
+                  );
+                  return (
+                    <button
+                      key={f.id}
+                      onClick={() => spawnItem(f.id)}
+                      className="p-3 rounded-xl border-2 bg-slate-800 border-slate-700 active:border-cyan-500 flex flex-col items-center gap-1 relative"
                     >
-                      x{available}
-                    </div>
-                  </button>
-                );
-              })}
+                      <div className="text-3xl">{f.icon}</div>
+                      <div className="text-[10px] text-slate-400 font-bold text-center leading-tight">
+                        {f.name}
+                      </div>
+                      <div className="absolute top-1 right-1 text-[10px] font-black px-1.5 py-0.5 rounded-full bg-emerald-500 text-emerald-950">
+                        x{available}
+                      </div>
+                    </button>
+                  );
+                })
+              )}
             </div>
           </div>
         </div>
@@ -163,11 +287,22 @@ const RoomView = ({
   );
 };
 
-const DraggableItem = ({ def, data, onSave, onRemove, containerRef }) => {
+const DraggableItem = ({
+  def,
+  data,
+  isSelected,
+  gridSnap,
+  onSelect,
+  onSave,
+  onRemove,
+  onSendBack,
+  onBringFront,
+  containerRef,
+}) => {
   const [pos, setPos] = useState({ x: data.x, y: data.y });
   const [rotation, setRotation] = useState(data.rotation || 0);
   const [scale, setScale] = useState(data.scale || 1);
-  const [mode, setMode] = useState("none"); // 'none', 'moving', 'resizing'
+  const [mode, setMode] = useState("none");
 
   const startRef = useRef({ x: 0, y: 0, valX: 0, valY: 0, initialScale: 1 });
 
@@ -179,6 +314,7 @@ const DraggableItem = ({ def, data, onSave, onRemove, containerRef }) => {
 
   const handleStart = (e, interactionMode = "moving") => {
     e.stopPropagation();
+    onSelect();
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
@@ -198,23 +334,22 @@ const DraggableItem = ({ def, data, onSave, onRemove, containerRef }) => {
 
     const clientX = e.touches ? e.touches[0].clientX : e.clientX;
     const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-
     const rect = containerRef.current.getBoundingClientRect();
 
     if (mode === "moving") {
       const dX = clientX - startRef.current.x;
       const dY = clientY - startRef.current.y;
-
       const dXPercent = (dX / rect.width) * 100;
       const dYPercent = (dY / rect.height) * 100;
 
-      setPos({
-        x: Math.max(0, Math.min(95, startRef.current.valX + dXPercent)),
-        y: Math.max(0, Math.min(95, startRef.current.valY + dYPercent)),
-      });
+      let newX = Math.max(0, Math.min(95, startRef.current.valX + dXPercent));
+      let newY = Math.max(0, Math.min(95, startRef.current.valY + dYPercent));
+      newX = snapToGrid(newX, gridSnap);
+      newY = snapToGrid(newY, gridSnap);
+
+      setPos({ x: newX, y: newY });
     } else if (mode === "resizing") {
       const dX = clientX - startRef.current.x;
-      // Simple scaling based on horizontal drag distance
       const scaleDelta = dX * 0.005;
       const newScale = Math.max(
         0.5,
@@ -227,7 +362,7 @@ const DraggableItem = ({ def, data, onSave, onRemove, containerRef }) => {
   const handleEnd = () => {
     if (mode !== "none") {
       setMode("none");
-      onSave({ x: pos.x, y: pos.y, rotation, scale });
+      onSave({ x: pos.x, y: pos.y, rotation, scale, zIndex: data.zIndex });
     }
   };
 
@@ -235,17 +370,24 @@ const DraggableItem = ({ def, data, onSave, onRemove, containerRef }) => {
     e.stopPropagation();
     const newRotation = (rotation + 45) % 360;
     setRotation(newRotation);
-    onSave({ x: pos.x, y: pos.y, rotation: newRotation, scale });
+    onSave({ x: pos.x, y: pos.y, rotation: newRotation, scale, zIndex: data.zIndex });
   };
+
+  const showControls = isSelected;
 
   return (
     <div
-      className={`absolute flex flex-col items-center justify-center w-16 h-16 select-none z-20 transition-all cursor-move group
-      ${mode !== "none" ? "z-50" : ""}`}
+      className={`absolute flex flex-col items-center justify-center w-16 h-16 select-none cursor-move transition-all
+      ${mode !== "none" ? "z-[60]" : ""}`}
       style={{
         left: `${pos.x}%`,
         top: `${pos.y}%`,
         transform: `translate(-50%, -50%) rotate(${rotation}deg) scale(${scale})`,
+        zIndex: data.zIndex ?? 10,
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
       }}
       onTouchStart={(e) => handleStart(e, "moving")}
       onMouseDown={(e) => handleStart(e, "moving")}
@@ -256,45 +398,78 @@ const DraggableItem = ({ def, data, onSave, onRemove, containerRef }) => {
       onMouseLeave={handleEnd}
     >
       <div className="text-5xl drop-shadow-xl filter relative">
-        {def.icon}
-
-        {/* Border indicating selection/interaction */}
-        <div className="absolute inset-[-10px] border-2 border-white/0 group-hover:border-white/30 rounded-lg pointer-events-none transition-colors" />
+        {def?.icon}
+        <div
+          className={`absolute inset-[-10px] border-2 rounded-lg pointer-events-none transition-colors ${
+            showControls ? "border-cyan-400/80" : "border-white/0"
+          }`}
+        />
       </div>
 
-      {/* CONTROLS */}
-      {/* 1. Remove (Top Right) */}
-      <button
-        className="absolute -top-6 -right-6 bg-rose-500 text-white rounded-full p-1.5 shadow-md scale-0 group-hover:scale-100 transition-transform z-30 cursor-pointer"
-        onMouseDown={(e) => {
-          e.stopPropagation();
-          onRemove();
-        }}
-        onTouchStart={(e) => {
-          e.stopPropagation();
-          onRemove();
-        }}
-      >
-        <X size={14} />
-      </button>
-
-      {/* 2. Rotate (Top Left) */}
-      <button
-        className="absolute -top-6 -left-6 bg-blue-500 text-white rounded-full p-1.5 shadow-md scale-0 group-hover:scale-100 transition-transform z-30 cursor-pointer"
-        onMouseDown={handleRotate}
-        onTouchStart={handleRotate}
-      >
-        <RotateCw size={14} />
-      </button>
-
-      {/* 3. Resize Handle (Bottom Right) */}
-      <div
-        className="absolute -bottom-6 -right-6 bg-emerald-500 text-white rounded-full p-1.5 shadow-md scale-0 group-hover:scale-100 transition-transform z-30 cursor-ew-resize flex items-center justify-center"
-        onMouseDown={(e) => handleStart(e, "resizing")}
-        onTouchStart={(e) => handleStart(e, "resizing")}
-      >
-        <Scaling size={14} />
-      </div>
+      {showControls && (
+        <div className="absolute -top-14 left-1/2 -translate-x-1/2 flex gap-1 z-40 bg-slate-900/95 rounded-full px-2 py-1 border border-slate-600 shadow-lg">
+          <button
+            type="button"
+            className="bg-rose-500 text-white rounded-full p-1.5"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+              onRemove();
+            }}
+          >
+            <X size={12} />
+          </button>
+          <button
+            type="button"
+            className="bg-blue-500 text-white rounded-full p-1.5"
+            onMouseDown={handleRotate}
+            onTouchStart={handleRotate}
+          >
+            <RotateCw size={12} />
+          </button>
+          <button
+            type="button"
+            className="bg-emerald-500 text-white rounded-full p-1.5"
+            onMouseDown={(e) => handleStart(e, "resizing")}
+            onTouchStart={(e) => handleStart(e, "resizing")}
+          >
+            <Scaling size={12} />
+          </button>
+          <button
+            type="button"
+            className="bg-violet-600 text-white rounded-full p-1.5"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onSendBack();
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+              onSendBack();
+            }}
+            title="Send to back"
+          >
+            <ChevronDown size={12} />
+          </button>
+          <button
+            type="button"
+            className="bg-violet-600 text-white rounded-full p-1.5"
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              onBringFront();
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+              onBringFront();
+            }}
+            title="Bring to front"
+          >
+            <ChevronUp size={12} />
+          </button>
+        </div>
+      )}
     </div>
   );
 };

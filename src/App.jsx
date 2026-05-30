@@ -2,6 +2,12 @@ import React, { useState, useEffect } from "react";
 import { App as CapacitorApp } from "@capacitor/app";
 
 import { getDB, saveDB, UNICORNS } from "./utils/storage";
+import {
+  canPlaceItem,
+  reorderZIndex,
+  normalizePlacedItem,
+  getAvailableCount,
+} from "./utils/furnitureUtils";
 import UnicornJumpGame from "./games/unicornJump";
 import SlidingWindowGame from "./games/slidingWindow";
 import CoinCountGame from "./games/coinCount";
@@ -44,6 +50,11 @@ export default function App() {
     if (!data.ownedUnicorns) data.ownedUnicorns = ["sparkle"];
     if (!data.equippedUnicorn) data.equippedUnicorn = "sparkle";
     if (!data.furniture) data.furniture = { inventory: {}, placements: {} };
+    Object.keys(data.furniture.placements || {}).forEach((roomId) => {
+      data.furniture.placements[roomId] = (
+        data.furniture.placements[roomId] || []
+      ).map((item, index) => normalizePlacedItem(item, index));
+    });
     WORD_GAME_IDS.forEach((id) => {
       if (!data[id]) data[id] = { maxLevel: 0, times: [] };
     });
@@ -175,11 +186,60 @@ export default function App() {
       currentUserData.furniture.placements[unicornId] = [];
     }
 
+    const existing = currentUserData.furniture.placements[unicornId].find(
+      (i) => i.instanceId === itemInstance.instanceId
+    );
+
+    if (!existing && !canPlaceItem(itemInstance.itemId, currentUserData.furniture)) {
+      return;
+    }
+
     const list = currentUserData.furniture.placements[unicornId].filter(
       (i) => i.instanceId !== itemInstance.instanceId
     );
-    list.push(itemInstance);
+    list.push(normalizePlacedItem(itemInstance, list.length));
     currentUserData.furniture.placements[unicornId] = list;
+
+    db.users[user] = currentUserData;
+    saveDB(db);
+    setUserData({ ...currentUserData });
+  };
+
+  const handleReorderItem = (unicornId, instanceId, direction) => {
+    const db = getDB();
+    const currentUserData = ensureDataStructure(db.users[user]);
+    const room = currentUserData.furniture.placements[unicornId] || [];
+    currentUserData.furniture.placements[unicornId] = reorderZIndex(
+      room,
+      instanceId,
+      direction
+    );
+    db.users[user] = currentUserData;
+    saveDB(db);
+    setUserData({ ...currentUserData });
+  };
+
+  const handleResetRoom = (unicornId) => {
+    const db = getDB();
+    const currentUserData = ensureDataStructure(db.users[user]);
+    currentUserData.furniture.placements[unicornId] = [];
+    db.users[user] = currentUserData;
+    saveDB(db);
+    setUserData({ ...currentUserData });
+  };
+
+  const handleSellFurniture = (itemId, refundAmount) => {
+    const db = getDB();
+    const currentUserData = ensureDataStructure(db.users[user]);
+    const available = getAvailableCount(itemId, currentUserData.furniture);
+    if (available <= 0) return;
+
+    currentUserData.furniture.inventory[itemId] =
+      (currentUserData.furniture.inventory[itemId] || 0) - 1;
+    if (currentUserData.furniture.inventory[itemId] <= 0) {
+      delete currentUserData.furniture.inventory[itemId];
+    }
+    currentUserData.coins += refundAmount;
 
     db.users[user] = currentUserData;
     saveDB(db);
@@ -278,9 +338,11 @@ export default function App() {
           userData={userData}
           onBuy={handleBuyUnicorn}
           onBuyFurniture={handleBuyFurniture}
+          onSellFurniture={handleSellFurniture}
           onEquip={handleEquipUnicorn}
           onBack={() => setCurrentView("home")}
           onHome={goHome}
+          onGoAlley={() => setCurrentView("alley")}
         />
         {/* {shouldShowAdBar && <AdBar />} */}
       </>
@@ -292,6 +354,9 @@ export default function App() {
         <UnicornAlleyView
           userData={userData}
           onEnterRoom={enterRoom}
+          onShop={(unicornId) => {
+            setCurrentView("shop");
+          }}
           onBack={() => setCurrentView("home")}
           onHome={goHome}
         />
@@ -307,6 +372,8 @@ export default function App() {
           userData={userData}
           onPlaceItem={handlePlaceItem}
           onRemoveItem={handleRemoveItem}
+          onReorderItem={handleReorderItem}
+          onResetRoom={handleResetRoom}
           onBack={() => setCurrentView("alley")}
           onHome={goHome}
         />

@@ -58,7 +58,18 @@ export const GAMES = {
       desc: "Tetris-style math equations",
     },
   ],
-  word: [
+  word: [],
+};
+
+/** Sub-sections inside Word Games (not top-level categories like Number/Future) */
+export const WORD_GAME_SECTIONS = [
+  {
+    id: "playground",
+    title: "Word Playground",
+    desc: "Rhymes, sentences, spelling & vocab",
+    icon: "🎪",
+    accent: "from-purple-600/20 to-pink-600/10 border-purple-500/30",
+    games: [
     {
       id: "unicornBlast",
       title: "Unicorn Blast",
@@ -119,8 +130,59 @@ export const GAMES = {
       icon: "📸",
       desc: "Caption emoji scenes",
     },
-  ],
-  future: [
+    ],
+  },
+  {
+    id: "mysteries",
+    title: "Word Mysteries",
+    desc: "Detective logic — opposites, chains, sorting & secrets",
+    icon: "🔍",
+    accent: "from-indigo-600/25 to-violet-900/20 border-indigo-400/40",
+    games: [
+      {
+        id: "oppositeOrbit",
+        title: "Opposite Orbit",
+        icon: "🌓",
+        desc: "Spin to the word that means the opposite",
+      },
+      {
+        id: "scrambleSpell",
+        title: "Scramble Spell",
+        icon: "🔤",
+        desc: "Tap scrambled letters in the right order",
+      },
+      {
+        id: "oddOneOut",
+        title: "Odd One Out",
+        icon: "🕵️",
+        desc: "Find the item that does not belong",
+      },
+      {
+        id: "sizeLineUp",
+        title: "Size Line-Up",
+        icon: "📏",
+        desc: "Tap words shortest → longest",
+      },
+      {
+        id: "chainLink",
+        title: "Chain Link",
+        icon: "🔗",
+        desc: "Pick the word that continues the letter chain",
+      },
+    ],
+  },
+];
+
+/** Flat list of all word games (profile, progress keys) */
+GAMES.word = WORD_GAME_SECTIONS.flatMap((s) => s.games);
+
+export const GAMES_WITH_SECTIONS = {
+  ...GAMES,
+  word: WORD_GAME_SECTIONS,
+};
+
+const _gamesExport = {
+  number: [
     {
       id: "spaceUnicorn",
       title: "Space Unicorn",

@@ -126,13 +126,12 @@ Unlock adorable unicorn companions by earning coins through gameplay:
 
 ## Unicorn Alley
 
-Visit your unicorns' homes and decorate them with:
+Visit your unicorns' homes on the alley map and decorate each room (Animal Crossing–style):
 
-- Furniture (beds, tables, chairs)
-- Lighting (lamps, chandeliers, candles)
-- Decorations (rugs, plants, toys)
-- Seasonal items (Christmas, Halloween)
-- Pets and companions
+- **Marketplace Decor tab** — Browse by category, search items, read flavor descriptions, buy or sell back (50% refund) unused stock
+- **Furniture Bag** — Place owned items per room; filter by category; shared inventory across all houses
+- **Room editor** — Tap items to select; drag, rotate, resize; grid snap toggle; layer forward/back; reset room
+- **Catalog** — 100+ items including cozy, kitchen, nature, wall, luxury, unicorn-themed, and seasonal decor (see `src/data/furnitureCatalog.js`)
 
 ## Tech Stack
 
@@ -182,11 +181,11 @@ Edit `src/utils/storage.js`:
 
 ### Adding Furniture
 
-Edit `src/utils/storage.js`:
+Edit `src/data/furnitureCatalog.js`:
 
-- Add items to `FURNITURE` array
-- Set prices and emoji icons
-- Items automatically appear in the shop
+- Add items to the `FURNITURE` array with `id`, `name`, `price`, `icon`, `category`, `rarity`, and `desc`
+- Categories are defined in `FURNITURE_CATEGORIES`
+- Items automatically appear in the Marketplace Decor tab and Furniture Bag
 
 ## Configuration Files
 
