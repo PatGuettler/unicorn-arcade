@@ -21,9 +21,55 @@ const ROWS = 14;
 const MATRIS_GRID = { cols: COLS, rows: ROWS, gap: 2, gridPadding: 8 };
 const SWIPE_MIN_PX = 22;
 const TAP_MAX_PX = 12;
+const FALLING_SWIPE_PX = 14;
+const FALLING_MOVE_MS = 40;
+
+function getFallingList(g) {
+  if (!g.fallingList) {
+    g.fallingList = g.falling
+      ? [{ ...g.falling, id: g.falling.id ?? 1 }]
+      : [];
+    g.falling = null;
+  }
+  return g.fallingList;
+}
 
 function isFallingAt(g, r, c) {
-  return g.falling && g.falling.row === r && g.falling.col === c;
+  return getFallingList(g).some((p) => p.row === r && p.col === c);
+}
+
+function findFallingAt(g, r, c) {
+  return getFallingList(g).find((p) => p.row === r && p.col === c);
+}
+
+function cellBlockedForPiece(g, r, c, pieceId) {
+  if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return true;
+  if (g.board[r]?.[c]) return true;
+  return getFallingList(g).some(
+    (p) => p.id !== pieceId && p.row === r && p.col === c
+  );
+}
+
+function isTopRowFull(board) {
+  return board[0].some(Boolean);
+}
+
+function endGameTopOut(g) {
+  g.phase = "over";
+  g.message = "Blocks hit the top!";
+  g.fallingList = [];
+  g.falling = null;
+}
+
+/** More blocks fall at once as the round goes on */
+function getConcurrentDropCount(elapsedSec, level) {
+  let n = 1;
+  if (elapsedSec >= 35) n = 2;
+  if (elapsedSec >= 70) n = 3;
+  if (elapsedSec >= 110) n = 4;
+  if (elapsedSec >= 150) n = 5;
+  if (level >= 12) n = Math.min(5, n + 1);
+  return n;
 }
 
 // Block visual config
@@ -127,17 +173,19 @@ function getDropInterval(level, dropsPlaced = 0, elapsedSec = 0) {
   return Math.max(90, ms);
 }
 
-function getOpenSpawnColumns(board) {
+function getOpenSpawnColumns(board, fallingList = []) {
   const open = [];
   for (let c = 0; c < COLS; c++) {
-    if (!board[0][c]) open.push(c);
+    if (board[0][c]) continue;
+    if (fallingList.some((p) => p.row === 0 && p.col === c)) continue;
+    open.push(c);
   }
   return open;
 }
 
 /** Random open column; avoid repeating the same lane when possible */
-function pickSpawnColumn(board, lastCol = -1) {
-  const open = getOpenSpawnColumns(board);
+function pickSpawnColumn(board, lastCol = -1, fallingList = []) {
+  const open = getOpenSpawnColumns(board, fallingList);
   if (!open.length) return -1;
   if (open.length === 1) return open[0];
   const choices = lastCol >= 0 ? open.filter((c) => c !== lastCol) : open;
@@ -235,7 +283,7 @@ function refillBag(cfg) {
   return shuffle(bag);
 }
 
-function countTokens(board, falling, next) {
+function countTokens(board, fallingList, next, nextQueue = []) {
   const counts = {};
   const add = (v) => {
     if (!v) return;
@@ -246,8 +294,9 @@ function countTokens(board, falling, next) {
       if (board[r][c]) add(board[r][c].value);
     }
   }
-  if (falling?.value) add(falling.value);
+  (fallingList || []).forEach((p) => add(p.value));
   if (next?.value) add(next.value);
+  (nextQueue || []).forEach((n) => add(n.value));
   return counts;
 }
 
@@ -315,7 +364,12 @@ function getLineMissingPieces(board, cfg) {
 
 function getSpawnPriority(g) {
   const cfg = getLevelConfig(g.level);
-  const counts = countTokens(g.board, g.falling, g.next);
+  const counts = countTokens(
+    g.board,
+    getFallingList(g),
+    g.next,
+    g.nextQueue
+  );
   const pri = [];
 
   for (const [v, target] of Object.entries(cfg.idealStock)) {
@@ -507,8 +561,12 @@ export default function Mathtris({
   // All mutable game state lives in a ref to avoid stale closures in setInterval.
   const G = useRef({
     board:      makeBoard(),
-    falling:    null,       // { value, row, col } | null
+    falling:    null,       // legacy; use fallingList
+    fallingList: [],
     next:       { value: "1" },
+    nextQueue:  [],
+    fallIdSeq:  0,
+    activeFallingId: null,
     score:      0,
     level:      1,
     phase:      "idle",     // "idle" | "playing" | "clearing" | "over"
@@ -625,6 +683,12 @@ export default function Mathtris({
         g2.phase = "playing";
         g2.blocksSinceClear = 0;
 
+        if (isTopRowFull(g2.board)) {
+          endGameTopOut(g2);
+          draw();
+          return;
+        }
+
         if (g2.level > g.level) {
           const newCfg = getLevelConfig(g2.level);
           g2.blockBag = refillBag(newCfg);
@@ -695,11 +759,11 @@ export default function Mathtris({
       return;
     }
 
-    if (g.falling) {
-      const fb = g.falling;
-      g.board[fb.row][fb.col] = { value: fb.value };
-      g.falling = null;
-    }
+    getFallingList(g).forEach((p) => {
+      g.board[p.row][p.col] = { value: p.value };
+    });
+    g.fallingList = [];
+    g.falling = null;
 
     runClearAnimation(result.board, result.flashCells, {
       scoreBonus: result.scoreBonus,
@@ -709,41 +773,84 @@ export default function Mathtris({
     });
   }, [unicornId, runClearAnimation, draw, dismissHint]);
 
-  // ── Settle a fallen block ────────────────────────────────────────────────
-  const doSettle = useCallback(() => {
-    const g = G.current;
-    const fb = g.falling;
-    if (!fb) return;
-    const nb = g.board.map((r) => [...r]);
-    nb[fb.row][fb.col] = { value: fb.value };
-    g.falling = null;
-    g.dropsPlaced = (g.dropsPlaced || 0) + 1;
-    if (!handleClear(nb)) {
-      g.board = nb;
-      g.blocksSinceClear += 1;
-      draw();
+  const dequeueNextBlock = useCallback((g) => {
+    if (!g.nextQueue?.length) {
+      g.nextQueue = [pickNextBlock(g)];
     }
-  }, [handleClear, draw]);
-
-  const spawnNextPiece = useCallback((g) => {
-    const col = pickSpawnColumn(g.board, g.lastSpawnCol);
-    if (col < 0) {
-      g.phase = "over";
-      return false;
+    const block = g.nextQueue.shift();
+    g.next = g.nextQueue[0] || pickNextBlock(g);
+    while (g.nextQueue.length < 3) {
+      g.nextQueue.push(pickNextBlock(g));
     }
-    g.lastSpawnCol = col;
-    g.falling = { ...g.next, row: 0, col };
-    g.next = pickNextBlock(g);
-    return true;
+    return block;
   }, []);
+
+  const settleFallingOntoBoard = useCallback(
+    (g, nb, settledCount) => {
+      g.dropsPlaced = (g.dropsPlaced || 0) + settledCount;
+      if (isTopRowFull(nb)) {
+        g.board = nb;
+        endGameTopOut(g);
+        return true;
+      }
+      if (!handleClear(nb)) {
+        g.board = nb;
+        g.blocksSinceClear += settledCount;
+      }
+      if (isTopRowFull(g.board)) {
+        endGameTopOut(g);
+        return true;
+      }
+      return false;
+    },
+    [handleClear]
+  );
+
+  const spawnWave = useCallback(
+    (g) => {
+      const elapsedSec =
+        timerStartRef.current > 0
+          ? (Date.now() - timerStartRef.current) / 1000
+          : 0;
+      const want = getConcurrentDropCount(elapsedSec, g.level);
+      const existing = getFallingList(g);
+      const spawning = [];
+      let lastCol = g.lastSpawnCol;
+
+      for (let i = 0; i < want; i++) {
+        const col = pickSpawnColumn(g.board, lastCol, [...existing, ...spawning]);
+        if (col < 0) break;
+        lastCol = col;
+        const block = dequeueNextBlock(g);
+        g.fallIdSeq = (g.fallIdSeq || 0) + 1;
+        spawning.push({
+          id: g.fallIdSeq,
+          value: block.value,
+          row: 0,
+          col,
+        });
+      }
+
+      if (!spawning.length) {
+        endGameTopOut(g);
+        return false;
+      }
+
+      g.lastSpawnCol = lastCol;
+      g.fallingList = [...existing, ...spawning];
+      return true;
+    },
+    [dequeueNextBlock]
+  );
 
   // ── Advance the game one tick ────────────────────────────────────────────
   const doStep = useCallback(() => {
     const g = G.current;
     if (g.phase !== "playing") return;
 
-    if (!g.falling) {
-      if (!spawnNextPiece(g)) {
+    const list = getFallingList(g);
+    if (!list.length) {
+      if (!spawnWave(g)) {
         draw();
         return;
       }
@@ -751,15 +858,31 @@ export default function Mathtris({
       return;
     }
 
-    const fb = g.falling;
-    const nr = fb.row + 1;
-    if (nr >= ROWS || g.board[nr][fb.col]) {
-      doSettle();
-    } else {
-      g.falling = { ...fb, row: nr };
-      draw();
+    const nb = g.board.map((r) => [...r]);
+    const stillFalling = [];
+    let settled = 0;
+
+    for (const p of list) {
+      const nr = p.row + 1;
+      if (nr >= ROWS || cellBlockedForPiece(g, nr, p.col, p.id)) {
+        nb[p.row][p.col] = { value: p.value };
+        settled++;
+      } else {
+        p.row = nr;
+        stillFalling.push(p);
+      }
     }
-  }, [doSettle, draw, spawnNextPiece]);
+
+    g.fallingList = stillFalling;
+
+    if (settled > 0) {
+      if (settleFallingOntoBoard(g, nb, settled)) {
+        draw();
+        return;
+      }
+    }
+    draw();
+  }, [draw, spawnWave, settleFallingOntoBoard]);
 
   stepRef.current = doStep;
 
@@ -787,31 +910,71 @@ export default function Mathtris({
   }, []);
 
   // ── Keyboard controls ────────────────────────────────────────────────────
+  const nudgeFallingPiece = useCallback(
+    (pieceId, dir) => {
+      const g = G.current;
+      if (g.phase !== "playing") return;
+      const p = getFallingList(g).find((x) => x.id === pieceId);
+      if (!p) return;
+
+      if (dir === "left") {
+        const nc = p.col - 1;
+        if (nc >= 0 && !cellBlockedForPiece(g, p.row, nc, p.id)) {
+          p.col = nc;
+          draw();
+        }
+      } else if (dir === "right") {
+        const nc = p.col + 1;
+        if (nc < COLS && !cellBlockedForPiece(g, p.row, nc, p.id)) {
+          p.col = nc;
+          draw();
+        }
+      } else if (dir === "down") {
+        const nr = p.row + 1;
+        if (nr >= ROWS || cellBlockedForPiece(g, nr, p.col, p.id)) {
+          const nb = g.board.map((r) => [...r]);
+          nb[p.row][p.col] = { value: p.value };
+          g.fallingList = getFallingList(g).filter((x) => x.id !== p.id);
+          settleFallingOntoBoard(g, nb, 1);
+        } else {
+          p.row = nr;
+          draw();
+        }
+      }
+    },
+    [draw, settleFallingOntoBoard]
+  );
+
+  const nudgeActiveOrAll = useCallback(
+    (dir) => {
+      const g = G.current;
+      const list = getFallingList(g);
+      if (!list.length) return;
+      const target =
+        list.find((p) => p.id === g.activeFallingId) || list[0];
+      nudgeFallingPiece(target.id, dir);
+    },
+    [nudgeFallingPiece]
+  );
+
   useEffect(() => {
     const onKey = (e) => {
       const g = G.current;
-      if (g.phase !== "playing" || !g.falling) return;
-      const fb = g.falling;
+      if (g.phase !== "playing" || !getFallingList(g).length) return;
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        if (fb.col > 0 && !g.board[fb.row][fb.col - 1]) {
-          g.falling = { ...fb, col: fb.col - 1 }; draw();
-        }
+        nudgeActiveOrAll("left");
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        if (fb.col < COLS - 1 && !g.board[fb.row][fb.col + 1]) {
-          g.falling = { ...fb, col: fb.col + 1 }; draw();
-        }
+        nudgeActiveOrAll("right");
       } else if (e.key === "ArrowDown") {
         e.preventDefault();
-        const nr = fb.row + 1;
-        if (nr >= ROWS || g.board[nr][fb.col]) doSettle();
-        else { g.falling = { ...fb, row: nr }; draw(); }
+        nudgeActiveOrAll("down");
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [doSettle, draw]);
+  }, [nudgeActiveOrAll]);
 
   // ── Swap (tap or swipe) ─────────────────────────────────────────────────
   const swapCells = useCallback(
@@ -864,27 +1027,33 @@ export default function Mathtris({
     [swapCells, draw]
   );
 
-  const nudgeFalling = useCallback(
-    (dir) => {
-      const g = G.current;
-      if (g.phase !== "playing" || !g.falling) return;
-      const fb = g.falling;
-      if (dir === "left" && fb.col > 0 && !g.board[fb.row][fb.col - 1]) {
-        g.falling = { ...fb, col: fb.col - 1 };
-        draw();
-      } else if (dir === "right" && fb.col < COLS - 1 && !g.board[fb.row][fb.col + 1]) {
-        g.falling = { ...fb, col: fb.col + 1 };
-        draw();
-      } else if (dir === "down") {
-        const nr = fb.row + 1;
-        if (nr >= ROWS || g.board[nr][fb.col]) doSettle();
-        else {
-          g.falling = { ...fb, row: nr };
-          draw();
-        }
+  const processFallingSwipe = useCallback(
+    (start, clientX, clientY) => {
+      if (start.fallingId == null) return false;
+      const dx = clientX - start.x;
+      const dy = clientY - start.y;
+      if (Math.abs(dx) < FALLING_SWIPE_PX && dy < FALLING_SWIPE_PX) return false;
+
+      const now = Date.now();
+      if (now - (start.lastMoveAt || 0) < FALLING_MOVE_MS) return true;
+
+      if (Math.abs(dx) >= FALLING_SWIPE_PX && Math.abs(dx) >= Math.abs(dy)) {
+        nudgeFallingPiece(start.fallingId, dx > 0 ? "right" : "left");
+        start.lastMoveAt = now;
+        start.x = clientX;
+        start.y = clientY;
+        return true;
       }
+      if (dy >= FALLING_SWIPE_PX && dy > Math.abs(dx)) {
+        nudgeFallingPiece(start.fallingId, "down");
+        start.lastMoveAt = now;
+        start.x = clientX;
+        start.y = clientY;
+        return true;
+      }
+      return true;
     },
-    [doSettle, draw]
+    [nudgeFallingPiece]
   );
 
   const gridPointerRef = useRef(null);
@@ -907,6 +1076,11 @@ export default function Mathtris({
         skipClickRef.current = false;
       }, 350);
 
+      if (start.fallingId != null) {
+        processFallingSwipe(start, e.clientX, e.clientY);
+        return;
+      }
+
       if (dist < TAP_MAX_PX) {
         onCellClick(r, c);
         return;
@@ -919,10 +1093,15 @@ export default function Mathtris({
       else if (Math.abs(dy) > Math.abs(dx)) dr = dy > 0 ? 1 : -1;
       else return;
 
-      if (isFallingAt(g, r, c)) {
-        if (dc === -1) nudgeFalling("left");
-        else if (dc === 1) nudgeFalling("right");
-        else if (dr === 1) nudgeFalling("down");
+      const fallingPiece = findFallingAt(g, r, c) || (start.fallingId
+        ? getFallingList(g).find((p) => p.id === start.fallingId)
+        : null);
+      if (fallingPiece || start.fallingId != null) {
+        const id = fallingPiece?.id ?? start.fallingId;
+        g.activeFallingId = id;
+        if (dc === -1) nudgeFallingPiece(id, "left");
+        else if (dc === 1) nudgeFallingPiece(id, "right");
+        else if (dr === 1) nudgeFallingPiece(id, "down");
         return;
       }
 
@@ -939,20 +1118,37 @@ export default function Mathtris({
         swapCells(g.selected.r, g.selected.c, tr, tc);
       }
     },
-    [onCellClick, swapCells, nudgeFalling]
+    [onCellClick, swapCells, nudgeFallingPiece, processFallingSwipe]
+  );
+
+  const onGridPointerMove = useCallback(
+    (e) => {
+      const start = gridPointerRef.current;
+      if (!start || start.pointerId !== e.pointerId) return;
+      if (start.fallingId == null) return;
+      processFallingSwipe(start, e.clientX, e.clientY);
+    },
+    [processFallingSwipe]
   );
 
   const onGridPointerDown = useCallback((e) => {
-    if (G.current.phase !== "playing") return;
+    const g = G.current;
+    if (g.phase !== "playing") return;
     if (e.pointerType === "mouse" && e.button !== 0) return;
     const cell = e.target.closest("[data-mcell]");
     if (!cell) return;
+    const r = Number(cell.dataset.r);
+    const c = Number(cell.dataset.c);
+    const piece = findFallingAt(g, r, c);
+    if (piece) g.activeFallingId = piece.id;
     gridPointerRef.current = {
-      r: Number(cell.dataset.r),
-      c: Number(cell.dataset.c),
+      r,
+      c,
+      fallingId: piece?.id ?? null,
       x: e.clientX,
       y: e.clientY,
       pointerId: e.pointerId,
+      lastMoveAt: 0,
     };
     try {
       e.currentTarget.setPointerCapture(e.pointerId);
@@ -973,15 +1169,19 @@ export default function Mathtris({
     [handleGridPointerUp]
   );
 
-  const moveLeft = () => nudgeFalling("left");
-  const moveRight = () => nudgeFalling("right");
-  const moveDown = () => nudgeFalling("down");
+  const moveLeft = () => nudgeActiveOrAll("left");
+  const moveRight = () => nudgeActiveOrAll("right");
+  const moveDown = () => nudgeActiveOrAll("down");
 
   const startGame = useCallback(() => {
     const g = G.current;
     g.level = 1;
     g.board = seedBoardBottomPile(g.level);
     g.falling = null;
+    g.fallingList = [];
+    g.fallIdSeq = 0;
+    g.activeFallingId = null;
+    g.nextQueue = [];
     g.score = 0;
     g.phase = "playing";
     g.selected = null;
@@ -989,6 +1189,7 @@ export default function Mathtris({
     g.message = "";
     initSpawnState(g);
     g.next = pickNextBlock(g);
+    g.nextQueue = [pickNextBlock(g), pickNextBlock(g), pickNextBlock(g)];
     setElapsedTime(0);
     timerStartRef.current = Date.now();
     setShowHint(false);
@@ -1009,9 +1210,20 @@ export default function Mathtris({
       : []
   );
   const display = g.board.map((r) => r.map((c) => (c ? { ...c } : null)));
-  if (g.falling) {
-    display[g.falling.row][g.falling.col] = { value: g.falling.value, isFalling: true };
-  }
+  getFallingList(g).forEach((p) => {
+    display[p.row][p.col] = {
+      value: p.value,
+      isFalling: true,
+      fallingId: p.id,
+    };
+  });
+  const elapsedForHud =
+    timerStartRef.current > 0
+      ? (Date.now() - timerStartRef.current) / 1000
+      : 0;
+  const incomingCount = getFallingList(g).length
+    ? 0
+    : getConcurrentDropCount(elapsedForHud, g.level);
 
   const ctrlSize = Math.max(44, Math.min(56, Math.round(cell * 1.2)));
   const ctrlBtn = {
@@ -1144,6 +1356,7 @@ export default function Mathtris({
           <div
             className="mathtris-grid"
             onPointerDown={onGridPointerDown}
+            onPointerMove={onGridPointerMove}
             onPointerUp={onGridPointerUp}
             onPointerCancel={() => {
               gridPointerRef.current = null;
@@ -1187,6 +1400,7 @@ export default function Mathtris({
                       isHint          ? "cell-hint" :
                       boardCell?.isFalling ? "cell-fall" : ""
                     }
+                    data-falling={boardCell?.isFalling ? "true" : undefined}
                     style={{
                       width: cell,
                       height: cell,
@@ -1257,7 +1471,14 @@ export default function Mathtris({
                 {g.phase === "over" ? "Game Over!" : "Ready?"}
               </div>
               {g.phase === "over" && (
-                <div style={{ color: "#FFD700", fontSize: "1.3rem" }}>⭐ Score: {g.score}</div>
+                <>
+                  {g.message && (
+                    <div style={{ color: "#fca5a5", fontSize: "1rem", textAlign: "center", maxWidth: 280 }}>
+                      {g.message}
+                    </div>
+                  )}
+                  <div style={{ color: "#FFD700", fontSize: "1.3rem" }}>⭐ Score: {g.score}</div>
+                </>
               )}
               {g.phase === "idle" && (
                 <div style={{ color: "rgba(236,72,153,0.9)", fontSize: "0.85rem", textAlign: "center", maxWidth: 260, lineHeight: 1.5 }}>
@@ -1361,7 +1582,9 @@ export default function Mathtris({
           )}
 
           <div style={{ background: "rgba(255,255,255,0.08)", borderRadius: 14, padding: "12px 14px", border: "2px solid rgba(255,255,255,0.14)" }}>
-            <div style={{ opacity: 0.65, fontSize: "0.85rem", marginBottom: 8 }}>⏭ Next:</div>
+            <div style={{ opacity: 0.65, fontSize: "0.85rem", marginBottom: 8 }}>
+              ⏭ Next{incomingCount > 1 ? ` (+${incomingCount - 1} more)` : ""}:
+            </div>
             {(() => {
               const nv = g.next.value;
               const nc = BLOCK_CFG[nv];
@@ -1380,7 +1603,9 @@ export default function Mathtris({
               <div>⬅️ ➡️ Move block</div>
               <div>⬇️ Drop faster</div>
               <div>👆 Tap or swipe to swap blocks!</div>
-              <div>👆 Swipe the falling block to move it!</div>
+              <div>👆 Swipe falling blocks to move (works while they drop!)</div>
+              <div>⚠️ Blocks reach the top = game over</div>
+              <div>⏱️ Long rounds drop more blocks at once!</div>
               <div style={{ opacity: 0.75, fontSize: "0.75rem" }}>Speed rises over time!</div>
               <div>🦄 Solve 3 equations → tap unicorn to blast!</div>
               <div style={{ marginTop: 10, borderTop: "1px solid rgba(255,255,255,0.12)", paddingTop: 10, color: "#a0f0c0" }}>
