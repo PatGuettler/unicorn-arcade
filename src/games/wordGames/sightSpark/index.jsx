@@ -6,10 +6,11 @@ import { wordsForLevel } from "../shared/wordLists";
 import { targetForLevel } from "../shared/useWordLevel";
 
 export default function SightSparkGame({
-  onExit, onHome, lastCompletedLevel = 0, onSaveProgress, calcCoins, coins, unicornImage,
+  onExit, onHome, lastCompletedLevel = 0, onSaveProgress, calcCoins, coins, onSpendCoins, unicornImage,
 }) {
-  const { gameState, level, elapsedTime, startGame, completeLevel, failLevel } =
-    useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress });
+  const {
+    gameState, level, elapsedTime, showHint, startGame, registerMove, buyHint, completeLevel, failLevel, hintCost,
+  } = useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress, onSpendCoins });
 
   const [round, setRound] = useState(0);
   const [target, setTarget] = useState(5);
@@ -17,6 +18,11 @@ export default function SightSparkGame({
   const [phase, setPhase] = useState("ready");
   const [input, setInput] = useState("");
   const timerRef = useRef(null);
+
+  const expectedWord = () => {
+    const list = wordsForLevel(level);
+    return list[(round + level) % list.length];
+  };
 
   const launch = (lvl) => {
     setRound(0);
@@ -47,9 +53,8 @@ export default function SightSparkGame({
   const submit = (e) => {
     e.preventDefault();
     if (phase !== "type" || gameState !== "playing") return;
-    const list = wordsForLevel(level);
-    const expected = list[(round + level) % list.length];
-    if (input.trim().toLowerCase() === expected) {
+    if (input.trim().toLowerCase() === expectedWord()) {
+      registerMove(true);
       const nr = round + 1;
       setInput("");
       if (nr >= target) completeLevel();
@@ -59,6 +64,8 @@ export default function SightSparkGame({
       }
     } else failLevel();
   };
+
+  const displayWord = phase === "flash" ? flash : showHint && phase === "type" ? expectedWord() : "?";
 
   return (
     <WordGameShell
@@ -70,6 +77,10 @@ export default function SightSparkGame({
       level={level}
       elapsedTime={elapsedTime}
       unicornImage={unicornImage}
+      onBuyHint={buyHint}
+      showHint={showHint}
+      hintCost={hintCost}
+      isFreeHint={level === 1}
       footer={
         phase === "type" ? (
           <form onSubmit={submit} className="px-4 pb-6">
@@ -98,10 +109,10 @@ export default function SightSparkGame({
           </div>
         )}
         <p className="text-sm text-slate-400">
-          {phase === "flash" ? "Unicorn flashes the word…" : "Now type it!"}
+          {phase === "flash" ? "Unicorn flashes the word…" : showHint ? "Hint revealed!" : "Now type it!"}
         </p>
-        <div className="text-5xl font-black min-h-[4rem] text-yellow-300">
-          {phase === "flash" ? flash : "?"}
+        <div className={`text-5xl font-black min-h-[4rem] ${showHint && phase === "type" ? "text-yellow-300 animate-pulse" : "text-yellow-300"}`}>
+          {displayWord}
         </div>
         <p className="text-xs text-slate-500">{round + 1}/{target}</p>
       </div>

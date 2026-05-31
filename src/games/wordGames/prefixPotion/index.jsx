@@ -6,10 +6,11 @@ import { PREFIX_MIX, pickForLevel, shuffle } from "../shared/wordLists";
 import { targetForLevel } from "../shared/useWordLevel";
 
 export default function PrefixPotionGame({
-  onExit, onHome, lastCompletedLevel = 0, onSaveProgress, calcCoins, coins, unicornImage,
+  onExit, onHome, lastCompletedLevel = 0, onSaveProgress, calcCoins, coins, onSpendCoins, unicornImage,
 }) {
-  const { gameState, level, elapsedTime, startGame, completeLevel, failLevel } =
-    useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress });
+  const {
+    gameState, level, elapsedTime, showHint, startGame, registerMove, buyHint, completeLevel, failLevel, hintCost,
+  } = useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress, onSpendCoins });
 
   const [round, setRound] = useState(0);
   const [target, setTarget] = useState(5);
@@ -35,6 +36,7 @@ export default function PrefixPotionGame({
   const brew = (word) => {
     if (gameState !== "playing" || !mix) return;
     if (word === mix.answer) {
+      registerMove(true);
       const nr = round + 1;
       if (nr >= target) completeLevel();
       else {
@@ -54,6 +56,10 @@ export default function PrefixPotionGame({
       level={level}
       elapsedTime={elapsedTime}
       unicornImage={unicornImage}
+      onBuyHint={buyHint}
+      showHint={showHint}
+      hintCost={hintCost}
+      isFreeHint={level === 1}
       victory={{
         failReason: "Brew the real word!",
         coinsEarned: gameState === "levelComplete" && calcCoins ? calcCoins(level) : 0,
@@ -72,20 +78,29 @@ export default function PrefixPotionGame({
           <span>+</span>
           <span className="px-3 py-2 bg-fuchsia-800 rounded-lg">{mix?.root}</span>
           <span>=</span>
-          <span className="text-pink-300">?</span>
+          <span className={showHint ? "text-yellow-300" : "text-pink-300"}>
+            {showHint ? mix?.answer : "?"}
+          </span>
         </div>
         <p className="text-xs text-slate-500">{round + 1}/{target}</p>
         <div className="grid gap-2 w-full max-w-xs">
-          {mix?.choices.map((c) => (
-            <button
-              key={c}
-              type="button"
-              onClick={() => brew(c)}
-              className="py-3 rounded-xl bg-slate-800/90 border-2 border-violet-500/40 font-bold"
-            >
-              {c}
-            </button>
-          ))}
+          {mix?.choices.map((c) => {
+            const highlight = showHint && c === mix.answer;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => brew(c)}
+                className={`py-3 rounded-xl border-2 font-bold ${
+                  highlight
+                    ? "bg-yellow-900/30 border-yellow-400 ring-2 ring-yellow-400/60"
+                    : "bg-slate-800/90 border-violet-500/40"
+                }`}
+              >
+                {c}
+              </button>
+            );
+          })}
         </div>
       </div>
     </WordGameShell>

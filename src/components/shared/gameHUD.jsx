@@ -76,7 +76,7 @@ const GameHUD = ({
       </div>
 
       {/* Hint Button */}
-      {gameState === "playing" && (
+      {gameState === "playing" && onBuyHint && (
         <button
           type="button"
           onClick={onBuyHint}

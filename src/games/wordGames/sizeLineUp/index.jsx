@@ -6,10 +6,11 @@ import { SIZE_LINEUPS, pickForLevel, shuffle } from "../wordMysteries/lists";
 import { targetForLevel } from "../shared/useWordLevel";
 
 export default function SizeLineUpGame({
-  onExit, onHome, lastCompletedLevel = 0, onSaveProgress, calcCoins, coins, unicornImage,
+  onExit, onHome, lastCompletedLevel = 0, onSaveProgress, calcCoins, coins, onSpendCoins, unicornImage,
 }) {
-  const { gameState, level, elapsedTime, startGame, completeLevel, failLevel } =
-    useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress });
+  const {
+    gameState, level, elapsedTime, showHint, startGame, registerMove, buyHint, completeLevel, failLevel, hintCost,
+  } = useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress, onSpendCoins });
 
   const [round, setRound] = useState(0);
   const [target, setTarget] = useState(5);
@@ -33,13 +34,15 @@ export default function SizeLineUpGame({
 
   useEffect(() => { launch(lastCompletedLevel || 1); }, []);
 
+  const nextWord = lineup?.order[sorted.length];
+
   const tapWord = (word, idx) => {
     if (gameState !== "playing" || !lineup) return;
-    const expect = lineup.order[sorted.length];
-    if (word !== expect) {
+    if (word !== nextWord) {
       failLevel();
       return;
     }
+    registerMove(true);
     const ns = [...sorted, word];
     setSorted(ns);
     setPool((p) => p.filter((_, i) => i !== idx));
@@ -63,6 +66,10 @@ export default function SizeLineUpGame({
       level={level}
       elapsedTime={elapsedTime}
       unicornImage={unicornImage}
+      onBuyHint={buyHint}
+      showHint={showHint}
+      hintCost={hintCost}
+      isFreeHint={level === 1}
       hudProgress={round + 1}
       hudTarget={target}
       hudProgressLabel="Line-ups"
@@ -82,6 +89,9 @@ export default function SizeLineUpGame({
           </div>
         )}
         <p className="text-teal-300 text-sm font-bold">Tap from shortest → longest</p>
+        {showHint && nextWord && (
+          <p className="text-yellow-300 text-sm font-bold animate-pulse">Next: {nextWord}</p>
+        )}
         <div className="flex gap-2 min-h-[3rem] flex-wrap justify-center max-w-sm">
           {sorted.map((w, i) => (
             <span
@@ -94,16 +104,23 @@ export default function SizeLineUpGame({
           ))}
         </div>
         <div className="flex flex-col gap-2 w-full max-w-xs">
-          {pool.map((w, i) => (
-            <button
-              key={`${w}-${i}`}
-              type="button"
-              onClick={() => tapWord(w, i)}
-              className="py-3 rounded-xl bg-slate-800 border-2 border-teal-500/40 font-bold active:scale-95"
-            >
-              {w} <span className="text-slate-500 text-xs">({w.length} letters)</span>
-            </button>
-          ))}
+          {pool.map((w, i) => {
+            const highlight = showHint && w === nextWord;
+            return (
+              <button
+                key={`${w}-${i}`}
+                type="button"
+                onClick={() => tapWord(w, i)}
+                className={`py-3 rounded-xl border-2 font-bold active:scale-95 ${
+                  highlight
+                    ? "bg-yellow-900/30 border-yellow-400 ring-2 ring-yellow-400/60"
+                    : "bg-slate-800 border-teal-500/40"
+                }`}
+              >
+                {w} <span className="text-slate-500 text-xs">({w.length} letters)</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </WordGameShell>

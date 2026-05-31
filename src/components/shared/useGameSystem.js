@@ -61,7 +61,7 @@ export const useGameSystem = ({
       return;
     }
 
-    if (onSpendCoins(hintCost)) {
+    if (onSpendCoins && onSpendCoins(hintCost)) {
       setShowHint(true);
     }
   };

@@ -6,10 +6,11 @@ import { SCRAMBLE_PUZZLES, pickForLevel, shuffle } from "../wordMysteries/lists"
 import { targetForLevel } from "../shared/useWordLevel";
 
 export default function ScrambleSpellGame({
-  onExit, onHome, lastCompletedLevel = 0, onSaveProgress, calcCoins, coins, unicornImage,
+  onExit, onHome, lastCompletedLevel = 0, onSaveProgress, calcCoins, coins, onSpendCoins, unicornImage,
 }) {
-  const { gameState, level, elapsedTime, startGame, completeLevel, failLevel } =
-    useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress });
+  const {
+    gameState, level, elapsedTime, showHint, startGame, registerMove, buyHint, completeLevel, failLevel, hintCost,
+  } = useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress, onSpendCoins });
 
   const [round, setRound] = useState(0);
   const [target, setTarget] = useState(5);
@@ -33,13 +34,15 @@ export default function ScrambleSpellGame({
 
   useEffect(() => { launch(lastCompletedLevel || 1); }, []);
 
+  const nextLetter = puzzle?.word[picked.length];
+
   const tapLetter = (letter, idx) => {
     if (gameState !== "playing" || !puzzle) return;
-    const expect = puzzle.word[picked.length];
-    if (letter !== expect) {
+    if (letter !== nextLetter) {
       failLevel();
       return;
     }
+    registerMove(true);
     const np = [...picked, letter];
     setPicked(np);
     setPool((prev) => prev.filter((_, i) => i !== idx));
@@ -63,6 +66,10 @@ export default function ScrambleSpellGame({
       level={level}
       elapsedTime={elapsedTime}
       unicornImage={unicornImage}
+      onBuyHint={buyHint}
+      showHint={showHint}
+      hintCost={hintCost}
+      isFreeHint={level === 1}
       hudProgress={round + 1}
       hudTarget={target}
       hudProgressLabel="Words"
@@ -80,6 +87,11 @@ export default function ScrambleSpellGame({
         )}
         <p className="text-2xl">{puzzle?.emoji}</p>
         <p className="text-slate-300 text-center text-sm font-bold max-w-xs">{puzzle?.hint}</p>
+        {showHint && nextLetter && (
+          <p className="text-yellow-300 text-sm font-bold animate-pulse uppercase">
+            Next letter: {nextLetter}
+          </p>
+        )}
         <div className="flex gap-1 min-h-[2.5rem] flex-wrap justify-center max-w-xs">
           {picked.map((l, i) => (
             <span key={i} className="w-9 h-9 flex items-center justify-center rounded-lg bg-indigo-900 border border-indigo-400 font-black text-lg uppercase">
@@ -91,16 +103,23 @@ export default function ScrambleSpellGame({
           ))}
         </div>
         <div className="flex flex-wrap gap-2 justify-center max-w-sm">
-          {pool.map((l, i) => (
-            <button
-              key={`${l}-${i}`}
-              type="button"
-              onClick={() => tapLetter(l, i)}
-              className="w-11 h-11 rounded-xl bg-violet-900/70 border-2 border-violet-400/50 font-black text-lg uppercase active:scale-95"
-            >
-              {l}
-            </button>
-          ))}
+          {pool.map((l, i) => {
+            const highlight = showHint && l === nextLetter;
+            return (
+              <button
+                key={`${l}-${i}`}
+                type="button"
+                onClick={() => tapLetter(l, i)}
+                className={`w-11 h-11 rounded-xl border-2 font-black text-lg uppercase active:scale-95 ${
+                  highlight
+                    ? "bg-yellow-900/40 border-yellow-400 ring-2 ring-yellow-400/60"
+                    : "bg-violet-900/70 border-violet-400/50"
+                }`}
+              >
+                {l}
+              </button>
+            );
+          })}
         </div>
       </div>
     </WordGameShell>

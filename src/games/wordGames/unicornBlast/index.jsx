@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useGameSystem } from "../../../components/shared/useGameSystem";
 import WordGameShell from "../shared/WordGameShell";
 import CannonArena from "../shared/CannonArena";
@@ -12,10 +12,12 @@ export default function UnicornBlastGame({
   onSaveProgress,
   calcCoins,
   coins,
+  onSpendCoins,
   unicornImage,
 }) {
-  const { gameState, level, elapsedTime, startGame, completeLevel, failLevel } =
-    useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress });
+  const {
+    gameState, level, elapsedTime, showHint, startGame, registerMove, buyHint, completeLevel, failLevel, hintCost,
+  } = useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress, onSpendCoins });
 
   const [words, setWords] = useState([]);
   const [input, setInput] = useState("");
@@ -33,6 +35,14 @@ export default function UnicornBlastGame({
 
   const getSpeed = (lvl) => 0.12 + lvl * 0.015;
   const getSpawnMs = (lvl) => Math.max(1400, 2800 - lvl * 120);
+
+  const urgentWord = useMemo(
+    () =>
+      words
+        .filter((w) => !w.destroyed)
+        .sort((a, b) => b.y - a.y)[0]?.text,
+    [words]
+  );
 
   const launch = useCallback(
     (lvl) => {
@@ -148,6 +158,7 @@ export default function UnicornBlastGame({
     setInput("");
     if (inputRef.current) inputRef.current.value = "";
 
+    registerMove(true);
     setDone((d) => {
       const n = d + 1;
       if (n >= target) {
@@ -178,6 +189,10 @@ export default function UnicornBlastGame({
       level={level}
       elapsedTime={elapsedTime}
       unicornImage={unicornImage}
+      onBuyHint={buyHint}
+      showHint={showHint}
+      hintCost={hintCost}
+      isFreeHint={level === 1}
       hudProgress={done}
       hudTarget={target}
       hudProgressLabel="Blasts"
@@ -185,6 +200,11 @@ export default function UnicornBlastGame({
       footer={
         <div className="px-4 pb-6 pt-2">
           <div className="max-w-md mx-auto bg-slate-900/90 border-2 border-pink-500/40 rounded-2xl p-4">
+            {showHint && urgentWord && (
+              <p className="text-center text-yellow-300 font-bold text-sm mb-2 animate-pulse">
+                Blast: {urgentWord}
+              </p>
+            )}
             <p className="text-center text-[10px] uppercase tracking-wider text-pink-300/80 mb-2">
               Type the word — your unicorn fires from the cannon!
             </p>

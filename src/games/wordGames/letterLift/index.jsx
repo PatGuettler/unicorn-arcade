@@ -6,10 +6,11 @@ import { wordsForLevel } from "../shared/wordLists";
 import { targetForLevel } from "../shared/useWordLevel";
 
 export default function LetterLiftGame({
-  onExit, onHome, lastCompletedLevel = 0, onSaveProgress, calcCoins, coins, unicornImage,
+  onExit, onHome, lastCompletedLevel = 0, onSaveProgress, calcCoins, coins, onSpendCoins, unicornImage,
 }) {
-  const { gameState, level, elapsedTime, startGame, completeLevel, failLevel } =
-    useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress });
+  const {
+    gameState, level, elapsedTime, showHint, startGame, registerMove, buyHint, completeLevel, failLevel, hintCost,
+  } = useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress, onSpendCoins });
 
   const [round, setRound] = useState(0);
   const [target, setTarget] = useState(5);
@@ -38,6 +39,7 @@ export default function LetterLiftGame({
     const ch = e.key.toLowerCase();
     if (ch.length !== 1 || !/[a-z]/.test(ch)) return;
     if (ch === word[index]) {
+      registerMove(true);
       const ni = index + 1;
       setIndex(ni);
       setTyped((t) => t + ch);
@@ -69,6 +71,10 @@ export default function LetterLiftGame({
       level={level}
       elapsedTime={elapsedTime}
       unicornImage={unicornImage}
+      onBuyHint={buyHint}
+      showHint={showHint}
+      hintCost={hintCost}
+      isFreeHint={level === 1}
       victory={{
         failReason: "Type each letter to lift your unicorn!",
         coinsEarned: gameState === "levelComplete" && calcCoins ? calcCoins(level) : 0,
@@ -91,9 +97,15 @@ export default function LetterLiftGame({
           )}
         </div>
         <p className="text-3xl font-black tracking-[0.4em]">{typed}</p>
-        <p className="text-slate-500 text-sm">
-          Next letter: <span className="text-pink-300 font-bold">{word[index] || "✓"}</span>
-        </p>
+        {showHint ? (
+          <p className="text-yellow-300 font-bold animate-pulse">
+            Spell: <span className="uppercase">{word}</span>
+          </p>
+        ) : (
+          <p className="text-slate-500 text-sm">
+            Next letter: <span className="text-pink-300 font-bold">{word[index] || "✓"}</span>
+          </p>
+        )}
         <p className="text-xs text-slate-500">{round + 1}/{target} words</p>
       </div>
     </WordGameShell>

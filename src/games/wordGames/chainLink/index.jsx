@@ -6,10 +6,11 @@ import { CHAIN_LINKS, pickForLevel, shuffle } from "../wordMysteries/lists";
 import { targetForLevel } from "../shared/useWordLevel";
 
 export default function ChainLinkGame({
-  onExit, onHome, lastCompletedLevel = 0, onSaveProgress, calcCoins, coins, unicornImage,
+  onExit, onHome, lastCompletedLevel = 0, onSaveProgress, calcCoins, coins, onSpendCoins, unicornImage,
 }) {
-  const { gameState, level, elapsedTime, startGame, completeLevel, failLevel } =
-    useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress });
+  const {
+    gameState, level, elapsedTime, showHint, startGame, registerMove, buyHint, completeLevel, failLevel, hintCost,
+  } = useGameSystem({ initialLevel: lastCompletedLevel || 1, onSaveProgress, onSpendCoins });
 
   const [round, setRound] = useState(0);
   const [target, setTarget] = useState(5);
@@ -32,6 +33,7 @@ export default function ChainLinkGame({
   const extend = (word) => {
     if (gameState !== "playing" || !link) return;
     if (word === link.answer) {
+      registerMove(true);
       const nr = round + 1;
       if (nr >= target) completeLevel();
       else {
@@ -53,6 +55,10 @@ export default function ChainLinkGame({
       level={level}
       elapsedTime={elapsedTime}
       unicornImage={unicornImage}
+      onBuyHint={buyHint}
+      showHint={showHint}
+      hintCost={hintCost}
+      isFreeHint={level === 1}
       hudProgress={round + 1}
       hudTarget={target}
       hudProgressLabel="Links"
@@ -79,16 +85,23 @@ export default function ChainLinkGame({
           Next word must start with &quot;{lastLetter.toLowerCase()}&quot;
         </p>
         <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-          {link?.options.map((o) => (
-            <button
-              key={o}
-              type="button"
-              onClick={() => extend(o)}
-              className="py-4 rounded-2xl bg-slate-800 border-2 border-cyan-600/40 font-bold hover:border-cyan-400 active:scale-95 capitalize"
-            >
-              {o}
-            </button>
-          ))}
+          {link?.options.map((o) => {
+            const highlight = showHint && o === link.answer;
+            return (
+              <button
+                key={o}
+                type="button"
+                onClick={() => extend(o)}
+                className={`py-4 rounded-2xl border-2 font-bold active:scale-95 capitalize ${
+                  highlight
+                    ? "bg-yellow-900/30 border-yellow-400 ring-2 ring-yellow-400/60"
+                    : "bg-slate-800 border-cyan-600/40 hover:border-cyan-400"
+                }`}
+              >
+                {o}
+              </button>
+            );
+          })}
         </div>
       </div>
     </WordGameShell>
