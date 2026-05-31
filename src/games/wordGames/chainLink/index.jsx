@@ -30,9 +30,13 @@ export default function ChainLinkGame({
 
   useEffect(() => { launch(lastCompletedLevel || 1); }, []);
 
+  const requiredLetter = link?.start?.slice(-1)?.toLowerCase() || "";
+  const isValidLink = (word) =>
+    !!requiredLetter && word?.[0]?.toLowerCase() === requiredLetter;
+
   const extend = (word) => {
     if (gameState !== "playing" || !link) return;
-    if (word === link.answer) {
+    if (isValidLink(word)) {
       registerMove(true);
       const nr = round + 1;
       if (nr >= target) completeLevel();
@@ -43,7 +47,7 @@ export default function ChainLinkGame({
     } else failLevel();
   };
 
-  const lastLetter = link?.start?.slice(-1)?.toUpperCase() || "?";
+  const lastLetter = requiredLetter.toUpperCase() || "?";
 
   return (
     <WordGameShell
@@ -86,7 +90,7 @@ export default function ChainLinkGame({
         </p>
         <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
           {link?.options.map((o) => {
-            const highlight = showHint && o === link.answer;
+            const highlight = showHint && isValidLink(o);
             return (
               <button
                 key={o}

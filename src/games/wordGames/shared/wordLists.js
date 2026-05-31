@@ -1,129 +1,28 @@
-/** Shared vocabulary & prompts for word games (ages 6–8) */
+/**
+ * Shared vocabulary & prompts for word games (ages 6–8).
+ *
+ * Every list is ordered EASY -> HARD. Difficulty scaling and variety are handled
+ * by `pickForLevel`, which slides a selection window deeper into each list as the
+ * level (passed as a seed) grows, while still picking randomly inside that window
+ * so the same word does not appear every time. All lists are static module-level
+ * constants, so building them costs nothing at runtime.
+ */
 
-export const FALLING_WORDS = {
-  easy: ["cat", "dog", "sun", "run", "hop", "big", "red", "sit", "cup", "map"],
-  medium: [
-    "cloud", "happy", "music", "spark", "light", "dream", "shine", "magic",
-    "story", "plant", "friend", "smile", "water", "green", "sweet",
-  ],
-  hard: [
-    "rainbow", "unicorn", "sparkle", "wonder", "garden", "castle", "adventure",
-    "beautiful", "together", "morning", "butterfly", "chocolate",
-  ],
-};
-
-export function wordsForLevel(level) {
-  if (level <= 4) return FALLING_WORDS.easy;
-  if (level <= 10) return FALLING_WORDS.medium;
-  return FALLING_WORDS.hard;
-}
-
-export const RHYME_CHALLENGES = [
-  { prompt: "cat", answer: "hat", options: ["hat", "dog", "cup", "pen"] },
-  { prompt: "sun", answer: "fun", options: ["fun", "cat", "bed", "log"] },
-  { prompt: "hop", answer: "top", options: ["top", "red", "sit", "map"] },
-  { prompt: "light", answer: "night", options: ["night", "cloud", "tree", "fish"] },
-  { prompt: "star", answer: "car", options: ["car", "moon", "blue", "rain"] },
-  { prompt: "ring", answer: "sing", options: ["sing", "gold", "wing", "king"] },
-  { prompt: "bee", answer: "tree", options: ["tree", "sky", "ant", "owl"] },
-  { prompt: "boat", answer: "coat", options: ["coat", "ship", "lake", "sand"] },
-];
-
-export const SENTENCE_BUILD = [
-  { words: ["The", "unicorn", "loves", "rainbows"], hint: "The unicorn loves rainbows" },
-  { words: ["I", "can", "read", "books"], hint: "I can read books" },
-  { words: ["We", "play", "in", "sun"], hint: "We play in sun" },
-  { words: ["My", "friend", "is", "kind"], hint: "My friend is kind" },
-  { words: ["She", "has", "a", "red", "hat"], hint: "She has a red hat" },
-];
-
-export const MISSING_WORD = [
-  { text: ["The", null, "runs fast."], answer: "dog", options: ["dog", "blue", "happy"] },
-  { text: ["I see a", null, "in the sky."], answer: "star", options: ["star", "chair", "jump"] },
-  { text: ["We", null, "to school."], answer: "walk", options: ["walk", "apple", "cloud"] },
-  { text: ["The", null, "is pink."], answer: "flower", options: ["flower", "run", "five"] },
-  { text: ["My", null, "reads stories."], answer: "mom", options: ["mom", "fast", "green"] },
-];
-
-export const PREFIX_MIX = [
-  { prefix: "un", root: "happy", answer: "unhappy", wrong: ["rehappy", "happyun"] },
-  { prefix: "re", root: "play", answer: "replay", wrong: ["playre", "unplay"] },
-  { prefix: "pre", root: "view", answer: "preview", wrong: ["viewpre", "review"] },
-  { prefix: "dis", root: "like", answer: "dislike", wrong: ["likeun", "mislike"] },
-  { prefix: "mis", root: "spell", answer: "misspell", wrong: ["spellre", "unspell"] },
-];
-
-/** Words that actually start with each vowel letter (matches Vowel Vines rules) */
-export const VOWEL_WORDS = {
-  a: ["ant", "and", "at", "am", "ask", "arm", "ash"],
-  e: ["egg", "elf", "end", "eat", "eel", "ever"],
-  i: ["it", "in", "is", "if", "ill", "ink", "into"],
-  o: ["on", "ox", "off", "odd", "owl", "one", "open"],
-  u: ["up", "us", "urn", "use", "upon", "under", "ugly"],
-};
-
-export const SYLLABLE_WORDS = [
-  { word: "rain-bow", parts: ["rain", "bow"] },
-  { word: "uni-corn", parts: ["uni", "corn"] },
-  { word: "hap-py", parts: ["hap", "py"] },
-  { word: "kit-ten", parts: ["kit", "ten"] },
-  { word: "but-ter-fly", parts: ["but", "ter", "fly"] },
-];
-
-/** Tap-the-word captions (ages 6–8) — one clear answer per scene */
-export const CAPTION_SCENES = [
-  {
-    emoji: "🦄🌈",
-    prompt: "What is the colorful arc?",
-    answer: "rainbow",
-    options: ["rainbow", "pizza", "chair", "truck"],
-  },
-  {
-    emoji: "📚😊",
-    prompt: "What do you do with a book?",
-    answer: "read",
-    options: ["read", "sleep", "drive", "cook"],
-  },
-  {
-    emoji: "🌸🐝",
-    prompt: "What grows in the garden?",
-    answer: "flower",
-    options: ["flower", "rocket", "pencil", "hammer"],
-  },
-  {
-    emoji: "🌙⭐",
-    prompt: "When the moon is out, it is...",
-    answer: "night",
-    options: ["night", "lunch", "morning", "noon"],
-  },
-  {
-    emoji: "🎵💃",
-    prompt: "Move your body to music!",
-    answer: "dance",
-    options: ["dance", "sit", "nap", "hide"],
-  },
-  {
-    emoji: "☀️🌻",
-    prompt: "Bright sky in the day — the...",
-    answer: "sun",
-    options: ["sun", "moon", "rain", "snow"],
-  },
-  {
-    emoji: "🐱😺",
-    prompt: "Soft pet that says meow",
-    answer: "cat",
-    options: ["cat", "car", "cup", "cap"],
-  },
-  {
-    emoji: "🦄💕",
-    prompt: "How does your unicorn feel?",
-    answer: "happy",
-    options: ["happy", "angry", "table", "brick"],
-  },
-];
-
-export function pickForLevel(arr, level) {
-  const idx = (level - 1) % arr.length;
+/**
+ * Pick an item from an easy->hard ordered list, scaling difficulty with the seed.
+ * @param {Array} arr  list ordered from easiest to hardest
+ * @param {number} seed usually (level + round); higher = harder words unlocked
+ */
+export function pickForLevel(arr, seed) {
+  const len = arr.length;
+  if (len === 0) return undefined;
+  const s = Math.max(1, seed || 1);
+  // Hardest index unlocked so far (grows with the seed, capped at list length).
+  const ceil = Math.min(len, Math.max(4, Math.round(s * 1.5)));
+  // Keep a window of recent difficulty so easy words still show up occasionally.
+  const floor = Math.max(0, ceil - Math.max(5, Math.round(ceil * 0.6)));
+  const span = Math.max(1, ceil - floor);
+  const idx = Math.min(len - 1, floor + Math.floor(Math.random() * span));
   return arr[idx];
 }
 
@@ -135,3 +34,180 @@ export function shuffle(arr) {
   }
   return a;
 }
+
+/** Falling-word pools for typing games (Letter Lift, Sight Spark, Unicorn Blast). */
+export const FALLING_WORDS = {
+  easy: [
+    "cat", "dog", "sun", "run", "hop", "big", "red", "sit", "cup", "map",
+    "bug", "hat", "pig", "fox", "box", "bed", "pen", "net", "jam", "top",
+    "mud", "log", "fan", "kit", "wig", "tub", "yak", "zip", "gum", "ten",
+  ],
+  medium: [
+    "cloud", "happy", "music", "spark", "light", "dream", "shine", "magic",
+    "story", "plant", "smile", "water", "green", "sweet", "bloom", "cheer",
+    "brave", "frost", "glide", "honey", "jolly", "lucky", "ocean", "peach",
+    "quilt", "river", "sunny", "tiger", "vivid", "whale", "zebra", "candy",
+  ],
+  hard: [
+    "rainbow", "unicorn", "sparkle", "wonder", "garden", "castle", "blossom",
+    "morning", "dolphin", "diamond", "feather", "harmony", "journey", "kitten",
+    "lantern", "meadow", "october", "pumpkin", "rocket", "sunrise", "treasure",
+    "village", "whisper", "crystal", "glitter", "machine", "penguin",
+  ],
+  expert: [
+    "adventure", "beautiful", "together", "butterfly", "chocolate", "celebrate",
+    "dandelion", "everywhere", "fantastic", "gingerbread", "happiness",
+    "incredible", "jellyfish", "kangaroo", "lighthouse", "marshmallow",
+    "playground", "remarkable", "strawberry", "watermelon", "wonderful",
+  ],
+};
+
+export function wordsForLevel(level) {
+  if (level <= 3) return FALLING_WORDS.easy;
+  if (level <= 8) return FALLING_WORDS.medium;
+  if (level <= 14) return FALLING_WORDS.hard;
+  return FALLING_WORDS.expert;
+}
+
+/** Rhyme Rally — ordered easy -> hard. Distractors never rhyme with the prompt. */
+export const RHYME_CHALLENGES = [
+  { prompt: "cat", answer: "hat", options: ["hat", "dog", "cup", "pen"] },
+  { prompt: "sun", answer: "fun", options: ["fun", "cat", "bed", "log"] },
+  { prompt: "hop", answer: "top", options: ["top", "red", "sit", "map"] },
+  { prompt: "bug", answer: "rug", options: ["rug", "fan", "kit", "den"] },
+  { prompt: "pig", answer: "wig", options: ["wig", "box", "mud", "tub"] },
+  { prompt: "bee", answer: "tree", options: ["tree", "sky", "ant", "owl"] },
+  { prompt: "car", answer: "star", options: ["star", "moon", "blue", "rain"] },
+  { prompt: "cake", answer: "lake", options: ["lake", "milk", "frog", "wind"] },
+  { prompt: "ring", answer: "king", options: ["king", "gold", "ball", "song"] },
+  { prompt: "boat", answer: "coat", options: ["coat", "ship", "sand", "fish"] },
+  { prompt: "light", answer: "night", options: ["night", "cloud", "tree", "grass"] },
+  { prompt: "snail", answer: "trail", options: ["trail", "shell", "pond", "leaf"] },
+  { prompt: "sing", answer: "wing", options: ["wing", "drum", "note", "horn"] },
+  { prompt: "mouse", answer: "house", options: ["house", "cheese", "tail", "barn"] },
+  { prompt: "spoon", answer: "moon", options: ["moon", "fork", "plate", "bowl"] },
+  { prompt: "frog", answer: "log", options: ["log", "pond", "hop", "lily"] },
+  { prompt: "bright", answer: "kite", options: ["kite", "dark", "shade", "cloud"] },
+  { prompt: "snake", answer: "rake", options: ["rake", "grass", "hiss", "scale"] },
+  { prompt: "queen", answer: "green", options: ["green", "crown", "royal", "throne"] },
+  { prompt: "flower", answer: "tower", options: ["tower", "petal", "stem", "vase"] },
+  { prompt: "thunder", answer: "wonder", options: ["wonder", "storm", "flash", "rain"] },
+  { prompt: "feather", answer: "weather", options: ["weather", "bird", "soft", "fluff"] },
+  { prompt: "dragon", answer: "wagon", options: ["wagon", "fire", "scale", "knight"] },
+  { prompt: "balloon", answer: "cartoon", options: ["cartoon", "float", "string", "party"] },
+];
+
+/** Sentence Sprout — ordered easy -> hard (short to long). */
+export const SENTENCE_BUILD = [
+  { words: ["I", "can", "hop"] },
+  { words: ["We", "play", "now"] },
+  { words: ["The", "dog", "runs"] },
+  { words: ["I", "see", "the", "sun"] },
+  { words: ["My", "cat", "is", "soft"] },
+  { words: ["We", "play", "in", "snow"] },
+  { words: ["She", "has", "a", "hat"] },
+  { words: ["The", "bird", "can", "fly"] },
+  { words: ["I", "like", "to", "read", "books"] },
+  { words: ["My", "friend", "is", "very", "kind"] },
+  { words: ["The", "unicorn", "loves", "bright", "rainbows"] },
+  { words: ["We", "build", "a", "sand", "castle"] },
+  { words: ["The", "happy", "frog", "jumps", "high"] },
+  { words: ["Stars", "shine", "in", "the", "dark", "sky"] },
+  { words: ["My", "garden", "has", "pretty", "pink", "flowers"] },
+  { words: ["The", "brave", "knight", "rides", "a", "horse"] },
+  { words: ["We", "watch", "the", "rocket", "fly", "to", "space"] },
+  { words: ["The", "little", "kitten", "chased", "a", "red", "ball"] },
+  { words: ["Every", "morning", "the", "rooster", "sings", "a", "song"] },
+  { words: ["The", "magic", "dragon", "flew", "over", "the", "tall", "mountain"] },
+];
+
+/** Missing Magic — ordered easy -> hard. Distractors never fit grammatically. */
+export const MISSING_WORD = [
+  { text: ["The", null, "runs."], answer: "dog", options: ["dog", "blue", "happy"] },
+  { text: ["I", null, "a cat."], answer: "see", options: ["see", "red", "tall"] },
+  { text: ["The sun is", null, "."], answer: "hot", options: ["hot", "run", "cup"] },
+  { text: ["We", null, "to school."], answer: "walk", options: ["walk", "apple", "cloud"] },
+  { text: ["I see a", null, "in the sky."], answer: "star", options: ["star", "chair", "jump"] },
+  { text: ["The", null, "is pink."], answer: "flower", options: ["flower", "run", "five"] },
+  { text: ["My", null, "reads to me."], answer: "mom", options: ["mom", "fast", "green"] },
+  { text: ["The frog can", null, "high."], answer: "jump", options: ["jump", "table", "purple"] },
+  { text: ["She has a soft", null, "."], answer: "kitten", options: ["kitten", "quickly", "under"] },
+  { text: ["We", null, "in the cold snow."], answer: "play", options: ["play", "yellow", "seven"] },
+  { text: ["The bird builds a", null, "."], answer: "nest", options: ["nest", "loudly", "between"] },
+  { text: ["My", null, "is very kind to me."], answer: "friend", options: ["friend", "slowly", "above"] },
+  { text: ["The unicorn has a magic", null, "."], answer: "horn", options: ["horn", "gently", "during"] },
+  { text: ["Bright stars", null, "in the night."], answer: "shine", options: ["shine", "behind", "almost"] },
+  { text: ["The brave knight saved the", null, "."], answer: "castle", options: ["castle", "quietly", "beneath"] },
+  { text: ["We watched the rocket", null, "into space."], answer: "blast", options: ["blast", "carefully", "instead"] },
+  { text: ["A", null, "butterfly landed on the rose."], answer: "tiny", options: ["tiny", "happily", "whenever"] },
+  { text: ["The dolphin", null, "high above the waves."], answer: "leaped", options: ["leaped", "suddenly", "although"] },
+];
+
+/** Prefix Potion — ordered easy -> hard. Wrong words are scrambled non-words. */
+export const PREFIX_MIX = [
+  { prefix: "un", root: "do", answer: "undo", wrong: ["doun", "redo"] },
+  { prefix: "re", root: "do", answer: "redo", wrong: ["dore", "undo"] },
+  { prefix: "un", root: "tie", answer: "untie", wrong: ["tieun", "retie"] },
+  { prefix: "re", root: "play", answer: "replay", wrong: ["playre", "unplay"] },
+  { prefix: "un", root: "happy", answer: "unhappy", wrong: ["happyun", "rehappy"] },
+  { prefix: "re", root: "fill", answer: "refill", wrong: ["fillre", "unfill"] },
+  { prefix: "pre", root: "view", answer: "preview", wrong: ["viewpre", "review"] },
+  { prefix: "dis", root: "like", answer: "dislike", wrong: ["likedis", "relike"] },
+  { prefix: "un", root: "lock", answer: "unlock", wrong: ["lockun", "prelock"] },
+  { prefix: "re", root: "build", answer: "rebuild", wrong: ["buildre", "unbuild"] },
+  { prefix: "mis", root: "spell", answer: "misspell", wrong: ["spellmis", "unspell"] },
+  { prefix: "pre", root: "heat", answer: "preheat", wrong: ["heatpre", "reheat"] },
+  { prefix: "dis", root: "agree", answer: "disagree", wrong: ["agreedis", "preagree"] },
+  { prefix: "un", root: "kind", answer: "unkind", wrong: ["kindun", "rekind"] },
+  { prefix: "re", root: "appear", answer: "reappear", wrong: ["appearre", "disappear"] },
+  { prefix: "over", root: "flow", answer: "overflow", wrong: ["flowover", "underflow"] },
+  { prefix: "under", root: "ground", answer: "underground", wrong: ["groundunder", "overground"] },
+  { prefix: "mis", root: "place", answer: "misplace", wrong: ["placemis", "replace"] },
+];
+
+/** Words that actually start with each vowel letter (matches Vowel Vines rules). */
+export const VOWEL_WORDS = {
+  a: ["ant", "and", "at", "am", "ask", "arm", "ash", "ape", "ace", "add", "age", "apple", "angel", "April", "acorn"],
+  e: ["egg", "elf", "end", "eat", "eel", "ever", "echo", "edge", "exit", "easy", "extra", "eagle", "elbow", "eleven"],
+  i: ["it", "in", "is", "if", "ill", "ink", "into", "ice", "idea", "iron", "itch", "island", "igloo", "insect"],
+  o: ["on", "ox", "off", "odd", "owl", "one", "open", "out", "oak", "oil", "olive", "otter", "ocean", "orange", "octopus"],
+  u: ["up", "us", "urn", "use", "upon", "under", "ugly", "until", "udder", "uncle", "unicorn", "umbrella", "umpire"],
+};
+
+/** Syllable Stamp — ordered by number of syllables (easy -> hard). */
+export const SYLLABLE_WORDS = [
+  { word: "hap-py", parts: ["hap", "py"] },
+  { word: "kit-ten", parts: ["kit", "ten"] },
+  { word: "rain-bow", parts: ["rain", "bow"] },
+  { word: "uni-corn", parts: ["uni", "corn"] },
+  { word: "sun-set", parts: ["sun", "set"] },
+  { word: "pen-cil", parts: ["pen", "cil"] },
+  { word: "tur-tle", parts: ["tur", "tle"] },
+  { word: "rock-et", parts: ["rock", "et"] },
+  { word: "but-ter-fly", parts: ["but", "ter", "fly"] },
+  { word: "el-e-phant", parts: ["el", "e", "phant"] },
+  { word: "ba-na-na", parts: ["ba", "na", "na"] },
+  { word: "di-no-saur", parts: ["di", "no", "saur"] },
+  { word: "choc-o-late", parts: ["choc", "o", "late"] },
+  { word: "um-brel-la", parts: ["um", "brel", "la"] },
+  { word: "wa-ter-mel-on", parts: ["wa", "ter", "mel", "on"] },
+  { word: "al-li-ga-tor", parts: ["al", "li", "ga", "tor"] },
+];
+
+/** Caption scenes — ordered easy -> hard, one clear answer each. */
+export const CAPTION_SCENES = [
+  { emoji: "🐱😺", prompt: "Soft pet that says meow", answer: "cat", options: ["cat", "car", "cup", "cap"] },
+  { emoji: "☀️🌻", prompt: "Bright sky in the day — the...", answer: "sun", options: ["sun", "moon", "rain", "snow"] },
+  { emoji: "🐶🦴", prompt: "Pet that says woof", answer: "dog", options: ["dog", "fog", "log", "dot"] },
+  { emoji: "📚😊", prompt: "What do you do with a book?", answer: "read", options: ["read", "sleep", "drive", "cook"] },
+  { emoji: "🌙⭐", prompt: "When the moon is out, it is...", answer: "night", options: ["night", "lunch", "morning", "noon"] },
+  { emoji: "🎵💃", prompt: "Move your body to music!", answer: "dance", options: ["dance", "sit", "nap", "hide"] },
+  { emoji: "🌸🐝", prompt: "What grows in the garden?", answer: "flower", options: ["flower", "rocket", "pencil", "hammer"] },
+  { emoji: "🦄🌈", prompt: "What is the colorful arc?", answer: "rainbow", options: ["rainbow", "pizza", "chair", "truck"] },
+  { emoji: "🐠🌊", prompt: "It swims in the sea", answer: "fish", options: ["fish", "bird", "frog", "deer"] },
+  { emoji: "🚀🌌", prompt: "It blasts off into space", answer: "rocket", options: ["rocket", "wagon", "pencil", "ladder"] },
+  { emoji: "🦋🌷", prompt: "Colorful insect with big wings", answer: "butterfly", options: ["butterfly", "elephant", "umbrella", "hamburger"] },
+  { emoji: "🏰👑", prompt: "Where a king and queen live", answer: "castle", options: ["castle", "garden", "kitchen", "tunnel"] },
+  { emoji: "🐧❄️", prompt: "Bird in a tuxedo on the ice", answer: "penguin", options: ["penguin", "dolphin", "ostrich", "rooster"] },
+  { emoji: "🍫🍪", prompt: "Sweet brown treat", answer: "chocolate", options: ["chocolate", "broccoli", "telescope", "butterfly"] },
+];
