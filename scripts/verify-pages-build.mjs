@@ -26,4 +26,9 @@ if (!existsSync("dist/favicon.svg")) {
   process.exit(1);
 }
 
+if (!existsSync("dist/privacy-policy.html")) {
+  console.error("dist/privacy-policy.html missing — add public/privacy-policy.html");
+  process.exit(1);
+}
+
 console.log("Pages build OK:", indexPath);
