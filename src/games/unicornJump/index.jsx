@@ -54,6 +54,7 @@ const UnicornJumpGame = ({
   return (
     <div
       className="w-full h-app game-surface bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 overflow-hidden text-white select-none relative"
+      data-testid="game-shell"
       onMouseDown={ignoreIfInteractive(handleDown)}
       onMouseMove={handleMove}
       onMouseUp={handleUp}

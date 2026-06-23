@@ -80,7 +80,7 @@ const CashCounterGame = ({
   const pct = Math.min(100, (current / target) * 100);
 
   return (
-    <div className="w-full h-app bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 flex flex-col relative font-sans text-white overflow-hidden">
+    <div className="w-full h-app bg-gradient-to-b from-slate-950 via-purple-950 to-slate-950 flex flex-col relative font-sans text-white overflow-hidden" data-testid="game-shell">
       <div className="absolute top-0 left-0 w-full z-30 pointer-events-none">
         <div className="pointer-events-auto">
           <GlobalHeader

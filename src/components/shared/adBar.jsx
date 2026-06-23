@@ -3,6 +3,11 @@ import React, { useState, useEffect } from "react";
 const AdBar = () => {
   const [currentAdIndex, setCurrentAdIndex] = useState(0);
 
+  useEffect(() => {
+    document.body.classList.add("has-ad-bar");
+    return () => document.body.classList.remove("has-ad-bar");
+  }, []);
+
   // Child-safe, educational ads - these would typically come from a COPPA-compliant ad network
   // For now, showing placeholder content that follows children's advertising guidelines
   const childSafeAds = [

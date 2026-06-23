@@ -63,7 +63,7 @@ const ShopView = ({
   };
 
   return (
-    <div className="w-full h-app bg-slate-950 flex flex-col relative">
+    <div className="w-full h-app bg-slate-950 flex flex-col relative overflow-hidden">
       <GlobalHeader
         coins={userData.coins}
         onBack={onBack}
@@ -97,7 +97,7 @@ const ShopView = ({
         </div>
       </div>
 
-      <div className="flex-1 min-h-0 overflow-y-auto p-6">
+      <div className="app-scroll p-6 pb-safe" data-testid="shop-scroll">
         {tab === "unicorns" && (
           <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
             {UNICORNS.map((item) => {

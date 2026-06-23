@@ -181,5 +181,7 @@ captures/
 .externalNativeBuild
 .cxx/
 
-# Google Services (e.g. debug keys)
-google-services.json
+# Playwright artifacts
+playwright-report/
+test-results/
+blob-report/

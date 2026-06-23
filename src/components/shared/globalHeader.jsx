@@ -19,6 +19,7 @@ const GlobalHeader = ({
             type="button"
             onClick={onBack}
             onTouchStart={guardTap}
+            data-testid="header-back"
             className="p-2 -ml-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 group min-w-[44px] min-h-[44px]"
           >
             <ArrowLeft className="group-hover:-translate-x-1 transition-transform" />
@@ -56,6 +57,7 @@ const GlobalHeader = ({
             type="button"
             onClick={onHome}
             onTouchStart={guardTap}
+            data-testid="header-home"
             className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white min-w-[44px] min-h-[44px]"
             title="Return Home"
           >

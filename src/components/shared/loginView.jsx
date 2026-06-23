@@ -58,6 +58,7 @@ const LoginView = ({ user, setUser, handleLogin }) => {
               type="button"
               onClick={handleSubmit}
               disabled={!user.trim()}
+              data-testid="login-submit"
               className="w-full bg-white text-slate-900 font-bold py-4 rounded-xl hover:bg-cyan-50 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-lg"
             >
               ENTER ARCADE

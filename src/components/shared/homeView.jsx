@@ -27,7 +27,7 @@ const HomeView = ({
         onHome={onHome}
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col items-center justify-center w-full max-w-md relative z-10 px-2">
+      <div className="app-scroll overflow-x-hidden flex flex-col items-center justify-center w-full max-w-md relative z-10 px-2">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/10 rounded-full blur-[100px] pointer-events-none" />
 
         <div className="text-center mb-8 animate-pop-in relative z-20">
@@ -57,6 +57,7 @@ const HomeView = ({
             <button
               type="button"
               onClick={onProfile}
+              data-testid="home-profile-button"
               className="flex flex-col items-center justify-center gap-2 aspect-square bg-slate-800 rounded-3xl border-b-4 border-slate-950 active:border-b-0 active:translate-y-1 transition-all hover:bg-slate-700 text-slate-400 font-bold cursor-pointer hover:text-white touch-manipulation"
             >
               <Trophy size={28} />
@@ -66,6 +67,7 @@ const HomeView = ({
             <button
               type="button"
               onClick={onPlay}
+              data-testid="home-play-button"
               className="col-span-1 flex flex-col items-center justify-center gap-2 aspect-square bg-gradient-to-b from-emerald-400 to-emerald-600 rounded-3xl border-b-4 border-emerald-800 active:border-b-0 active:translate-y-1 transition-all shadow-[0_0_30px_rgba(16,185,129,0.4)] group cursor-pointer hover:brightness-110 touch-manipulation"
             >
               <div className="bg-white/20 p-3 rounded-full group-hover:scale-110 transition-transform">
@@ -79,6 +81,7 @@ const HomeView = ({
             <button
               type="button"
               onClick={onShop}
+              data-testid="home-shop-button"
               className="flex flex-col items-center justify-center gap-2 aspect-square bg-slate-800 rounded-3xl border-b-4 border-slate-950 active:border-b-0 active:translate-y-1 transition-all hover:bg-slate-700 text-purple-400 font-bold cursor-pointer hover:text-purple-300 touch-manipulation"
             >
               <ShoppingBag size={28} />
@@ -88,6 +91,7 @@ const HomeView = ({
           <button
             type="button"
             onClick={onAlley}
+            data-testid="home-alley-button"
             className="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 rounded-3xl border-b-4 border-rose-800 active:border-b-0 active:translate-y-1 transition-all shadow-lg flex items-center justify-center gap-3 group touch-manipulation"
           >
             <Warehouse className="text-white fill-current/20" />

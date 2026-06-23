@@ -85,7 +85,7 @@ const SpaceUnicornGame = ({
   const formatTime = (ms) => (ms / 1000).toFixed(2);
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] bg-slate-950 text-white flex flex-col overflow-hidden select-none">
+    <div className="fixed inset-0 w-full h-app bg-slate-950 text-white flex flex-col overflow-hidden select-none" data-testid="game-shell">
       <div className="shrink-0 z-40 pointer-events-none">
         <div className="pointer-events-auto">
           <GlobalHeader coins={coins} onBack={onExit} isSubScreen onHome={onHome} />
@@ -97,15 +97,11 @@ const SpaceUnicornGame = ({
         level={level}
         elapsedTime={elapsedTime}
         gameState={gameState === "playing" ? "playing" : "idle"}
+        layout="stacked"
         lives={hud.lives}
-        hudProgress={hud.kills}
-        hudTarget={hud.target}
-        hudProgressLabel="Targets"
-        hudExtra={
-          <span className="text-xs font-bold text-amber-300">
-            Score: {hud.score}
-          </span>
-        }
+        progress={hud.kills}
+        target={hud.target}
+        progressLabel="Targets"
       />
 
       <div

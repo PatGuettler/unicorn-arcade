@@ -173,7 +173,7 @@ const ProfileView = ({ user, data, onBack, onHome, handleLogout }) => {
         title="Profile"
       />
 
-      <div className="flex-1 overflow-y-auto p-6 pb-safe">
+      <div className="app-scroll p-6 pb-safe" data-testid="profile-scroll">
         <div className="max-w-md mx-auto">
           <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 mb-6 shadow-xl">
             <div className="flex items-center gap-4">

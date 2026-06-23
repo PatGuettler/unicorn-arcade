@@ -26,7 +26,7 @@ export default function WordGameShell({
   const formatTime = (ms) => (ms / 1000).toFixed(2);
 
   return (
-    <div className="fixed inset-0 w-full h-[100dvh] bg-gradient-to-b from-slate-950 via-purple-950/80 to-slate-950 text-white flex flex-col overflow-hidden select-none">
+    <div className="fixed inset-0 w-full h-app bg-gradient-to-b from-slate-950 via-purple-950/80 to-slate-950 text-white flex flex-col overflow-hidden select-none" data-testid="word-game-shell">
       <div className="shrink-0 z-40 pointer-events-none">
         <div className="pointer-events-auto">
           <GlobalHeader coins={coins} onBack={onExit} isSubScreen onHome={onHome} />

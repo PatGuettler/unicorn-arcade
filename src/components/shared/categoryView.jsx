@@ -21,7 +21,7 @@ const CategoryView = ({
         onHome={onHome}
       />
 
-      <div className="flex-1 overflow-y-auto p-6 pb-safe">
+      <div className="app-scroll p-6 pb-safe" data-testid="category-scroll" data-scroll-root="true">
         <div className="max-w-md mx-auto">
           <div className="flex items-center gap-4 mb-8">
             <div
@@ -43,6 +43,7 @@ const CategoryView = ({
                 <div
                   key={game.id}
                   onClick={() => selectGame(game.id)}
+                  data-testid={`game-card-${game.id}`}
                   className="bg-slate-900 border border-slate-800 p-4 rounded-2xl cursor-pointer hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all active:scale-[0.98] flex flex-col items-center text-center aspect-square justify-center"
                 >
                   <div className="text-4xl mb-3">{game.icon}</div>

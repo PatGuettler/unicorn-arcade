@@ -2,15 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-/* iOS Safari: 100vh includes browser chrome; 100dvh tracks visible area */
+:root {
+  --app-height: 100dvh;
+  --sai-top: 0px;
+  --sai-right: 0px;
+  --sai-bottom: 0px;
+  --sai-left: 0px;
+  /* Reserve space for fixed AdBar (h-14 = 3.5rem) + safe inset when enabled */
+  --ad-bar-height: 3.5rem;
+  --bottom-ui-inset: max(var(--sai-bottom), env(safe-area-inset-bottom, 0px));
+  --bottom-content-inset: calc(var(--bottom-ui-inset) + var(--ad-bar-reserve, 0px));
+}
+
 html {
-  height: -webkit-fill-available;
+  height: 100%;
 }
 
 body {
   margin: 0;
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
+  min-height: var(--app-height, 100dvh);
   overflow: hidden;
   background-color: #020617;
   touch-action: manipulation;
@@ -20,39 +30,49 @@ body {
 }
 
 #root {
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
+  min-height: var(--app-height, 100dvh);
 }
 
-/* App / screen height — prefer over h-screen on mobile */
+/* App / screen height — synced from visualViewport in viewportSync.js */
 .h-app {
-  height: 100dvh;
-  height: -webkit-fill-available;
-  max-height: 100dvh;
-  max-height: -webkit-fill-available;
+  height: var(--app-height, 100dvh);
+  max-height: var(--app-height, 100dvh);
 }
 
 .min-h-app {
-  min-height: 100dvh;
-  min-height: -webkit-fill-available;
+  min-height: var(--app-height, 100dvh);
 }
 
-/* Safe areas for notch + home indicator (use with viewport-fit=cover) */
+/* Scrollable main content region inside h-app screens */
+.app-scroll {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Safe areas for notch + home indicator (native plugin + env() fallback) */
 .pt-safe {
-  padding-top: max(0.5rem, env(safe-area-inset-top));
+  padding-top: max(0.5rem, var(--sai-top), env(safe-area-inset-top, 0px));
 }
 
 .pb-safe {
-  padding-bottom: max(1rem, env(safe-area-inset-bottom));
+  padding-bottom: max(1rem, var(--bottom-content-inset));
 }
 
 .px-safe {
-  padding-left: max(0.5rem, env(safe-area-inset-left));
-  padding-right: max(0.5rem, env(safe-area-inset-right));
+  padding-left: max(0.5rem, var(--sai-left), env(safe-area-inset-left, 0px));
+  padding-right: max(0.5rem, var(--sai-right), env(safe-area-inset-right, 0px));
 }
 
 .bottom-safe {
-  bottom: max(1.5rem, env(safe-area-inset-bottom));
+  bottom: max(1.5rem, var(--bottom-ui-inset));
+}
+
+/* Toggle on body when AdBar is mounted (see adBar.jsx) */
+body.has-ad-bar {
+  --ad-bar-reserve: var(--ad-bar-height);
 }
 
 /* Pan/zoom game surfaces only — not on body (breaks button taps on iOS) */

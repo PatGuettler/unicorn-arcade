@@ -17,12 +17,13 @@ function drawStarfield(ctx, w, h, scroll) {
 }
 
 function drawRainbowTrail(ctx, x, y, w) {
+  const trailHeight = w * 0.12;
   const g = ctx.createLinearGradient(x - w * 0.04, y, x + w * 0.04, y);
   g.addColorStop(0, "rgba(236,72,153,0.5)");
   g.addColorStop(0.5, "rgba(168,85,247,0.6)");
   g.addColorStop(1, "rgba(34,211,238,0.5)");
   ctx.fillStyle = g;
-  ctx.fillRect(x - w * 0.04, y, w * 0.08, h * 0.12);
+  ctx.fillRect(x - w * 0.04, y, w * 0.08, trailHeight);
 }
 
 /**

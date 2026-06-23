@@ -4,6 +4,8 @@ import App from './App.jsx'
 import './index.css'
 
 import { StatusBar } from '@capacitor/status-bar';
+import { installViewportSync } from './utils/viewportSync.js'
+import { installSafeAreaSync } from './utils/safeAreaSync.js'
 
 // Function to hide the status bar on mobile - was covering up game buttons
 const hideStatusBar = async () => {
@@ -14,6 +16,8 @@ const hideStatusBar = async () => {
   }
 };
 
+installViewportSync();
+installSafeAreaSync();
 hideStatusBar();
 
 ReactDOM.createRoot(document.getElementById('root')).render(

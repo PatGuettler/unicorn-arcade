@@ -42,12 +42,12 @@ const UnicornAlleyView = ({
         title="Unicorn Alley"
       />
 
-      <div className="flex-1 flex items-center justify-center p-4 overflow-hidden w-full h-full">
+      <div className="flex-1 flex items-center justify-center p-4 min-h-0 overflow-hidden w-full">
         <div className="relative shadow-2xl rounded-2xl border border-slate-800 bg-slate-900">
           <img
             src={alleyMap}
             alt="Unicorn Alley Map"
-            className="max-w-full max-h-[calc(100vh-8rem)] w-auto h-auto block rounded-2xl object-contain pointer-events-none select-none"
+            className="max-w-full max-h-[calc(var(--app-height)-8rem)] w-auto h-auto block rounded-2xl object-contain pointer-events-none select-none"
           />
 
           <div className="absolute inset-0">

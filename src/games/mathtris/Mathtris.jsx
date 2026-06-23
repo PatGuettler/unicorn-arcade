@@ -1253,6 +1253,7 @@ export default function Mathtris({
   return (
     <div
       className="w-full h-app flex flex-col overflow-hidden font-sans"
+      data-testid="game-shell"
       style={{
         background: "linear-gradient(155deg, #0d0b1e 0%, #1a1240 45%, #0c1f3f 100%)",
         fontFamily: "'Fredoka One', 'Comic Sans MS', cursive",
@@ -1282,7 +1283,7 @@ export default function Mathtris({
         layout="stacked"
       />
 
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden flex flex-col items-center px-2 py-2 pb-safe gap-2">
+      <div className="app-scroll overflow-x-hidden flex flex-col items-center px-2 py-2 pb-safe gap-2">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
 

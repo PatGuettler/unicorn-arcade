@@ -20,13 +20,14 @@ const DashBoardView = ({
         onHome={onHome}
       />
 
-      <div className="flex-1 overflow-y-auto p-6 pb-safe">
+      <div className="app-scroll p-6 pb-safe" data-testid="dashboard-scroll" data-scroll-root="true">
         <div className="max-w-md mx-auto">
           <div className="grid gap-4">
             {categories.map((cat) => (
               <div
                 key={cat.id}
                 onClick={() => selectCategory(cat.id)}
+                data-testid={`category-card-${cat.id}`}
                 className="group bg-slate-900 border border-slate-800 p-6 rounded-3xl cursor-pointer hover:border-slate-600 hover:bg-slate-800 transition-all active:scale-[0.98] relative overflow-hidden"
               >
                 <div
