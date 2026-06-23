@@ -75,6 +75,14 @@ body.has-ad-bar {
   --ad-bar-reserve: var(--ad-bar-height);
 }
 
+/* Playwright visual tests: freeze motion for stable screenshots */
+html[data-visual-test] *,
+html[data-visual-test] *::before,
+html[data-visual-test] *::after {
+  animation: none !important;
+  transition: none !important;
+}
+
 /* Pan/zoom game surfaces only — not on body (breaks button taps on iOS) */
 .game-surface {
   touch-action: none;

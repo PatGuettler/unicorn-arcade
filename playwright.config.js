@@ -16,6 +16,13 @@ export default defineConfig({
   workers: process.env.CI ? 2 : undefined,
   timeout: 60_000,
   reporter: [["list"], ["html", { open: "never" }]],
+  expect: {
+    toHaveScreenshot: {
+      animations: "disabled",
+      maxDiffPixelRatio: 0.05,
+      threshold: 0.25,
+    },
+  },
   snapshotPathTemplate:
     "{testDir}/snapshots/{projectName}/{testFilePath}/{arg}{ext}",
   use: {
@@ -23,6 +30,7 @@ export default defineConfig({
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     video: "retain-on-failure",
+    colorScheme: "dark",
   },
   webServer: {
     command: "npm run build && npm run preview -- --host 127.0.0.1 --port 4173",

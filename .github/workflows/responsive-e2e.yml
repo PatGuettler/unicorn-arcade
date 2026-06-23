@@ -30,8 +30,11 @@ jobs:
       - name: Run unit tests
         run: npm run test:unit
 
-      - name: Run responsive Playwright suite
-        run: npm run test:e2e
+      - name: Run responsive layout tests
+        run: npm run test:responsive
+
+      - name: Run visual regression tests
+        run: npm run test:visual
 
       - name: Upload Playwright report
         if: failure()

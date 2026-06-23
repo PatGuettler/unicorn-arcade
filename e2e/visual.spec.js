@@ -1,45 +1,36 @@
-import { test, expect } from "@playwright/test";
+import { test } from "@playwright/test";
 import { seedTestUser, loginAndReachHome } from "./helpers/seed.js";
 import {
   openCategory,
   openDashboard,
 } from "./helpers/navigation.js";
+import { expectAppScreenshot, prepareVisualTest } from "./helpers/visual.js";
 
 test.beforeEach(async ({ page }) => {
+  await prepareVisualTest(page);
   await seedTestUser(page);
   await loginAndReachHome(page);
 });
 
 test.describe("visual regression snapshots", () => {
   test("home screen", async ({ page }) => {
-    await expect(page.locator(".h-app").first()).toHaveScreenshot("home.png", {
-      animations: "disabled",
-    });
+    await expectAppScreenshot(page, "home.png");
   });
 
   test("dashboard screen", async ({ page }) => {
     await openDashboard(page);
-    await expect(page.locator(".h-app").first()).toHaveScreenshot(
-      "dashboard.png",
-      { animations: "disabled" }
-    );
+    await expectAppScreenshot(page, "dashboard.png");
   });
 
   test("number category screen", async ({ page }) => {
     await openDashboard(page);
     await openCategory(page, "number");
-    await expect(page.locator(".h-app").first()).toHaveScreenshot(
-      "category-number.png",
-      { animations: "disabled" }
-    );
+    await expectAppScreenshot(page, "category-number.png");
   });
 
   test("word category screen", async ({ page }) => {
     await openDashboard(page);
     await openCategory(page, "word");
-    await expect(page.locator(".h-app").first()).toHaveScreenshot(
-      "category-word.png",
-      { animations: "disabled" }
-    );
+    await expectAppScreenshot(page, "category-word.png");
   });
 });
