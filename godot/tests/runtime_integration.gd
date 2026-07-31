@@ -103,6 +103,9 @@ func _run() -> void:
 	galaxy_drag.position = Vector2(576, 900)
 	galaxy.call("_input", galaxy_drag)
 	_check(is_equal_approx(galaxy.player_x, 0.8), "Galaxy Unicorn responds to Android screen dragging")
+	galaxy.call("_process", 0.016)
+	_check(galaxy.fire_cooldown > 0.0 and galaxy.bolt_flashes.size() > 0, "Galaxy Unicorn auto-fires a visible rainbow bolt")
+	_check(galaxy.call("_segment_hits_circle", Vector2(576, 1000), Vector2(576, 300), Vector2(576, 650), 26.0), "Galaxy Unicorn fast bolts use swept collision instead of tunneling through targets")
 	remove_child(galaxy)
 	galaxy.free()
 	var market = MARKET_SCENE.instantiate()
@@ -117,7 +120,7 @@ func _run() -> void:
 	var alley = ALLEY_SCENE.instantiate()
 	add_child(alley)
 	await get_tree().process_frame
-	_check(is_instance_valid(alley.message_label), "Unicorn Alley launches its six-house map")
+	_check(is_instance_valid(alley.message_label) and alley.house_buttons.size() == 6, "Unicorn Alley launches all six selectable houses")
 	remove_child(alley)
 	alley.free()
 	AppState.active_room_companion = "sparkle"

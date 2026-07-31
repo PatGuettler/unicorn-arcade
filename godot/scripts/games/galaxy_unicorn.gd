@@ -18,6 +18,7 @@ var lives := 3
 var active := false
 var player_x := 0.5
 var bullets: Array[Dictionary] = []
+var bolt_flashes: Array[Dictionary] = []
 var enemies: Array[Dictionary] = []
 var pickups: Array[Dictionary] = []
 var fire_cooldown := 0.0
@@ -53,7 +54,12 @@ func _process(delta: float) -> void:
 		opening_timer = 400.0
 	if fire_cooldown <= 0.0:
 		fire_cooldown = Rules.galaxy_fire_ms(level)
-		bullets.append({"position": Vector2(player_x * size.x, size.y * 0.88 - 28.0), "speed": -0.55 - level * 0.02})
+		var muzzle := Vector2(player_x * size.x, size.y * 0.88 - 28.0)
+		bullets.append({"position": muzzle, "previous_position": muzzle, "speed": -0.55 - level * 0.02})
+		# The original physics speed crosses most of a tall phone in one frame. Keep
+		# that gameplay timing, but retain a short visual echo so the rainbow blast is
+		# legible instead of appearing for a single frame.
+		bolt_flashes.append({"x": muzzle.x, "start_y": muzzle.y, "age": 0.0, "life": 260.0})
 	if spawn_timer >= Rules.galaxy_spawn_ms(level) and enemies.size() < 8 + level:
 		spawn_timer = 0.0
 		_spawn_enemy(false)
@@ -85,6 +91,7 @@ func _start_level(for_level: int) -> void:
 	lives = 3
 	player_x = 0.5
 	bullets.clear()
+	bolt_flashes.clear()
 	enemies.clear()
 	pickups.clear()
 	fire_cooldown = 0.0
@@ -129,9 +136,13 @@ func _spawn_enemy(force_boss: bool) -> void:
 func _move_world(ms: float) -> void:
 	for bullet in bullets:
 		var bullet_position: Vector2 = bullet["position"]
+		bullet["previous_position"] = bullet_position
 		bullet_position.y += float(bullet["speed"]) * size.y * (ms / 16.0)
 		bullet["position"] = bullet_position
 	bullets = bullets.filter(func(item: Dictionary) -> bool: return item["position"].y > -24.0)
+	for flash in bolt_flashes:
+		flash["age"] = float(flash["age"]) + ms
+	bolt_flashes = bolt_flashes.filter(func(item: Dictionary) -> bool: return float(item["age"]) < float(item["life"]))
 	for enemy in enemies:
 		var enemy_position: Vector2 = enemy["position"]
 		enemy_position.y += float(enemy["speed"]) * size.y * (ms / 16.0) * 60.0
@@ -148,7 +159,8 @@ func _resolve_collisions() -> void:
 	var spent_bullets: Array[Dictionary] = []
 	for bullet in bullets:
 		for enemy in enemies:
-			if int(enemy["hp"]) > 0 and bullet["position"].distance_to(enemy["position"]) < float(enemy["radius"]) + 8.0:
+			var previous: Vector2 = bullet.get("previous_position", bullet["position"])
+			if int(enemy["hp"]) > 0 and _segment_hits_circle(previous, bullet["position"], enemy["position"], float(enemy["radius"]) + 8.0):
 				enemy["hp"] = int(enemy["hp"]) - 1
 				spent_bullets.append(bullet)
 				if int(enemy["hp"]) <= 0:
@@ -190,6 +202,15 @@ func _resolve_collisions() -> void:
 		action_button.show()
 
 
+func _segment_hits_circle(start: Vector2, finish: Vector2, center: Vector2, radius: float) -> bool:
+	var segment := finish - start
+	var length_squared := segment.length_squared()
+	if length_squared <= 0.0001:
+		return start.distance_to(center) <= radius
+	var along := clampf((center - start).dot(segment) / length_squared, 0.0, 1.0)
+	return (start + segment * along).distance_to(center) <= radius
+
+
 func _lose_life(duration: float) -> void:
 	lives -= 1
 	invulnerable = duration
@@ -207,8 +228,15 @@ func _draw() -> void:
 		var x := fmod(index * 97.0, 1000.0) / 1000.0 * size.x
 		var y := fmod(index * 53.0 + Time.get_ticks_msec() * (0.01 + (index % 5) * 0.003), maxf(1.0, size.y))
 		draw_circle(Vector2(x, y), 1.0 + index % 3, Color(1, 1, 1, 0.35 + (index % 4) * 0.12))
-	for bullet in bullets:
-		draw_line(bullet["position"] + Vector2(0, 10), bullet["position"] - Vector2(0, 10), Color("65e7ff"), 4.0)
+	for flash in bolt_flashes:
+		var progress := clampf(float(flash["age"]) / float(flash["life"]), 0.0, 1.0)
+		var alpha := 1.0 - smoothstep(0.72, 1.0, progress)
+		var tip := Vector2(float(flash["x"]), float(flash["start_y"]) - progress * size.y * 0.92)
+		draw_line(tip + Vector2(0, 30), tip - Vector2(0, 30), Color(0.35, 0.88, 1.0, alpha * 0.24), 12.0)
+		draw_line(tip + Vector2(0, 24), tip + Vector2(0, 8), Color(0.13, 0.83, 0.93, alpha), 5.0)
+		draw_line(tip + Vector2(0, 8), tip - Vector2(0, 8), Color(0.91, 0.47, 0.98, alpha), 5.0)
+		draw_line(tip - Vector2(0, 8), tip - Vector2(0, 24), Color(0.99, 0.88, 0.28, alpha), 5.0)
+		draw_circle(tip - Vector2(0, 24), 3.5, Color(1.0, 1.0, 1.0, alpha))
 	for enemy in enemies:
 		var color: Color = {"cloud": Color("7b78a9"), "bat": Color("d866e7"), "rock": Color("9b7653"), "skull": Color("e8e4ff"), "boss": Color("6f4c91")}.get(enemy["kind"], Color.WHITE)
 		draw_circle(enemy["position"], float(enemy["radius"]), color)

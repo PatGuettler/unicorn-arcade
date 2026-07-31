@@ -50,6 +50,13 @@ The Sparkle asset has passed the directional graybox gate, not the final product
 - Sparkle's home preview uses a correctly proportioned render target and a Godot Y-up, eye-level camera instead of the prior underside view.
 - Runtime coverage includes synthetic Android drags for Galaxy Unicorn and room placement; tall-phone captures live under `previews/hotfix_v0_4_1/`.
 
+## Checkpoint 04.2 phone follow-up
+
+- The companion presentation band is vertically centered in the space between the identity header and Home actions.
+- Galaxy Unicorn retains its original bolt speed and cadence while adding a persistent rainbow trail and swept collision, preventing one-frame-only bolts and tall-screen tunneling.
+- Home now labels the Alley action as `VIEW HOUSES • UNICORN ALLEY`, and the Alley runtime gate verifies all six selectable house entries.
+- Tall-phone review captures live under `previews/hotfix_v0_4_2/`.
+
 ## Run
 
 ```powershell
@@ -66,14 +73,14 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\gu
 Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" res://tests/runtime_integration.tscn --quit-after 120
 ```
 
-Expected results: `GODOT_PARITY_TESTS_OK: 75 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 93 checks passed`.
+Expected results: `GODOT_PARITY_TESTS_OK: 75 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 95 checks passed`.
 
 ## Export the Android prototype
 
 The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.4.1-alpha-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.4.2-alpha-arm64.apk"
 ```
 
 This checkpoint exposes the complete 22-game registry plus the companion/decor marketplace, Unicorn Alley, and room editor. Production audio, wider physical-device QA, release signing/store packaging, and final character/environment/furniture art remain upcoming work.

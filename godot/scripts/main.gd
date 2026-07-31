@@ -115,10 +115,20 @@ func _show_home() -> void:
 	identity.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	identity.add_theme_color_override("font_color", CYAN)
 	page.add_child(identity)
-	page.add_child(_build_sparkle_preview())
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page.add_child(spacer)
+	var hero := Control.new()
+	hero.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	hero.custom_minimum_size.y = 300
+	page.add_child(hero)
+	var preview := _build_sparkle_preview()
+	hero.add_child(preview)
+	preview.anchor_left = 0.0
+	preview.anchor_right = 1.0
+	preview.anchor_top = 0.5
+	preview.anchor_bottom = 0.5
+	preview.offset_left = 0
+	preview.offset_right = 0
+	preview.offset_top = -150
+	preview.offset_bottom = 150
 	var play := _make_button("▶  PLAY", Color("36d399"), 82)
 	play.add_theme_font_size_override("font_size", 28)
 	play.pressed.connect(func() -> void: _show_dashboard())
@@ -134,7 +144,7 @@ func _show_home() -> void:
 	shop.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shop.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/marketplace.tscn"))
 	row.add_child(shop)
-	var alley := _make_button("UNICORN ALLEY", PINK, 68)
+	var alley := _make_button("VIEW HOUSES  •  UNICORN ALLEY", PINK, 68)
 	alley.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/unicorn_alley.tscn"))
 	page.add_child(alley)
 	status_label = Label.new()

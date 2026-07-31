@@ -10,6 +10,7 @@ const YELLOW := Color("ffd166")
 const MUTED := Color("aab7e8")
 
 var message_label: Label
+var house_buttons := {}
 
 
 func _ready() -> void:
@@ -74,6 +75,7 @@ func _build_ui() -> void:
 		house.add_theme_stylebox_override("normal", _house_style(Color(str(definition["color"])), owned))
 		house.pressed.connect(_house_pressed.bind(companion_id, owned))
 		grid.add_child(house)
+		house_buttons[companion_id] = house
 	message_label = Label.new()
 	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
