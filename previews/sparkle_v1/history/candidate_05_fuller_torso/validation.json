@@ -7,25 +7,25 @@
   "landmark_note": "Landmarks are manifest-controlled; silhouette renders are the independent visual evidence.",
   "views": {
     "side": {
-      "strict_raw_iou": 0.550072,
+      "strict_raw_iou": 0.55909,
       "tolerance_px": 32,
-      "large_form_iou": 0.73613,
+      "large_form_iou": 0.76246,
       "threshold": 0.55,
       "pass": true,
       "view_weight": 1.0
     },
     "front": {
-      "strict_raw_iou": 0.615771,
+      "strict_raw_iou": 0.590118,
       "tolerance_px": 34,
-      "large_form_iou": 0.739853,
+      "large_form_iou": 0.704088,
       "threshold": 0.5,
       "pass": true,
       "view_weight": 0.65
     },
     "top": {
-      "strict_raw_iou": 0.779924,
+      "strict_raw_iou": 0.75011,
       "tolerance_px": 48,
-      "large_form_iou": 0.8671,
+      "large_form_iou": 0.841926,
       "threshold": 0.42,
       "pass": true,
       "view_weight": 0.35

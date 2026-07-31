@@ -398,8 +398,10 @@ def build_sparkle(manifest: dict) -> bpy.types.Object:
         tail = make_tube(f"Tail_{index + 1:02d}", clump["points"], radii, materials[clump["material"]], 12, 2)
         parent_keep_transform(tail, tail_pivot)
 
-    eye_y = -1.735
-    for side_name, center_x in (("L", -0.34), ("R", 0.34)):
+    eye_control = fit["eye"]["location"]
+    eye_y = float(eye_control[1]) - 0.015
+    eye_center_x = abs(float(eye_control[0]))
+    for side_name, center_x in (("L", -eye_center_x), ("R", eye_center_x)):
         eye_points = [
             (center_x - 0.17, eye_y, 2.54),
             (center_x - 0.07, eye_y - 0.01, 2.49),
@@ -418,8 +420,11 @@ def build_sparkle(manifest: dict) -> bpy.types.Object:
         parent_keep_transform(eye, head_pivot)
         parent_keep_transform(lash, head_pivot)
 
-    for side_name, nostril_x in (("L", -0.16), ("R", 0.16)):
-        nostril = make_ellipsoid(f"Nostril_{side_name}", (nostril_x, -1.945, 2.26), (0.050, 0.022, 0.045), materials["InnerEar"], 16, 10)
+    nostril_control = fit["nostrils"]
+    nostril_location = nostril_control["location"]
+    nostril_scale = tuple(nostril_control["scale"])
+    for side_name, nostril_x in (("L", -abs(nostril_location[0])), ("R", abs(nostril_location[0]))):
+        nostril = make_ellipsoid(f"Nostril_{side_name}", (nostril_x, nostril_location[1], nostril_location[2]), nostril_scale, materials["InnerEar"], 16, 10)
         parent_keep_transform(nostril, head_pivot)
     smile = make_tube(
         "Smile",
@@ -431,7 +436,8 @@ def build_sparkle(manifest: dict) -> bpy.types.Object:
     )
     parent_keep_transform(smile, head_pivot)
 
-    for side_name, x in (("L", -0.735), ("R", 0.735)):
+    flank_x = max(float(section[2]) for section in fit["body_sections"]) + 0.02
+    for side_name, x in (("L", -flank_x), ("R", flank_x)):
         star = make_star(f"FlankStar_{side_name}", x, 0.36, 1.58, 0.24, 0.035, materials["StarGold"])
         parent_keep_transform(star, body_pivot)
         sparkle_a = make_star(f"FlankSparkleA_{side_name}", x, 0.12, 1.78, 0.095, 0.036, materials["StarGold"])
