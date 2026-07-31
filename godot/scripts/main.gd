@@ -316,7 +316,9 @@ func _build_sparkle_preview() -> SubViewportContainer:
 	container.stretch = true
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var viewport := SubViewport.new()
-	viewport.size = Vector2i(512, 512)
+	# Match the wide mobile presentation panel instead of vertically compressing a
+	# square render target into it. This keeps Sparkle's proportions intact.
+	viewport.size = Vector2i(896, 512)
 	viewport.transparent_bg = true
 	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	container.add_child(viewport)
@@ -326,22 +328,27 @@ func _build_sparkle_preview() -> SubViewportContainer:
 	if sparkle_scene is PackedScene:
 		var sparkle: Node = sparkle_scene.instantiate()
 		sparkle.rotation_degrees = Vector3(0, 0, 0)
+		# glTF is converted from Blender's Z-up coordinates into Godot's Y-up world.
+		# Lower Sparkle on Godot's Y axis to center the full silhouette in the panel.
+		sparkle.position.y = -0.25
 		stage.add_child(sparkle)
 	var camera := Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 3.4
+	camera.size = 3.25
 	stage.add_child(camera)
-	camera.look_at_from_position(Vector3(4.8, -6.4, 3.1), Vector3(0.0, -0.15, 1.75), Vector3.UP)
+	# Front three-quarter presentation keeps the face, horn, flank mark, and tail
+	# readable at phone size.
+	camera.look_at_from_position(Vector3(4.6, 2.8, 6.5), Vector3(0.0, 1.25, -0.35), Vector3.UP)
 	camera.current = true
 	var key := DirectionalLight3D.new()
 	key.rotation_degrees = Vector3(-38, -28, -20)
-	key.light_energy = 1.5
+	key.light_energy = 0.65
 	key.shadow_enabled = true
 	stage.add_child(key)
 	var fill := DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(35, 145, 15)
 	fill.light_color = Color("8adff0")
-	fill.light_energy = 0.65
+	fill.light_energy = 0.25
 	stage.add_child(fill)
 	var environment := WorldEnvironment.new()
 	var environment_resource := Environment.new()
@@ -349,7 +356,7 @@ func _build_sparkle_preview() -> SubViewportContainer:
 	environment_resource.background_color = Color(0, 0, 0, 0)
 	environment_resource.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	environment_resource.ambient_light_color = Color("d9ccff")
-	environment_resource.ambient_light_energy = 0.7
+	environment_resource.ambient_light_energy = 0.35
 	environment.environment = environment_resource
 	stage.add_child(environment)
 	return container

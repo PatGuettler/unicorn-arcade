@@ -23,6 +23,7 @@ size/viewport_height=1280
 size/window_width_override=450
 size/window_height_override=800
 stretch/mode="canvas_items"
+stretch/aspect="expand"
 handheld/orientation=1
 
 [rendering]

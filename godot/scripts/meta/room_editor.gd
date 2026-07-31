@@ -29,6 +29,24 @@ func _ready() -> void:
 	_build_editor()
 
 
+func _input(event: InputEvent) -> void:
+	if dragging_id.is_empty() or not is_instance_valid(room_canvas):
+		return
+	var button := item_buttons.get(dragging_id) as Button
+	if not is_instance_valid(button):
+		return
+	if event is InputEventScreenDrag:
+		_move_dragged(dragging_id, event.position - room_canvas.global_position, button)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventScreenTouch and not event.pressed:
+		_commit_drag(dragging_id)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_move_dragged(dragging_id, event.position - room_canvas.global_position, button)
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
+		_commit_drag(dragging_id)
+
+
 func _clear_ui() -> void:
 	for child in get_children():
 		remove_child(child)
@@ -134,6 +152,7 @@ func _create_item_button(item: Dictionary) -> void:
 	button.custom_minimum_size = Vector2(88, 52) * float(item.get("scale", 1.0))
 	button.rotation_degrees = int(item.get("rotation", 0))
 	button.add_theme_font_size_override("font_size", 12)
+	button.mouse_default_cursor_shape = Control.CURSOR_DRAG
 	button.add_theme_color_override("font_color", Color("10172e"))
 	button.add_theme_stylebox_override("normal", _item_style(str(definition.get("category", "cozy")), str(item.get("instance_id", "")) == selected_id))
 	button.gui_input.connect(_item_input.bind(str(item.get("instance_id", "")), button))
@@ -160,8 +179,6 @@ func _item_input(event: InputEvent, instance_id: String, button: Button) -> void
 			_mark_selected()
 		else:
 			_commit_drag(instance_id)
-	elif event is InputEventMouseMotion and dragging_id == instance_id and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		_move_dragged(instance_id, room_canvas.get_local_mouse_position(), button)
 	elif event is InputEventScreenTouch:
 		if event.pressed:
 			selected_id = instance_id
@@ -169,9 +186,6 @@ func _item_input(event: InputEvent, instance_id: String, button: Button) -> void
 			_mark_selected()
 		else:
 			_commit_drag(instance_id)
-	elif event is InputEventScreenDrag and dragging_id == instance_id:
-		var local: Vector2 = event.position - room_canvas.global_position
-		_move_dragged(instance_id, local, button)
 
 
 func _move_dragged(instance_id: String, local_position: Vector2, button: Button) -> void:

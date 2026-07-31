@@ -13,6 +13,10 @@ func _capture() -> void:
 	var mode := "home"
 	var game_id := ""
 	var output := ""
+	var camera_position := Vector3.ZERO
+	var camera_target := Vector3.ZERO
+	var camera_override := false
+	var ortho_size := 0.0
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--mode="):
 			mode = argument.trim_prefix("--mode=")
@@ -20,6 +24,13 @@ func _capture() -> void:
 			game_id = argument.trim_prefix("--game-id=")
 		elif argument.begins_with("--output="):
 			output = argument.trim_prefix("--output=")
+		elif argument.begins_with("--camera="):
+			camera_position = _parse_vector3(argument.trim_prefix("--camera="))
+			camera_override = true
+		elif argument.begins_with("--target="):
+			camera_target = _parse_vector3(argument.trim_prefix("--target="))
+		elif argument.begins_with("--ortho="):
+			ortho_size = float(argument.trim_prefix("--ortho="))
 	if output.is_empty():
 		push_error("capture_alpha requires --output=<absolute png path>")
 		get_tree().quit(2)
@@ -60,6 +71,12 @@ func _capture() -> void:
 			AppState.selected_category = "Word"
 		captured = MAIN_SCENE.instantiate()
 	add_child(captured)
+	if camera_override:
+		var camera := _find_camera(captured)
+		if camera != null:
+			camera.look_at_from_position(camera_position, camera_target, Vector3.UP)
+			if ortho_size > 0.0:
+				camera.size = ortho_size
 	if mode == "marketplace_decor":
 		captured.call("_show_decor")
 	elif mode == "room_bag":
@@ -75,3 +92,20 @@ func _capture() -> void:
 	else:
 		push_error("Unable to save capture %s: %s" % [output, error_string(error)])
 		get_tree().quit(1)
+
+
+func _parse_vector3(raw: String) -> Vector3:
+	var parts := raw.split(",")
+	if parts.size() != 3:
+		return Vector3.ZERO
+	return Vector3(float(parts[0]), float(parts[1]), float(parts[2]))
+
+
+func _find_camera(node: Node) -> Camera3D:
+	if node is Camera3D:
+		return node
+	for child in node.get_children():
+		var found := _find_camera(child)
+		if found != null:
+			return found
+	return null

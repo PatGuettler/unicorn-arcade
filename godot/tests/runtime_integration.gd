@@ -98,6 +98,11 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(galaxy.active and galaxy.target_kills == 10 and galaxy.lives == 3, "Galaxy Unicorn launches with the React target and lives")
 	_check(is_equal_approx(galaxy.player_x, 0.5), "Galaxy Unicorn centers the player for its opening wave")
+	galaxy.size = Vector2(720, 1280)
+	var galaxy_drag := InputEventScreenDrag.new()
+	galaxy_drag.position = Vector2(576, 900)
+	galaxy.call("_input", galaxy_drag)
+	_check(is_equal_approx(galaxy.player_x, 0.8), "Galaxy Unicorn responds to Android screen dragging")
 	remove_child(galaxy)
 	galaxy.free()
 	var market = MARKET_SCENE.instantiate()
@@ -132,6 +137,25 @@ func _run() -> void:
 	var placement := {"instance_id": "test_lamp", "item_id": "lamp", "x": 48.0, "y": 48.0, "rotation": 0, "scale": 1.0, "z_index": 1}
 	_check(AppState.place_room_item("rainbow", placement) and AppState.available_count("lamp") == 0, "room placement consumes one available inventory item")
 	_check(not AppState.sell_furniture("lamp"), "placed decor cannot be sold")
+	AppState.active_room_companion = "rainbow"
+	var touch_room = ROOM_SCENE.instantiate()
+	add_child(touch_room)
+	await get_tree().process_frame
+	var lamp_button: Button = touch_room.item_buttons.get("test_lamp")
+	var room_press := InputEventScreenTouch.new()
+	room_press.pressed = true
+	touch_room.call("_item_input", room_press, "test_lamp", lamp_button)
+	var room_drag := InputEventScreenDrag.new()
+	room_drag.position = touch_room.room_canvas.global_position + Vector2(touch_room.room_canvas.size.x * 0.82, touch_room.room_canvas.size.y * 0.66)
+	touch_room.call("_input", room_drag)
+	var room_release := InputEventScreenTouch.new()
+	room_release.pressed = false
+	room_release.position = room_drag.position
+	touch_room.call("_input", room_release)
+	var moved_items := AppState.room_items("rainbow")
+	_check(moved_items.size() == 1 and is_equal_approx(float(moved_items[0]["x"]), 80.0) and is_equal_approx(float(moved_items[0]["y"]), 64.0), "room decor follows and commits an Android drag outside its button")
+	remove_child(touch_room)
+	touch_room.free()
 	_check(AppState.remove_room_item("rainbow", "test_lamp") and AppState.available_count("lamp") == 1, "removed decor returns to the shared bag")
 	_check(AppState.sell_furniture("lamp") and AppState.coins() == 425, "unused decor sells for the floored fifty-percent refund")
 	AppState.data = original_data

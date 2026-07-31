@@ -65,11 +65,12 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if not active:
 		return
 	if event is InputEventScreenTouch or event is InputEventScreenDrag:
 		player_x = clampf(event.position.x / maxf(1.0, size.x), 0.08, 0.92)
+		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 		player_x = clampf(event.position.x / maxf(1.0, size.x), 0.08, 0.92)
 	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):

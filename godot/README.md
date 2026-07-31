@@ -42,6 +42,14 @@ The Sparkle asset has passed the directional graybox gate, not the final product
 - Save schema v3 normalizes both snake-case Godot placements and legacy React camel-case placement fields while preserving the existing v2 save path.
 - Metagame portrait review captures live under `previews/alpha_v0_4/`.
 
+## Checkpoint 04.1 mobile hotfix
+
+- Galaxy Unicorn now consumes Android screen-touch and screen-drag input before the full-screen Control can swallow it.
+- Room furniture dragging is captured globally from press through release, so items keep following the finger after it leaves the original button bounds.
+- Tall phones use an expanding viewport instead of a fixed 9:16 letterbox.
+- Sparkle's home preview uses a correctly proportioned render target and a Godot Y-up, eye-level camera instead of the prior underside view.
+- Runtime coverage includes synthetic Android drags for Galaxy Unicorn and room placement; tall-phone captures live under `previews/hotfix_v0_4_1/`.
+
 ## Run
 
 ```powershell
@@ -58,14 +66,14 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\gu
 Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" res://tests/runtime_integration.tscn --quit-after 120
 ```
 
-Expected results: `GODOT_PARITY_TESTS_OK: 75 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 91 checks passed`.
+Expected results: `GODOT_PARITY_TESTS_OK: 75 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 93 checks passed`.
 
 ## Export the Android prototype
 
 The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.4.0-alpha-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.4.1-alpha-arm64.apk"
 ```
 
 This checkpoint exposes the complete 22-game registry plus the companion/decor marketplace, Unicorn Alley, and room editor. Production audio, wider physical-device QA, release signing/store packaging, and final character/environment/furniture art remain upcoming work.
