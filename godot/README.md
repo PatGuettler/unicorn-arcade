@@ -57,6 +57,12 @@ The Sparkle asset has passed the directional graybox gate, not the final product
 - Home now labels the Alley action as `VIEW HOUSES • UNICORN ALLEY`, and the Alley runtime gate verifies all six selectable house entries.
 - Tall-phone review captures live under `previews/hotfix_v0_4_2/`.
 
+## Checkpoint 04.3 framing follow-up
+
+- The centered Home camera now includes safe space above the horn and below the hooves at 574x1280.
+- The Home metagame action is restored to its original `UNICORN ALLEY` label.
+- The selected phone review frame lives under `previews/hotfix_v0_4_3/`.
+
 ## Run
 
 ```powershell
@@ -80,7 +86,7 @@ Expected results: `GODOT_PARITY_TESTS_OK: 75 checks passed` and `GODOT_RUNTIME_I
 The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.4.2-alpha-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.4.3-alpha-arm64.apk"
 ```
 
 This checkpoint exposes the complete 22-game registry plus the companion/decor marketplace, Unicorn Alley, and room editor. Production audio, wider physical-device QA, release signing/store packaging, and final character/environment/furniture art remain upcoming work.

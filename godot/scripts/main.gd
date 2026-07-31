@@ -344,11 +344,11 @@ func _build_sparkle_preview() -> SubViewportContainer:
 		stage.add_child(sparkle)
 	var camera := Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 3.25
+	camera.size = 3.4
 	stage.add_child(camera)
 	# Front three-quarter presentation keeps the face, horn, flank mark, and tail
 	# readable at phone size.
-	camera.look_at_from_position(Vector3(4.6, 2.8, 6.5), Vector3(0.0, 1.25, -0.35), Vector3.UP)
+	camera.look_at_from_position(Vector3(4.6, 2.8, 6.5), Vector3(0.0, 1.5, -0.35), Vector3.UP)
 	camera.current = true
 	var key := DirectionalLight3D.new()
 	key.rotation_degrees = Vector3(-38, -28, -20)
