@@ -35,12 +35,35 @@ func _capture() -> void:
 			get_tree().quit(2)
 			return
 		captured = load(scene_path).instantiate()
+	elif mode in ["marketplace", "marketplace_decor", "alley", "room", "room_bag"]:
+		var meta_paths := {
+			"marketplace": "res://scenes/meta/marketplace.tscn",
+			"marketplace_decor": "res://scenes/meta/marketplace.tscn",
+			"alley": "res://scenes/meta/unicorn_alley.tscn",
+			"room": "res://scenes/meta/room_editor.tscn",
+			"room_bag": "res://scenes/meta/room_editor.tscn",
+		}
+		AppState.active_room_companion = "sparkle"
+		if mode in ["room", "room_bag"]:
+			AppState.data["inventory"]["lamp"] = 1
+			AppState.data["inventory"]["rug"] = 1
+			AppState.data["inventory"]["plant"] = 1
+			AppState.data["rooms"]["sparkle"] = [
+				{"instance_id": "preview_lamp", "item_id": "lamp", "x": 24.0, "y": 32.0, "rotation": 0, "scale": 1.0, "z_index": 1},
+				{"instance_id": "preview_rug", "item_id": "rug", "x": 50.0, "y": 76.0, "rotation": 0, "scale": 1.4, "z_index": 2},
+				{"instance_id": "preview_plant", "item_id": "plant", "x": 76.0, "y": 58.0, "rotation": -45, "scale": 1.1, "z_index": 3},
+			]
+		captured = load(meta_paths[mode]).instantiate()
 	else:
 		AppState.shell_view = mode
 		if mode == "category":
 			AppState.selected_category = "Word"
 		captured = MAIN_SCENE.instantiate()
 	add_child(captured)
+	if mode == "marketplace_decor":
+		captured.call("_show_decor")
+	elif mode == "room_bag":
+		captured.call("_show_bag")
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await get_tree().process_frame

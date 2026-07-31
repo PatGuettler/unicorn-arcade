@@ -9,6 +9,9 @@ const JUMP_SCENE = preload("res://scenes/games/unicorn_jump.tscn")
 const SLIDING_SCENE = preload("res://scenes/games/sliding_window.tscn")
 const MATHTRIS_SCENE = preload("res://scenes/games/mathtris.tscn")
 const GALAXY_SCENE = preload("res://scenes/games/galaxy_unicorn.tscn")
+const MARKET_SCENE = preload("res://scenes/meta/marketplace.tscn")
+const ALLEY_SCENE = preload("res://scenes/meta/unicorn_alley.tscn")
+const ROOM_SCENE = preload("res://scenes/meta/room_editor.tscn")
 
 const WORD_GAME_IDS := [
 	"unicorn_blast", "sentence_sprout", "missing_magic", "sight_spark",
@@ -94,9 +97,45 @@ func _run() -> void:
 	add_child(galaxy)
 	await get_tree().process_frame
 	_check(galaxy.active and galaxy.target_kills == 10 and galaxy.lives == 3, "Galaxy Unicorn launches with the React target and lives")
-	_check(not galaxy.bullets.is_empty(), "Galaxy Unicorn auto-fires its opening bolt")
+	_check(is_equal_approx(galaxy.player_x, 0.5), "Galaxy Unicorn centers the player for its opening wave")
 	remove_child(galaxy)
 	galaxy.free()
+	var market = MARKET_SCENE.instantiate()
+	add_child(market)
+	await get_tree().process_frame
+	_check(market.tab == "companions" and market.content.get_child_count() > 0, "Marketplace launches its companion catalog")
+	market.call("_show_decor")
+	await get_tree().process_frame
+	_check(market.tab == "decor" and market.content.get_child_count() > 100, "Marketplace exposes the full decor catalog")
+	remove_child(market)
+	market.free()
+	var alley = ALLEY_SCENE.instantiate()
+	add_child(alley)
+	await get_tree().process_frame
+	_check(is_instance_valid(alley.message_label), "Unicorn Alley launches its six-house map")
+	remove_child(alley)
+	alley.free()
+	AppState.active_room_companion = "sparkle"
+	var room = ROOM_SCENE.instantiate()
+	add_child(room)
+	await get_tree().process_frame
+	_check(room.companion_id == "sparkle" and is_instance_valid(room.room_canvas), "Sparkle's room editor launches")
+	_check(room.grid_snap, "room editor starts with eight-percent grid snapping enabled")
+	remove_child(room)
+	room.free()
+	var original_data := AppState.data.duplicate(true)
+	AppState.data = SaveService.default_state()
+	AppState.data["player"]["name"] = "Runtime Test"
+	_check(AppState.buy_companion("rainbow") and AppState.coins() == 500, "companion adoption deducts the exact catalog price")
+	_check(AppState.equip_companion("rainbow") and AppState.equipped_companion() == "rainbow", "owned companions can be equipped")
+	_check(AppState.buy_furniture("lamp") and AppState.coins() == 350, "decor purchase adds one catalog item")
+	var placement := {"instance_id": "test_lamp", "item_id": "lamp", "x": 48.0, "y": 48.0, "rotation": 0, "scale": 1.0, "z_index": 1}
+	_check(AppState.place_room_item("rainbow", placement) and AppState.available_count("lamp") == 0, "room placement consumes one available inventory item")
+	_check(not AppState.sell_furniture("lamp"), "placed decor cannot be sold")
+	_check(AppState.remove_room_item("rainbow", "test_lamp") and AppState.available_count("lamp") == 1, "removed decor returns to the shared bag")
+	_check(AppState.sell_furniture("lamp") and AppState.coins() == 425, "unused decor sells for the floored fifty-percent refund")
+	AppState.data = original_data
+	SaveService.save_state(AppState.data)
 	var shell = MAIN_SCENE.instantiate()
 	add_child(shell)
 	await get_tree().process_frame

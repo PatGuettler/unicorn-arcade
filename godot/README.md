@@ -33,6 +33,15 @@ The Sparkle asset has passed the directional graybox gate, not the final product
 - Mathtris is a live 8x14 falling-block board with the original token unlocks, time/level/drop speed ramp, concurrent waves, fixed-block swaps, five-cell equation detection, gravity, score/level rules, top-out, and all six companion power behaviors.
 - The five new portrait layouts have rendered review captures under `previews/alpha_v0_3/`.
 
+## Checkpoint 04
+
+- Companion marketplace with all six original prices, ownership, equipping, and placeable house gifts.
+- Decor marketplace with the mechanically extracted 107-item catalog, all 15 category filters, search, inventory counts, purchases, and unused-item resale at a floored 50% refund.
+- Unicorn Alley with six owned/locked houses and per-room decoration counts.
+- Persistent room editor with a shared furniture bag, drag placement, optional 8% grid snapping, 45-degree rotation, resizing, front/back layer swaps, item removal, and confirmed room reset.
+- Save schema v3 normalizes both snake-case Godot placements and legacy React camel-case placement fields while preserving the existing v2 save path.
+- Metagame portrait review captures live under `previews/alpha_v0_4/`.
+
 ## Run
 
 ```powershell
@@ -49,14 +58,14 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\gu
 Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" res://tests/runtime_integration.tscn --quit-after 120
 ```
 
-Expected results: `GODOT_PARITY_TESTS_OK: 66 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 79 checks passed`.
+Expected results: `GODOT_PARITY_TESTS_OK: 75 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 91 checks passed`.
 
 ## Export the Android prototype
 
 The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.3.0-alpha-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.4.0-alpha-arm64.apk"
 ```
 
-This checkpoint exposes the complete 22-game registry with all 22 playable ports. The companion/decor marketplace, Unicorn Alley, room editor, production audio, wider device QA, and final character/environment art remain upcoming work.
+This checkpoint exposes the complete 22-game registry plus the companion/decor marketplace, Unicorn Alley, and room editor. Production audio, wider physical-device QA, release signing/store packaging, and final character/environment/furniture art remain upcoming work.

@@ -1,6 +1,6 @@
 extends Node
 
-const SAVE_VERSION := 2
+const SAVE_VERSION := 3
 const SAVE_PATH := "user://unicorn_arcade_v2.json"
 
 
@@ -14,7 +14,7 @@ func default_state() -> Dictionary:
 		},
 		"owned_companions": ["sparkle"],
 		"progress": {},
-		"inventory": {},
+		"inventory": {"companion_sparkle": 1},
 		"rooms": {},
 		"settings": {
 			"music": true,
@@ -56,11 +56,43 @@ func _migrate(source: Dictionary) -> Dictionary:
 		result["player"]["equipped_companion"] = str(source.get("equippedCompanion", "sparkle"))
 		result["owned_companions"] = source.get("ownedCompanions", ["sparkle"])
 		result["progress"] = source.get("progress", {})
-		result["inventory"] = source.get("inventory", {})
-		result["rooms"] = source.get("rooms", {})
+		var old_furniture: Dictionary = source.get("furniture", {})
+		result["inventory"] = old_furniture.get("inventory", source.get("inventory", {}))
+		result["rooms"] = old_furniture.get("placements", source.get("rooms", {}))
 	else:
 		for key in result.keys():
 			if source.has(key):
 				result[key] = source[key]
+	_normalize_meta(result)
 	result["version"] = SAVE_VERSION
 	return result
+
+
+func _normalize_meta(state: Dictionary) -> void:
+	if not state.get("inventory") is Dictionary:
+		state["inventory"] = {}
+	if not state.get("rooms") is Dictionary:
+		state["rooms"] = {}
+	if not state.get("owned_companions") is Array or state["owned_companions"].is_empty():
+		state["owned_companions"] = ["sparkle"]
+	for companion_id in state["owned_companions"]:
+		var item_id := "companion_%s" % companion_id
+		state["inventory"][item_id] = maxi(1, int(state["inventory"].get(item_id, 0)))
+	var normalized_rooms := {}
+	for room_id in state["rooms"]:
+		var normalized_items: Array = []
+		var raw_items = state["rooms"][room_id]
+		if raw_items is Array:
+			for index in raw_items.size():
+				var raw: Dictionary = raw_items[index]
+				normalized_items.append({
+					"instance_id": str(raw.get("instance_id", raw.get("instanceId", "%s_%d" % [room_id, index]))),
+					"item_id": str(raw.get("item_id", raw.get("itemId", ""))),
+					"x": float(raw.get("x", 50.0)),
+					"y": float(raw.get("y", 50.0)),
+					"rotation": int(raw.get("rotation", 0)),
+					"scale": float(raw.get("scale", 1.0)),
+					"z_index": int(raw.get("z_index", raw.get("zIndex", index + 1))),
+				})
+		normalized_rooms[str(room_id)] = normalized_items
+	state["rooms"] = normalized_rooms

@@ -104,7 +104,8 @@ func _show_home() -> void:
 	welcome.add_theme_color_override("font_color", MUTED)
 	page.add_child(welcome)
 	var companion := Label.new()
-	companion.text = "SPARKLE"
+	var equipped := MetaCatalog.companion(AppState.equipped_companion())
+	companion.text = str(equipped.get("name", "Sparkle")).to_upper()
 	companion.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	companion.add_theme_font_size_override("font_size", 48)
 	companion.add_theme_color_override("font_color", PINK)
@@ -131,10 +132,10 @@ func _show_home() -> void:
 	row.add_child(profile)
 	var shop := _make_button("SHOP", PANEL, 74)
 	shop.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shop.pressed.connect(func() -> void: _show_home_status("Marketplace comes in the next metagame checkpoint."))
+	shop.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/marketplace.tscn"))
 	row.add_child(shop)
 	var alley := _make_button("UNICORN ALLEY", PINK, 68)
-	alley.pressed.connect(func() -> void: _show_home_status("Rooms and Unicorn Alley come in the next metagame checkpoint."))
+	alley.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/unicorn_alley.tscn"))
 	page.add_child(alley)
 	status_label = Label.new()
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

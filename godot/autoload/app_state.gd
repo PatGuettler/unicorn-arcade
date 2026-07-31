@@ -1,5 +1,8 @@
 extends Node
 
+const MetaCatalog = preload("res://scripts/meta_catalog.gd")
+const RoomRules = preload("res://scripts/room_rules.gd")
+
 signal state_changed
 signal coins_changed(coins: int)
 
@@ -7,6 +10,7 @@ var data: Dictionary = {}
 var selected_game_id := ""
 var selected_category := "Number"
 var shell_view := "home"
+var active_room_companion := "sparkle"
 
 
 func _ready() -> void:
@@ -15,6 +19,14 @@ func _ready() -> void:
 
 func coins() -> int:
 	return int(data.get("player", {}).get("coins", 1000))
+
+
+func owned_companions() -> Array:
+	return data.get("owned_companions", ["sparkle"])
+
+
+func equipped_companion() -> String:
+	return str(data.get("player", {}).get("equipped_companion", "sparkle"))
 
 
 func player_name() -> String:
@@ -76,6 +88,115 @@ func spend_hint(level: int) -> bool:
 	data["player"]["coins"] = coins() - cost
 	_save_and_emit()
 	return true
+
+
+func buy_companion(companion_id: String) -> bool:
+	var definition := MetaCatalog.companion(companion_id)
+	if definition.is_empty() or companion_id in owned_companions():
+		return false
+	var price := int(definition.get("price", 0))
+	if coins() < price:
+		return false
+	data["player"]["coins"] = coins() - price
+	data["owned_companions"].append(companion_id)
+	data["inventory"]["companion_%s" % companion_id] = 1
+	_save_and_emit()
+	return true
+
+
+func equip_companion(companion_id: String) -> bool:
+	if companion_id not in owned_companions():
+		return false
+	data["player"]["equipped_companion"] = companion_id
+	_save_and_emit()
+	return true
+
+
+func buy_furniture(item_id: String) -> bool:
+	var definition := MetaCatalog.furniture_item(item_id)
+	if definition.is_empty():
+		return false
+	var price := int(definition.get("price", 0))
+	if coins() < price:
+		return false
+	data["player"]["coins"] = coins() - price
+	data["inventory"][item_id] = int(data["inventory"].get(item_id, 0)) + 1
+	_save_and_emit()
+	return true
+
+
+func sell_furniture(item_id: String) -> bool:
+	if item_id.begins_with("companion_") or available_count(item_id) <= 0:
+		return false
+	var definition := MetaCatalog.furniture_item(item_id)
+	if definition.is_empty():
+		return false
+	var remaining := int(data["inventory"].get(item_id, 0)) - 1
+	if remaining <= 0:
+		data["inventory"].erase(item_id)
+	else:
+		data["inventory"][item_id] = remaining
+	data["player"]["coins"] = coins() + RoomRules.sell_refund(int(definition.get("price", 0)))
+	_save_and_emit()
+	return true
+
+
+func placed_count(item_id: String) -> int:
+	var count := 0
+	for room_items in data.get("rooms", {}).values():
+		for item in room_items:
+			if str(item.get("item_id", "")) == item_id:
+				count += 1
+	return count
+
+
+func available_count(item_id: String) -> int:
+	return maxi(0, int(data.get("inventory", {}).get(item_id, 0)) - placed_count(item_id))
+
+
+func room_items(companion_id: String) -> Array:
+	return data.get("rooms", {}).get(companion_id, []).duplicate(true)
+
+
+func place_room_item(companion_id: String, item: Dictionary) -> bool:
+	var rooms: Dictionary = data.get("rooms", {})
+	var items: Array = rooms.get(companion_id, [])
+	var normalized := RoomRules.normalized(item, items.size())
+	var existing := -1
+	for index in items.size():
+		if str(items[index].get("instance_id", "")) == str(normalized["instance_id"]):
+			existing = index
+			break
+	if existing < 0 and available_count(str(normalized["item_id"])) <= 0:
+		return false
+	if existing >= 0:
+		items[existing] = normalized
+	else:
+		items.append(normalized)
+	rooms[companion_id] = items
+	data["rooms"] = rooms
+	_save_and_emit()
+	return true
+
+
+func remove_room_item(companion_id: String, instance_id: String) -> bool:
+	var items := room_items(companion_id)
+	var next := items.filter(func(item: Dictionary) -> bool: return str(item.get("instance_id", "")) != instance_id)
+	if next.size() == items.size():
+		return false
+	data["rooms"][companion_id] = next
+	_save_and_emit()
+	return true
+
+
+func reorder_room_item(companion_id: String, instance_id: String, direction: String) -> void:
+	data["rooms"][companion_id] = RoomRules.reorder(room_items(companion_id), instance_id, direction)
+	_save_and_emit()
+
+
+func reset_room(companion_id: String) -> void:
+	data["rooms"][companion_id] = []
+	_save_and_emit()
 
 
 func complete_level(game_id: String, level: int, elapsed_ms: int) -> int:
