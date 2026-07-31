@@ -30,3 +30,13 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\gu
 ```
 
 Expected result: `GODOT_PARITY_TESTS_OK: 12 checks passed`.
+
+## Export the Android prototype
+
+The checked-in `Android Prototype` preset produces a debug-signed, arm64-only APK:
+
+```powershell
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Prototype" "build/android/UnicornArcade-0.1.0-prototype-arm64.apk"
+```
+
+This checkpoint exposes the complete 22-game registry, with Coin Count and Rhyme Rally playable. The other game ports remain upcoming work.
