@@ -3,8 +3,10 @@ extends SceneTree
 const RewardServiceScript = preload("res://autoload/reward_service.gd")
 const GameRegistryScript = preload("res://autoload/game_registry.gd")
 const SaveServiceScript = preload("res://autoload/save_service.gd")
+const WordRules = preload("res://scripts/games/word_game_rules.gd")
 
 var failures: Array[String] = []
+var check_count := 0
 
 
 func _init() -> void:
@@ -20,15 +22,51 @@ func _init() -> void:
 	_check(registry.games_in_category("Word").size() == 10, "word category contains 10 games")
 	_check(registry.games_in_category("Mystery").size() == 5, "mystery category contains 5 games")
 	_check(registry.games_in_category("Arcade").size() == 1, "arcade category contains 1 game")
+	_check(registry.playable_games().size() == 17, "17 games are playable in the alpha")
+	_check(registry.playable_count("Number") == 2, "two number games are playable")
+	_check(registry.playable_count("Word") == 10, "all ten word games are playable")
+	_check(registry.playable_count("Mystery") == 5, "all five mystery games are playable")
 	var defaults: Dictionary = saves.default_state()
 	_check(defaults["player"]["coins"] == 1000, "new players start with 1000 coins")
 	_check(defaults["owned_companions"] == ["sparkle"], "new players own Sparkle")
+	_check(defaults["settings"]["reduced_motion"] == false, "reduced motion defaults off")
 	_check(_validate_sparkle_import(), "Sparkle GLB exposes required runtime pivots and meshes")
+	_check(WordRules.target_for_level(1) == 4, "word target formula starts at four rounds")
+	_check(WordRules.target_for_level(5) == 9, "word target formula scales at level five")
+	_check(WordRules.target_for_level(20) == 12, "word target formula caps at twelve")
+	_check(WordRules.caption_target(20) == 4, "Caption Quest caps at four scenes")
+	_check(WordRules.odd_one_out_target(3) == 6, "Odd One Out caps at six cases")
+	_check(WordRules.selection_window(20, 1) == Vector2i(0, 4), "difficulty window begins with four easy records")
+	_check(WordRules.selection_window(20, 10) == Vector2i(6, 15), "difficulty window slides with level and round")
+	_check(WordRules.words_for_level(3).size() == 30, "easy word pool is active through level three")
+	_check(WordRules.words_for_level(4).size() == 32, "medium word pool begins at level four")
+	_check(WordRules.words_for_level(9).size() == 27, "hard word pool begins at level nine")
+	_check(WordRules.words_for_level(15).size() == 21, "expert word pool begins at level fifteen")
+	_check(WordRules.sight_flash_ms(1) == 2120, "Sight Spark level-one flash duration matches React")
+	_check(WordRules.sight_flash_ms(18) == 800, "Sight Spark flash duration floors at 800 ms")
+	_check(is_equal_approx(WordRules.blast_speed(1), 0.135), "Unicorn Blast speed formula matches level one")
+	_check(WordRules.blast_spawn_ms(1) == 2680, "Unicorn Blast spawn formula matches level one")
+	_check(WordRules.blast_spawn_ms(20) == 1400, "Unicorn Blast spawn interval floors at 1400 ms")
+	_check(WordRules.is_chain_link("cat", "top"), "Chain Link accepts the last-to-first letter rule")
+	_check(not WordRules.is_chain_link("cat", "dog"), "Chain Link rejects a mismatched first letter")
+	var word_data := WordRules.data()
+	_check(word_data.get("sentence_build", []).size() == 20, "all Sentence Sprout records were extracted")
+	_check(word_data.get("missing_word", []).size() == 18, "all Missing Magic records were extracted")
+	_check(word_data.get("prefix_mix", []).size() == 18, "all Prefix Potion records were extracted")
+	_check(word_data.get("caption_scenes", []).size() == 14, "all Caption Quest records were extracted")
+	_check(word_data.get("opposite_challenges", []).size() == 22, "all Opposite Orbit records were extracted")
+	_check(word_data.get("scramble_puzzles", []).size() == 27, "all Scramble Spell records were extracted")
+	_check(word_data.get("odd_one_out", []).size() == 14, "all Odd One Out records were extracted")
+	_check(word_data.get("size_lineups", []).size() == 16, "all Size Line-Up records were extracted")
+	_check(word_data.get("chain_links", []).size() == 17, "all Chain Link records were extracted")
+	_check(WordRules.cash_target_bounds(1) == Vector2i(1, 20), "Cash Counter early target band matches React")
+	_check(WordRules.cash_target_bounds(4) == Vector2i(20, 99), "Cash Counter middle target band matches React")
+	_check(WordRules.cash_target_bounds(9) == Vector2i(100, 999), "Cash Counter late target band matches React")
 	rewards.free()
 	registry.free()
 	saves.free()
 	if failures.is_empty():
-		print("GODOT_PARITY_TESTS_OK: 12 checks passed")
+		print("GODOT_PARITY_TESTS_OK: %d checks passed" % check_count)
 		quit(0)
 	else:
 		for failure in failures:
@@ -37,6 +75,7 @@ func _init() -> void:
 
 
 func _check(condition: bool, message: String) -> void:
+	check_count += 1
 	if not condition:
 		failures.append(message)
 

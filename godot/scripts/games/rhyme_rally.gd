@@ -144,8 +144,11 @@ func _build_ui() -> void:
 	retry.pressed.connect(_start_level)
 	actions.add_child(retry)
 	var back := Button.new()
-	back.text = "Arcade Home"
-	back.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/main.tscn"))
+	back.text = "Word Games"
+	back.pressed.connect(func() -> void:
+		AppState.set_shell_destination("category", "Word")
+		get_tree().change_scene_to_file("res://scenes/main.tscn")
+	)
 	actions.add_child(back)
 
 

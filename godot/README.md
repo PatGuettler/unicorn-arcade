@@ -14,6 +14,15 @@ This folder is the Godot 4 parity implementation. The React/Capacitor source rem
 
 The Sparkle asset has passed the directional graybox gate, not the final production gate. Rigging, production UVs, final textures, and idle/celebrate animations remain open.
 
+## Checkpoint 02
+
+- Persistent login, home, category dashboard, game lists, and profile/settings navigation.
+- Progress summaries for every registered game and a live Sparkle GLB companion viewport on the home screen.
+- Playable Cash Counter with the original bill set, target bands, hint rule, exact-win behavior, and overshoot failure.
+- All ten word games and all five word-mystery games are now playable. Their source datasets are mechanically extracted from the React implementation into `data/word_games.json`.
+- Shared implementations preserve the original difficulty window, round target formula, Caption Quest/Odd One Out caps and lives, Sight Spark timing, Chain Link validation, ordered-tap failures, keyboard rules, and Unicorn Blast speed/spawn formulas.
+- Seventeen of the 22 registered games are playable. Unicorn Jump, Sliding Window, Math Swipe, Mathtris, and Galaxy Unicorn remain.
+
 ## Run
 
 ```powershell
@@ -27,16 +36,17 @@ First let the editor import assets, then run the headless checks:
 ```powershell
 Godot_v4.7.1-stable_win64_console.exe --headless --editor --path "E:\AI Projects\games\guettler\unicorn\godot" --quit-after 180
 Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --script res://tests/run_tests.gd
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" res://tests/runtime_integration.tscn
 ```
 
-Expected result: `GODOT_PARITY_TESTS_OK: 12 checks passed`.
+Expected results: `GODOT_PARITY_TESTS_OK: 47 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 69 checks passed`.
 
 ## Export the Android prototype
 
-The checked-in `Android Prototype` preset produces a debug-signed, arm64-only APK:
+The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Prototype" "build/android/UnicornArcade-0.1.0-prototype-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.2.0-alpha-arm64.apk"
 ```
 
-This checkpoint exposes the complete 22-game registry, with Coin Count and Rhyme Rally playable. The other game ports remain upcoming work.
+This checkpoint exposes the complete 22-game registry with 17 playable ports. The marketplace, Unicorn Alley, room editor, and five complex/medium game ports remain upcoming work.
