@@ -10,11 +10,20 @@ Status: **proposal awaiting owner approval**. No production modeling, asset repl
 | [Unicorn Alley](../../src/components/unicornAlley/unicornAlleyMap.jpeg) | Exterior world language: pastel European-fantasy alley, warm stone, teal/rose/lavender plaster, flowers, hand-painted storybook softness. |
 | [Sparkle's room](../../src/components/assets/sparkleRoom.png) | Interior language: compact isometric dollhouse, rounded forms, warm wood, pink florals, and large mobile-readable shapes. |
 
-The glossy, winged app-store icon and feature graphic are useful marketing references, but they conflict with Sparkle's in-game silhouette and the softer room/alley art. They are not the character-model authority for this proposal.
+The former glossy, winged app-store icon and feature graphic conflicted with Sparkle's in-game silhouette and the softer room/alley art. They were replaced after direction approval; the approved wingless character concept and calibrated orthographic plate are the model authorities.
 
 ## Proposed direction
 
 ![Sparkle 3D concept v1](sparkle-3d-concept-v1.png)
+
+The approved calibration and modeling evidence are tracked in:
+
+- [Sparkle orthographic plate](sparkle-orthographic-v1.png)
+- [Sparkle refinement ledger](sparkle-refinement-ledger.md)
+- `../../concepts/sparkle_fit_v1.json`
+- `../../previews/sparkle_v1/validation.json`
+
+The root `feature.png` and `app_icon.png` now use this same wingless matte storybook direction.
 
 The proposed visual language is a **pastel storybook arcade diorama**:
 

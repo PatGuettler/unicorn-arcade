@@ -185,3 +185,13 @@ captures/
 playwright-report/
 test-results/
 blob-report/
+
+# Godot generated/import/export state
+godot/.godot/
+godot/.import/
+godot/export/
+godot/builds/
+
+# Blender disposable state
+*.blend1
+*.blend2

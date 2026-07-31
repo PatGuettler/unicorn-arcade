@@ -1,0 +1,35 @@
+{
+  "asset_id": "sparkle_v1",
+  "manifest": "concepts/sparkle_fit_v1.json",
+  "authority": "side",
+  "review_gate": "graybox_directional",
+  "landmark_projection_rms_px": 0.0,
+  "landmark_note": "Landmarks are manifest-controlled; silhouette renders are the independent visual evidence.",
+  "views": {
+    "side": {
+      "strict_raw_iou": 0.247279,
+      "tolerance_px": 32,
+      "large_form_iou": 0.470299,
+      "threshold": 0.55,
+      "pass": false,
+      "view_weight": 1.0
+    },
+    "front": {
+      "strict_raw_iou": 0.42727,
+      "tolerance_px": 34,
+      "large_form_iou": 0.616784,
+      "threshold": 0.5,
+      "pass": false,
+      "view_weight": 0.65
+    },
+    "top": {
+      "strict_raw_iou": 0.264319,
+      "tolerance_px": 48,
+      "large_form_iou": 0.435475,
+      "threshold": 0.42,
+      "pass": false,
+      "view_weight": 0.35
+    }
+  },
+  "passes_strict_gate": false
+}
