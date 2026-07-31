@@ -28,7 +28,13 @@ func _capture() -> void:
 	var captured: Node
 	if mode == "game":
 		AppState.selected_game_id = game_id
-		captured = CASH_SCENE.instantiate() if game_id == "cash_counter" else WORD_SCENE.instantiate()
+		var record := GameRegistry.get_game(game_id)
+		var scene_path := str(record.get("scene", ""))
+		if scene_path.is_empty():
+			push_error("Unknown or unavailable game for capture: %s" % game_id)
+			get_tree().quit(2)
+			return
+		captured = load(scene_path).instantiate()
 	else:
 		AppState.shell_view = mode
 		if mode == "category":

@@ -1,12 +1,12 @@
 extends Node
 
 const GAMES := [
-	{"id": "unicorn_jump", "title": "Unicorn Jump", "category": "Number", "scene": ""},
-	{"id": "sliding_window", "title": "Sliding Window", "category": "Number", "scene": ""},
+	{"id": "unicorn_jump", "title": "Unicorn Jump", "category": "Number", "scene": "res://scenes/games/unicorn_jump.tscn"},
+	{"id": "sliding_window", "title": "Sliding Window", "category": "Number", "scene": "res://scenes/games/sliding_window.tscn"},
 	{"id": "coin_count", "title": "Coin Count", "category": "Number", "scene": "res://scenes/games/coin_count.tscn"},
 	{"id": "cash_counter", "title": "Cash Counter", "category": "Number", "scene": "res://scenes/games/cash_counter.tscn"},
-	{"id": "math_swipe", "title": "Math Swipe", "category": "Number", "scene": ""},
-	{"id": "mathtris", "title": "Mathtris", "category": "Number", "scene": ""},
+	{"id": "math_swipe", "title": "Math Swipe", "category": "Number", "scene": "res://scenes/games/math_swipe.tscn"},
+	{"id": "mathtris", "title": "Mathtris", "category": "Number", "scene": "res://scenes/games/mathtris.tscn"},
 	{"id": "unicorn_blast", "title": "Unicorn Blast", "category": "Word", "scene": "res://scenes/games/word_game.tscn"},
 	{"id": "rhyme_rally", "title": "Rhyme Rally", "category": "Word", "scene": "res://scenes/games/rhyme_rally.tscn"},
 	{"id": "sentence_sprout", "title": "Sentence Sprout", "category": "Word", "scene": "res://scenes/games/word_game.tscn"},
@@ -22,7 +22,7 @@ const GAMES := [
 	{"id": "odd_one_out", "title": "Odd One Out", "category": "Mystery", "scene": "res://scenes/games/word_game.tscn"},
 	{"id": "size_line_up", "title": "Size Line-Up", "category": "Mystery", "scene": "res://scenes/games/word_game.tscn"},
 	{"id": "chain_link", "title": "Chain Link", "category": "Mystery", "scene": "res://scenes/games/word_game.tscn"},
-	{"id": "galaxy_unicorn", "title": "Galaxy Unicorn", "category": "Arcade", "scene": ""},
+	{"id": "galaxy_unicorn", "title": "Galaxy Unicorn", "category": "Arcade", "scene": "res://scenes/games/galaxy_unicorn.tscn"},
 ]
 
 
