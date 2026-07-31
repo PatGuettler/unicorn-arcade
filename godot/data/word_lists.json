@@ -1,0 +1,1310 @@
+{
+  "CAPTION_SCENES": [
+    {
+      "emoji": "🐱😺",
+      "prompt": "Soft pet that says meow",
+      "answer": "cat",
+      "options": [
+        "cat",
+        "car",
+        "cup",
+        "cap"
+      ]
+    },
+    {
+      "emoji": "☀️🌻",
+      "prompt": "Bright sky in the day — the...",
+      "answer": "sun",
+      "options": [
+        "sun",
+        "moon",
+        "rain",
+        "snow"
+      ]
+    },
+    {
+      "emoji": "🐶🦴",
+      "prompt": "Pet that says woof",
+      "answer": "dog",
+      "options": [
+        "dog",
+        "fog",
+        "log",
+        "dot"
+      ]
+    },
+    {
+      "emoji": "📚😊",
+      "prompt": "What do you do with a book?",
+      "answer": "read",
+      "options": [
+        "read",
+        "sleep",
+        "drive",
+        "cook"
+      ]
+    },
+    {
+      "emoji": "🌙⭐",
+      "prompt": "When the moon is out, it is...",
+      "answer": "night",
+      "options": [
+        "night",
+        "lunch",
+        "morning",
+        "noon"
+      ]
+    },
+    {
+      "emoji": "🎵💃",
+      "prompt": "Move your body to music!",
+      "answer": "dance",
+      "options": [
+        "dance",
+        "sit",
+        "nap",
+        "hide"
+      ]
+    },
+    {
+      "emoji": "🌸🐝",
+      "prompt": "What grows in the garden?",
+      "answer": "flower",
+      "options": [
+        "flower",
+        "rocket",
+        "pencil",
+        "hammer"
+      ]
+    },
+    {
+      "emoji": "🦄🌈",
+      "prompt": "What is the colorful arc?",
+      "answer": "rainbow",
+      "options": [
+        "rainbow",
+        "pizza",
+        "chair",
+        "truck"
+      ]
+    },
+    {
+      "emoji": "🐠🌊",
+      "prompt": "It swims in the sea",
+      "answer": "fish",
+      "options": [
+        "fish",
+        "bird",
+        "frog",
+        "deer"
+      ]
+    },
+    {
+      "emoji": "🚀🌌",
+      "prompt": "It blasts off into space",
+      "answer": "rocket",
+      "options": [
+        "rocket",
+        "wagon",
+        "pencil",
+        "ladder"
+      ]
+    },
+    {
+      "emoji": "🦋🌷",
+      "prompt": "Colorful insect with big wings",
+      "answer": "butterfly",
+      "options": [
+        "butterfly",
+        "elephant",
+        "umbrella",
+        "hamburger"
+      ]
+    },
+    {
+      "emoji": "🏰👑",
+      "prompt": "Where a king and queen live",
+      "answer": "castle",
+      "options": [
+        "castle",
+        "garden",
+        "kitchen",
+        "tunnel"
+      ]
+    },
+    {
+      "emoji": "🐧❄️",
+      "prompt": "Bird in a tuxedo on the ice",
+      "answer": "penguin",
+      "options": [
+        "penguin",
+        "dolphin",
+        "ostrich",
+        "rooster"
+      ]
+    },
+    {
+      "emoji": "🍫🍪",
+      "prompt": "Sweet brown treat",
+      "answer": "chocolate",
+      "options": [
+        "chocolate",
+        "broccoli",
+        "telescope",
+        "butterfly"
+      ]
+    }
+  ],
+  "FALLING_WORDS": {
+    "easy": [
+      "cat",
+      "dog",
+      "sun",
+      "run",
+      "hop",
+      "big",
+      "red",
+      "sit",
+      "cup",
+      "map",
+      "bug",
+      "hat",
+      "pig",
+      "fox",
+      "box",
+      "bed",
+      "pen",
+      "net",
+      "jam",
+      "top",
+      "mud",
+      "log",
+      "fan",
+      "kit",
+      "wig",
+      "tub",
+      "yak",
+      "zip",
+      "gum",
+      "ten"
+    ],
+    "medium": [
+      "cloud",
+      "happy",
+      "music",
+      "spark",
+      "light",
+      "dream",
+      "shine",
+      "magic",
+      "story",
+      "plant",
+      "smile",
+      "water",
+      "green",
+      "sweet",
+      "bloom",
+      "cheer",
+      "brave",
+      "frost",
+      "glide",
+      "honey",
+      "jolly",
+      "lucky",
+      "ocean",
+      "peach",
+      "quilt",
+      "river",
+      "sunny",
+      "tiger",
+      "vivid",
+      "whale",
+      "zebra",
+      "candy"
+    ],
+    "hard": [
+      "rainbow",
+      "unicorn",
+      "sparkle",
+      "wonder",
+      "garden",
+      "castle",
+      "blossom",
+      "morning",
+      "dolphin",
+      "diamond",
+      "feather",
+      "harmony",
+      "journey",
+      "kitten",
+      "lantern",
+      "meadow",
+      "october",
+      "pumpkin",
+      "rocket",
+      "sunrise",
+      "treasure",
+      "village",
+      "whisper",
+      "crystal",
+      "glitter",
+      "machine",
+      "penguin"
+    ],
+    "expert": [
+      "adventure",
+      "beautiful",
+      "together",
+      "butterfly",
+      "chocolate",
+      "celebrate",
+      "dandelion",
+      "everywhere",
+      "fantastic",
+      "gingerbread",
+      "happiness",
+      "incredible",
+      "jellyfish",
+      "kangaroo",
+      "lighthouse",
+      "marshmallow",
+      "playground",
+      "remarkable",
+      "strawberry",
+      "watermelon",
+      "wonderful"
+    ]
+  },
+  "MISSING_WORD": [
+    {
+      "text": [
+        "The",
+        null,
+        "runs."
+      ],
+      "answer": "dog",
+      "options": [
+        "dog",
+        "blue",
+        "happy"
+      ]
+    },
+    {
+      "text": [
+        "I",
+        null,
+        "a cat."
+      ],
+      "answer": "see",
+      "options": [
+        "see",
+        "red",
+        "tall"
+      ]
+    },
+    {
+      "text": [
+        "The sun is",
+        null,
+        "."
+      ],
+      "answer": "hot",
+      "options": [
+        "hot",
+        "run",
+        "cup"
+      ]
+    },
+    {
+      "text": [
+        "We",
+        null,
+        "to school."
+      ],
+      "answer": "walk",
+      "options": [
+        "walk",
+        "apple",
+        "cloud"
+      ]
+    },
+    {
+      "text": [
+        "I see a",
+        null,
+        "in the sky."
+      ],
+      "answer": "star",
+      "options": [
+        "star",
+        "chair",
+        "jump"
+      ]
+    },
+    {
+      "text": [
+        "The",
+        null,
+        "is pink."
+      ],
+      "answer": "flower",
+      "options": [
+        "flower",
+        "run",
+        "five"
+      ]
+    },
+    {
+      "text": [
+        "My",
+        null,
+        "reads to me."
+      ],
+      "answer": "mom",
+      "options": [
+        "mom",
+        "fast",
+        "green"
+      ]
+    },
+    {
+      "text": [
+        "The frog can",
+        null,
+        "high."
+      ],
+      "answer": "jump",
+      "options": [
+        "jump",
+        "table",
+        "purple"
+      ]
+    },
+    {
+      "text": [
+        "She has a soft",
+        null,
+        "."
+      ],
+      "answer": "kitten",
+      "options": [
+        "kitten",
+        "quickly",
+        "under"
+      ]
+    },
+    {
+      "text": [
+        "We",
+        null,
+        "in the cold snow."
+      ],
+      "answer": "play",
+      "options": [
+        "play",
+        "yellow",
+        "seven"
+      ]
+    },
+    {
+      "text": [
+        "The bird builds a",
+        null,
+        "."
+      ],
+      "answer": "nest",
+      "options": [
+        "nest",
+        "loudly",
+        "between"
+      ]
+    },
+    {
+      "text": [
+        "My",
+        null,
+        "is very kind to me."
+      ],
+      "answer": "friend",
+      "options": [
+        "friend",
+        "slowly",
+        "above"
+      ]
+    },
+    {
+      "text": [
+        "The unicorn has a magic",
+        null,
+        "."
+      ],
+      "answer": "horn",
+      "options": [
+        "horn",
+        "gently",
+        "during"
+      ]
+    },
+    {
+      "text": [
+        "Bright stars",
+        null,
+        "in the night."
+      ],
+      "answer": "shine",
+      "options": [
+        "shine",
+        "behind",
+        "almost"
+      ]
+    },
+    {
+      "text": [
+        "The brave knight saved the",
+        null,
+        "."
+      ],
+      "answer": "castle",
+      "options": [
+        "castle",
+        "quietly",
+        "beneath"
+      ]
+    },
+    {
+      "text": [
+        "We watched the rocket",
+        null,
+        "into space."
+      ],
+      "answer": "blast",
+      "options": [
+        "blast",
+        "carefully",
+        "instead"
+      ]
+    },
+    {
+      "text": [
+        "A",
+        null,
+        "butterfly landed on the rose."
+      ],
+      "answer": "tiny",
+      "options": [
+        "tiny",
+        "happily",
+        "whenever"
+      ]
+    },
+    {
+      "text": [
+        "The dolphin",
+        null,
+        "high above the waves."
+      ],
+      "answer": "leaped",
+      "options": [
+        "leaped",
+        "suddenly",
+        "although"
+      ]
+    }
+  ],
+  "PREFIX_MIX": [
+    {
+      "prefix": "un",
+      "root": "do",
+      "answer": "undo",
+      "wrong": [
+        "doun",
+        "redo"
+      ]
+    },
+    {
+      "prefix": "re",
+      "root": "do",
+      "answer": "redo",
+      "wrong": [
+        "dore",
+        "undo"
+      ]
+    },
+    {
+      "prefix": "un",
+      "root": "tie",
+      "answer": "untie",
+      "wrong": [
+        "tieun",
+        "retie"
+      ]
+    },
+    {
+      "prefix": "re",
+      "root": "play",
+      "answer": "replay",
+      "wrong": [
+        "playre",
+        "unplay"
+      ]
+    },
+    {
+      "prefix": "un",
+      "root": "happy",
+      "answer": "unhappy",
+      "wrong": [
+        "happyun",
+        "rehappy"
+      ]
+    },
+    {
+      "prefix": "re",
+      "root": "fill",
+      "answer": "refill",
+      "wrong": [
+        "fillre",
+        "unfill"
+      ]
+    },
+    {
+      "prefix": "pre",
+      "root": "view",
+      "answer": "preview",
+      "wrong": [
+        "viewpre",
+        "review"
+      ]
+    },
+    {
+      "prefix": "dis",
+      "root": "like",
+      "answer": "dislike",
+      "wrong": [
+        "likedis",
+        "relike"
+      ]
+    },
+    {
+      "prefix": "un",
+      "root": "lock",
+      "answer": "unlock",
+      "wrong": [
+        "lockun",
+        "prelock"
+      ]
+    },
+    {
+      "prefix": "re",
+      "root": "build",
+      "answer": "rebuild",
+      "wrong": [
+        "buildre",
+        "unbuild"
+      ]
+    },
+    {
+      "prefix": "mis",
+      "root": "spell",
+      "answer": "misspell",
+      "wrong": [
+        "spellmis",
+        "unspell"
+      ]
+    },
+    {
+      "prefix": "pre",
+      "root": "heat",
+      "answer": "preheat",
+      "wrong": [
+        "heatpre",
+        "reheat"
+      ]
+    },
+    {
+      "prefix": "dis",
+      "root": "agree",
+      "answer": "disagree",
+      "wrong": [
+        "agreedis",
+        "preagree"
+      ]
+    },
+    {
+      "prefix": "un",
+      "root": "kind",
+      "answer": "unkind",
+      "wrong": [
+        "kindun",
+        "rekind"
+      ]
+    },
+    {
+      "prefix": "re",
+      "root": "appear",
+      "answer": "reappear",
+      "wrong": [
+        "appearre",
+        "disappear"
+      ]
+    },
+    {
+      "prefix": "over",
+      "root": "flow",
+      "answer": "overflow",
+      "wrong": [
+        "flowover",
+        "underflow"
+      ]
+    },
+    {
+      "prefix": "under",
+      "root": "ground",
+      "answer": "underground",
+      "wrong": [
+        "groundunder",
+        "overground"
+      ]
+    },
+    {
+      "prefix": "mis",
+      "root": "place",
+      "answer": "misplace",
+      "wrong": [
+        "placemis",
+        "replace"
+      ]
+    }
+  ],
+  "RHYME_CHALLENGES": [
+    {
+      "prompt": "cat",
+      "answer": "hat",
+      "options": [
+        "hat",
+        "dog",
+        "cup",
+        "pen"
+      ]
+    },
+    {
+      "prompt": "sun",
+      "answer": "fun",
+      "options": [
+        "fun",
+        "cat",
+        "bed",
+        "log"
+      ]
+    },
+    {
+      "prompt": "hop",
+      "answer": "top",
+      "options": [
+        "top",
+        "red",
+        "sit",
+        "map"
+      ]
+    },
+    {
+      "prompt": "bug",
+      "answer": "rug",
+      "options": [
+        "rug",
+        "fan",
+        "kit",
+        "den"
+      ]
+    },
+    {
+      "prompt": "pig",
+      "answer": "wig",
+      "options": [
+        "wig",
+        "box",
+        "mud",
+        "tub"
+      ]
+    },
+    {
+      "prompt": "bee",
+      "answer": "tree",
+      "options": [
+        "tree",
+        "sky",
+        "ant",
+        "owl"
+      ]
+    },
+    {
+      "prompt": "car",
+      "answer": "star",
+      "options": [
+        "star",
+        "moon",
+        "blue",
+        "rain"
+      ]
+    },
+    {
+      "prompt": "cake",
+      "answer": "lake",
+      "options": [
+        "lake",
+        "milk",
+        "frog",
+        "wind"
+      ]
+    },
+    {
+      "prompt": "ring",
+      "answer": "king",
+      "options": [
+        "king",
+        "gold",
+        "ball",
+        "song"
+      ]
+    },
+    {
+      "prompt": "boat",
+      "answer": "coat",
+      "options": [
+        "coat",
+        "ship",
+        "sand",
+        "fish"
+      ]
+    },
+    {
+      "prompt": "light",
+      "answer": "night",
+      "options": [
+        "night",
+        "cloud",
+        "tree",
+        "grass"
+      ]
+    },
+    {
+      "prompt": "snail",
+      "answer": "trail",
+      "options": [
+        "trail",
+        "shell",
+        "pond",
+        "leaf"
+      ]
+    },
+    {
+      "prompt": "sing",
+      "answer": "wing",
+      "options": [
+        "wing",
+        "drum",
+        "note",
+        "horn"
+      ]
+    },
+    {
+      "prompt": "mouse",
+      "answer": "house",
+      "options": [
+        "house",
+        "cheese",
+        "tail",
+        "barn"
+      ]
+    },
+    {
+      "prompt": "spoon",
+      "answer": "moon",
+      "options": [
+        "moon",
+        "fork",
+        "plate",
+        "bowl"
+      ]
+    },
+    {
+      "prompt": "frog",
+      "answer": "log",
+      "options": [
+        "log",
+        "pond",
+        "hop",
+        "lily"
+      ]
+    },
+    {
+      "prompt": "bright",
+      "answer": "kite",
+      "options": [
+        "kite",
+        "dark",
+        "shade",
+        "cloud"
+      ]
+    },
+    {
+      "prompt": "snake",
+      "answer": "rake",
+      "options": [
+        "rake",
+        "grass",
+        "hiss",
+        "scale"
+      ]
+    },
+    {
+      "prompt": "queen",
+      "answer": "green",
+      "options": [
+        "green",
+        "crown",
+        "royal",
+        "throne"
+      ]
+    },
+    {
+      "prompt": "flower",
+      "answer": "tower",
+      "options": [
+        "tower",
+        "petal",
+        "stem",
+        "vase"
+      ]
+    },
+    {
+      "prompt": "thunder",
+      "answer": "wonder",
+      "options": [
+        "wonder",
+        "storm",
+        "flash",
+        "rain"
+      ]
+    },
+    {
+      "prompt": "feather",
+      "answer": "weather",
+      "options": [
+        "weather",
+        "bird",
+        "soft",
+        "fluff"
+      ]
+    },
+    {
+      "prompt": "dragon",
+      "answer": "wagon",
+      "options": [
+        "wagon",
+        "fire",
+        "scale",
+        "knight"
+      ]
+    },
+    {
+      "prompt": "balloon",
+      "answer": "cartoon",
+      "options": [
+        "cartoon",
+        "float",
+        "string",
+        "party"
+      ]
+    }
+  ],
+  "SENTENCE_BUILD": [
+    {
+      "words": [
+        "I",
+        "can",
+        "hop"
+      ]
+    },
+    {
+      "words": [
+        "We",
+        "play",
+        "now"
+      ]
+    },
+    {
+      "words": [
+        "The",
+        "dog",
+        "runs"
+      ]
+    },
+    {
+      "words": [
+        "I",
+        "see",
+        "the",
+        "sun"
+      ]
+    },
+    {
+      "words": [
+        "My",
+        "cat",
+        "is",
+        "soft"
+      ]
+    },
+    {
+      "words": [
+        "We",
+        "play",
+        "in",
+        "snow"
+      ]
+    },
+    {
+      "words": [
+        "She",
+        "has",
+        "a",
+        "hat"
+      ]
+    },
+    {
+      "words": [
+        "The",
+        "bird",
+        "can",
+        "fly"
+      ]
+    },
+    {
+      "words": [
+        "I",
+        "like",
+        "to",
+        "read",
+        "books"
+      ]
+    },
+    {
+      "words": [
+        "My",
+        "friend",
+        "is",
+        "very",
+        "kind"
+      ]
+    },
+    {
+      "words": [
+        "The",
+        "unicorn",
+        "loves",
+        "bright",
+        "rainbows"
+      ]
+    },
+    {
+      "words": [
+        "We",
+        "build",
+        "a",
+        "sand",
+        "castle"
+      ]
+    },
+    {
+      "words": [
+        "The",
+        "happy",
+        "frog",
+        "jumps",
+        "high"
+      ]
+    },
+    {
+      "words": [
+        "Stars",
+        "shine",
+        "in",
+        "the",
+        "dark",
+        "sky"
+      ]
+    },
+    {
+      "words": [
+        "My",
+        "garden",
+        "has",
+        "pretty",
+        "pink",
+        "flowers"
+      ]
+    },
+    {
+      "words": [
+        "The",
+        "brave",
+        "knight",
+        "rides",
+        "a",
+        "horse"
+      ]
+    },
+    {
+      "words": [
+        "We",
+        "watch",
+        "the",
+        "rocket",
+        "fly",
+        "to",
+        "space"
+      ]
+    },
+    {
+      "words": [
+        "The",
+        "little",
+        "kitten",
+        "chased",
+        "a",
+        "red",
+        "ball"
+      ]
+    },
+    {
+      "words": [
+        "Every",
+        "morning",
+        "the",
+        "rooster",
+        "sings",
+        "a",
+        "song"
+      ]
+    },
+    {
+      "words": [
+        "The",
+        "magic",
+        "dragon",
+        "flew",
+        "over",
+        "the",
+        "tall",
+        "mountain"
+      ]
+    }
+  ],
+  "SYLLABLE_WORDS": [
+    {
+      "word": "hap-py",
+      "parts": [
+        "hap",
+        "py"
+      ]
+    },
+    {
+      "word": "kit-ten",
+      "parts": [
+        "kit",
+        "ten"
+      ]
+    },
+    {
+      "word": "rain-bow",
+      "parts": [
+        "rain",
+        "bow"
+      ]
+    },
+    {
+      "word": "uni-corn",
+      "parts": [
+        "uni",
+        "corn"
+      ]
+    },
+    {
+      "word": "sun-set",
+      "parts": [
+        "sun",
+        "set"
+      ]
+    },
+    {
+      "word": "pen-cil",
+      "parts": [
+        "pen",
+        "cil"
+      ]
+    },
+    {
+      "word": "tur-tle",
+      "parts": [
+        "tur",
+        "tle"
+      ]
+    },
+    {
+      "word": "rock-et",
+      "parts": [
+        "rock",
+        "et"
+      ]
+    },
+    {
+      "word": "but-ter-fly",
+      "parts": [
+        "but",
+        "ter",
+        "fly"
+      ]
+    },
+    {
+      "word": "el-e-phant",
+      "parts": [
+        "el",
+        "e",
+        "phant"
+      ]
+    },
+    {
+      "word": "ba-na-na",
+      "parts": [
+        "ba",
+        "na",
+        "na"
+      ]
+    },
+    {
+      "word": "di-no-saur",
+      "parts": [
+        "di",
+        "no",
+        "saur"
+      ]
+    },
+    {
+      "word": "choc-o-late",
+      "parts": [
+        "choc",
+        "o",
+        "late"
+      ]
+    },
+    {
+      "word": "um-brel-la",
+      "parts": [
+        "um",
+        "brel",
+        "la"
+      ]
+    },
+    {
+      "word": "wa-ter-mel-on",
+      "parts": [
+        "wa",
+        "ter",
+        "mel",
+        "on"
+      ]
+    },
+    {
+      "word": "al-li-ga-tor",
+      "parts": [
+        "al",
+        "li",
+        "ga",
+        "tor"
+      ]
+    }
+  ],
+  "VOWEL_WORDS": {
+    "a": [
+      "ant",
+      "and",
+      "at",
+      "am",
+      "ask",
+      "arm",
+      "ash",
+      "ape",
+      "ace",
+      "add",
+      "age",
+      "apple",
+      "angel",
+      "April",
+      "acorn"
+    ],
+    "e": [
+      "egg",
+      "elf",
+      "end",
+      "eat",
+      "eel",
+      "ever",
+      "echo",
+      "edge",
+      "exit",
+      "easy",
+      "extra",
+      "eagle",
+      "elbow",
+      "eleven"
+    ],
+    "i": [
+      "it",
+      "in",
+      "is",
+      "if",
+      "ill",
+      "ink",
+      "into",
+      "ice",
+      "idea",
+      "iron",
+      "itch",
+      "island",
+      "igloo",
+      "insect"
+    ],
+    "o": [
+      "on",
+      "ox",
+      "off",
+      "odd",
+      "owl",
+      "one",
+      "open",
+      "out",
+      "oak",
+      "oil",
+      "olive",
+      "otter",
+      "ocean",
+      "orange",
+      "octopus"
+    ],
+    "u": [
+      "up",
+      "us",
+      "urn",
+      "use",
+      "upon",
+      "under",
+      "ugly",
+      "until",
+      "udder",
+      "uncle",
+      "unicorn",
+      "umbrella",
+      "umpire"
+    ]
+  }
+}

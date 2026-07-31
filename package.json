@@ -1,7 +1,7 @@
 {
   "name": "unicorn-arcade",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
@@ -14,13 +14,14 @@
     "test:e2e": "playwright test",
     "test:e2e:update": "playwright test --update-snapshots",
     "test:responsive": "playwright test e2e/responsive.spec.js",
-    "test:visual": "playwright test e2e/visual.spec.js"
+    "test:visual": "playwright test e2e/visual.spec.js",
+    "build:android": "npm run build && npx cap sync android && cd android && ./gradlew bundleRelease",
+    "export:godot-data": "node scripts/export-godot-data.mjs"
   },
   "dependencies": {
     "@capacitor/android": "5.7.8",
     "@capacitor/app": "5.0.8",
     "@capacitor/core": "5.7.8",
-    "@capacitor/ios": "5.7.8",
     "@capacitor/status-bar": "5.0.8",
     "lucide-react": "^0.292.0",
     "react": "^18.2.0",

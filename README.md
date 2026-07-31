@@ -15,16 +15,16 @@ A collection of educational mini-games designed for children to learn math, logi
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
-- npm or yarn
-- For mobile builds: Android Studio (Android) or Xcode (iOS)
+- Node.js 20 LTS (CI uses 20)
+- npm
+- **Play Store builds:** JDK 17 + Android SDK 36 (CI installs these; Android Studio is optional)
 
 ### Installation
 
 ```bash
 # Clone the repository
 git clone <your-repo-url>
-cd wl-arcade
+cd unicorn-arcade
 
 # Install dependencies
 npm install
@@ -61,42 +61,22 @@ The site must deploy the **built** `dist/` folder, not the raw `src/` sources.
 npm run build:verify   # local check before push
 ```
 
-## 📱 Mobile Deployment
+## Mobile Deployment (Android / Play Store)
 
-### Sync Native Projects
+**App name:** Unicorn Arcade · **Package:** `com.grapegames.wlarcade` · **Target SDK:** 36 (see [docs/android-play-compliance.md](docs/android-play-compliance.md)).
 
-After building, sync the web assets to native projects:
+Production builds are usually done via GitHub Actions (`.github/workflows/deploy-android.yml`), not Android Studio.
 
 ```bash
-npx cap sync
+npm ci
+npm run build:android
 ```
 
-### Android Build
+Set `VERSION_NAME` in `android/version.properties`. For release signing locally, set `SIGNING_*` env vars (same names as CI). CI sets `versionCode` from the workflow run number (must always increase on Play).
 
-1. Open Android Studio:
+**Godot (in progress):** Native remake lives in [`godot/`](godot/). See [docs/godot-setup.md](docs/godot-setup.md) and [docs/godot-execution.md](docs/godot-execution.md). Capacitor `android/` remains the Play Store build until cutover.
 
-   ```bash
-   npx cap open android
-   ```
-
-2. In Android Studio:
-   - File → Sync Project with Gradle Files
-   - Build → Generate Signed Bundle/APK
-   - Follow the signing wizard to create your release APK/AAB
-
-### iOS Build
-
-1. Open Xcode:
-
-   ```bash
-   npx cap open ios
-   ```
-
-2. In Xcode:
-   - Select your development team
-   - Configure signing & capabilities
-   - Product → Archive
-   - Follow the distribution wizard
+Optional native debugging: `npx cap open android` (Android Studio).
 
 ## Game Categories
 
@@ -156,8 +136,8 @@ unicorn-arcade/
 │   ├── utils/               # Helper functions and storage
 │   ├── App.jsx              # Main application component
 │   └── main.jsx             # Application entry point
-├── android/                 # Android native project
-├── ios/                     # iOS native project
+├── android/                 # Capacitor Android shell (Play Store AAB)
+├── docs/                    # Play compliance, migration notes
 ├── dist/                    # Production build output
 └── public/                  # Static assets
 ```
@@ -199,9 +179,8 @@ Edit `src/data/furnitureCatalog.js`:
 - `npm run dev` - Start development server
 - `npm run build` - Create production build
 - `npm run preview` - Preview production build
-- `npx cap sync` - Sync web assets to native projects
-- `npx cap open android` - Open Android Studio
-- `npx cap open ios` - Open Xcode
+- `npm run build:android` - Web build, Capacitor sync, release AAB (requires SDK + signing for release)
+- `npx cap sync android` - Sync web assets into `android/` only
 
 ## Troubleshooting
 
@@ -212,8 +191,8 @@ Edit `src/data/furnitureCatalog.js`:
 
 ### Mobile Issues
 
-- Resync Capacitor: `npx cap sync`
-- Rebuild native project in Android Studio/Xcode
+- Resync Capacitor: `npx cap sync android`
+- Rebuild AAB: `npm run build:android` (or push to `main` for CI)
 
 ### Storage Issues
 

@@ -1,0 +1,38 @@
+; Engine configuration file — Godot 4.x
+config_version=5
+
+[application]
+config/name="Unicorn Arcade"
+config/description="Educational mini-games with unicorn companions"
+run/main_scene="res://scenes/main/main_shell.tscn"
+config/features=PackedStringArray("4.3", "Forward Plus")
+config/icon="res://assets/branding/icon.svg"
+
+[autoload]
+GameCatalog="*res://autoload/game_catalog.gd"
+SaveManager="*res://autoload/save_manager.gd"
+SceneRouter="*res://autoload/scene_router.gd"
+DisplayProfile="*res://autoload/display_profile.gd"
+GameSession="*res://autoload/game_session.gd"
+
+[display]
+window/size/viewport_width=390
+window/size/viewport_height=844
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/handheld/orientation=1
+
+[input_devices]
+pointing/emulate_touch_from_mouse=true
+
+[rendering]
+renderer/rendering_method="mobile"
+textures/vram_compression/import_etc2_astc=true
+
+[internationalization]
+locale/translations=PackedStringArray()
+
+[layer_names]
+3d_physics/layer_1="world"
+3d_physics/layer_2="furniture"
+3d_physics/layer_3="pickable"
