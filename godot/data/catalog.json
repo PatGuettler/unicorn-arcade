@@ -32,14 +32,14 @@
         "title": "Unicorn Jump",
         "icon": "🦄",
         "desc": "Exact Jump Pathfinding",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "sliding",
         "title": "Sliding Window",
         "icon": "🪟",
         "desc": "Array Logic Puzzle",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "coin",
@@ -53,21 +53,21 @@
         "title": "Cash Counter",
         "icon": "💵",
         "desc": "High Value Math",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "mathSwipe",
         "title": "Math Swipe",
         "icon": "🎯",
         "desc": "Swipe the Right Answer",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "mathtris",
         "title": "Mathtris",
         "icon": "🔢",
         "desc": "Tetris-style math equations",
-        "parity_ok": false
+        "parity_ok": true
       }
     ],
     "word": [
@@ -76,70 +76,70 @@
         "title": "Unicorn Blast",
         "icon": "🎯",
         "desc": "Type words — cannon fires your unicorn!",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "rhymeRally",
         "title": "Rhyme Rally",
         "icon": "🎵",
         "desc": "Hop with rhymes",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "sentenceSprout",
         "title": "Sentence Sprout",
         "icon": "🌱",
         "desc": "Grow sentences word by word",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "missingMagic",
         "title": "Missing Magic",
         "icon": "✨",
         "desc": "Fill the story blank",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "sightSpark",
         "title": "Sight Spark",
         "icon": "⚡",
         "desc": "Flash words — type from memory",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "prefixPotion",
         "title": "Prefix Potion",
         "icon": "🧪",
         "desc": "Brew prefix + root words",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "vowelVines",
         "title": "Vowel Vines",
         "icon": "🌿",
         "desc": "Climb the right vowel vines",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "letterLift",
         "title": "Letter Lift",
         "icon": "🪜",
         "desc": "Type letters — unicorn climbs",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "syllableStamp",
         "title": "Syllable Stamp",
         "icon": "🦄",
         "desc": "Stamp syllables in order",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "captionQuest",
         "title": "Caption Quest",
         "icon": "📸",
         "desc": "Caption emoji scenes",
-        "parity_ok": false
+        "parity_ok": true
       }
     ],
     "wordMysteries": [
@@ -148,35 +148,35 @@
         "title": "Opposite Orbit",
         "icon": "🌓",
         "desc": "Spin to the word that means the opposite",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "scrambleSpell",
         "title": "Scramble Spell",
         "icon": "🔤",
         "desc": "Tap scrambled letters in the right order",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "oddOneOut",
         "title": "Odd One Out",
         "icon": "🕵️",
         "desc": "Find the item that does not belong",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "sizeLineUp",
         "title": "Size Line-Up",
         "icon": "📏",
         "desc": "Tap words shortest → longest",
-        "parity_ok": false
+        "parity_ok": true
       },
       {
         "id": "chainLink",
         "title": "Chain Link",
         "icon": "🔗",
         "desc": "Pick the word that continues the letter chain",
-        "parity_ok": false
+        "parity_ok": true
       }
     ],
     "future": [
@@ -185,7 +185,7 @@
         "title": "Galaxy Unicorn",
         "icon": "🚀",
         "desc": "Fly & blast — Galaxy Attack style space shooter",
-        "parity_ok": false
+        "parity_ok": true
       }
     ]
   },

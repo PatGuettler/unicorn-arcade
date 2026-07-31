@@ -10,10 +10,13 @@ config/icon="res://assets/branding/icon.svg"
 
 [autoload]
 GameCatalog="*res://autoload/game_catalog.gd"
+WordData="*res://autoload/word_data.gd"
 SaveManager="*res://autoload/save_manager.gd"
+AudioManager="*res://autoload/audio_manager.gd"
 SceneRouter="*res://autoload/scene_router.gd"
 DisplayProfile="*res://autoload/display_profile.gd"
 GameSession="*res://autoload/game_session.gd"
+World3DHelpers="*res://scripts/world3d/world_3d_helpers.gd"
 
 [display]
 window/size/viewport_width=390

@@ -2,20 +2,28 @@ extends Control
 
 
 func _ready() -> void:
-	UiFactory.make_panel(self)
+	UiFactory.add_background(self)
 	var cat_id := SceneRouter.get_category_id()
-	var title := cat_id
-	for cat in GameCatalog.categories:
-		if cat.id == cat_id:
-			title = cat.title
+	var title: String = cat_id
+	for cat_variant in GameCatalog.categories:
+		var cat: Dictionary = cat_variant
+		if cat.get("id", "") == cat_id:
+			title = String(cat.get("title", cat_id))
 			break
 
-	UiFactory.make_header(self, title, func(): SceneRouter.pop(), int(SaveManager.user_data.coins))
+	var coins: int = int(SaveManager.user_data.get("coins", 0))
+	UiFactory.make_header_bar(self, {
+		"subscreen": true,
+		"title": title,
+		"coins": coins,
+		"on_back": func(): SceneRouter.pop(),
+		"on_profile": func(): SceneRouter.go_home(false),
+	})
 
+	var body := UiFactory.make_screen_body(self, 88)
 	var scroll := ScrollContainer.new()
-	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
-	scroll.offset_top = 72
-	add_child(scroll)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_child(scroll)
 
 	var grid := GridContainer.new()
 	grid.columns = DisplayProfile.grid_columns(2, 3)
@@ -23,12 +31,11 @@ func _ready() -> void:
 	grid.add_theme_constant_override("v_separation", 10)
 	scroll.add_child(grid)
 
-	for game in GameCatalog.games.get(cat_id, []):
-		var label := "%s %s" % [game.get("icon", ""), game.get("title", game.get("id"))]
-		if not game.get("parity_ok", false):
-			label += "\n(coming soon)"
-		var btn := UiFactory.make_button(label, UiFactory.CYAN if game.get("parity_ok") else UiFactory.VIOLET)
-		btn.custom_minimum_size = Vector2(140, 72)
-		var game_id: String = game.id
+	for game_variant in GameCatalog.games.get(cat_id, []):
+		var game: Dictionary = game_variant
+		var label: String = "%s %s" % [game.get("icon", ""), game.get("title", game.get("id"))]
+		var btn := UiFactory.make_button(label, UiFactory.CYAN, 80)
+		btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var game_id: String = String(game.get("id", ""))
 		btn.pressed.connect(func(): SceneRouter.go_game(cat_id, game_id))
 		grid.add_child(btn)

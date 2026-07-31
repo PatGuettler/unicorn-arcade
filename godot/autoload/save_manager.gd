@@ -67,6 +67,8 @@ func ensure_data_structure(data: Dictionary) -> Dictionary:
 		data.equippedUnicorn = "sparkle"
 	if not data.has("furniture"):
 		data.furniture = { "inventory": {}, "placements": {} }
+	if not data.has("settings"):
+		data.settings = _default_settings()
 	var placements: Dictionary = data.furniture.placements
 	for room_id in placements.keys():
 		var items: Array = placements[room_id]
@@ -85,10 +87,61 @@ func _new_user() -> Dictionary:
 		"ownedUnicorns": ["sparkle"],
 		"equippedUnicorn": "sparkle",
 		"furniture": { "inventory": {}, "placements": {} },
+		"settings": _default_settings(),
 	}
 	for game_id in GameCatalog.all_game_ids:
 		user[game_id] = { "maxLevel": 0, "times": [] }
 	return user
+
+
+func _default_settings() -> Dictionary:
+	return {
+		"sound_enabled": true,
+		"reduced_motion": false,
+		"text_scale": 1.0,
+	}
+
+
+func get_setting(key: String, fallback: Variant = null) -> Variant:
+	var settings: Dictionary = user_data.get("settings", _default_settings())
+	return settings.get(key, fallback)
+
+
+func set_setting(key: String, value: Variant) -> void:
+	var settings: Dictionary = user_data.get("settings", _default_settings())
+	settings[key] = value
+	user_data.settings = settings
+	persist_user()
+
+
+func export_json() -> String:
+	if not current_user.is_empty():
+		db.users[current_user] = user_data
+	return JSON.stringify(db, "\t")
+
+
+func import_json(text: String) -> bool:
+	var parsed = JSON.parse_string(text)
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return false
+	var incoming: Dictionary = parsed
+	if incoming.has("users") and typeof(incoming.users) == TYPE_DICTIONARY:
+		db = incoming
+		if not db.has("lastUser"):
+			db.lastUser = ""
+		for username_variant in db.users.keys():
+			var username := String(username_variant)
+			db.users[username] = ensure_data_structure(db.users[username])
+		if String(db.lastUser).is_empty() and not db.users.is_empty():
+			db.lastUser = String(db.users.keys()[0])
+	else:
+		var username := current_user if not current_user.is_empty() else "Imported Player"
+		db.users[username] = ensure_data_structure(incoming)
+		db.lastUser = username
+	current_user = String(db.lastUser)
+	user_data = ensure_data_structure(db.users.get(current_user, {}))
+	save()
+	return true
 
 
 func persist_user() -> void:

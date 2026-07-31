@@ -1,13 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://room_editor"]
+[gd_scene load_steps=2 format=3 uid="uid://room_editor"]
 
 [ext_resource type="Script" path="res://scenes/meta/room_editor_3d.gd" id="1"]
-
-[sub_resource type="Environment" id="Environment_room"]
-background_mode = 1
-background_color = Color(0.117647, 0.105882, 0.290196, 1)
-ambient_light_source = 2
-ambient_light_color = Color(0.956863, 0.447059, 0.713726, 1)
-ambient_light_energy = 0.55
 
 [node name="RoomEditor3D" type="Control"]
 layout_mode = 3
@@ -15,31 +8,3 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("1")
-
-[node name="ViewportContainer" type="SubViewportContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-stretch = true
-
-[node name="SubViewport" type="SubViewport" parent="ViewportContainer"]
-handle_input_locally = false
-size = Vector2i(390, 844)
-render_target_update_mode = 4
-
-[node name="World" type="Node3D" parent="ViewportContainer/SubViewport"]
-
-[node name="Camera3D" type="Camera3D" parent="ViewportContainer/SubViewport/World"]
-transform = Transform3D(1, 0, 0, 0, 0.707107, 0.707107, 0, -0.707107, 0.707107, 0, 5, 6)
-
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="ViewportContainer/SubViewport/World"]
-
-[node name="Floor" type="MeshInstance3D" parent="ViewportContainer/SubViewport/World"]
-
-[node name="Props" type="Node3D" parent="ViewportContainer/SubViewport/World"]
-
-[node name="WorldEnvironment" type="WorldEnvironment" parent="ViewportContainer/SubViewport/World"]
-environment = SubResource("Environment_room")

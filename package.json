@@ -16,7 +16,9 @@
     "test:responsive": "playwright test e2e/responsive.spec.js",
     "test:visual": "playwright test e2e/visual.spec.js",
     "build:android": "npm run build && npx cap sync android && cd android && ./gradlew bundleRelease",
-    "export:godot-data": "node scripts/export-godot-data.mjs"
+    "export:godot-data": "node scripts/export-godot-data.mjs",
+    "build:godot": "npm run export:godot-data && godot --headless --path godot --import && godot --headless --path godot res://tests/runtime_smoke.tscn",
+    "build:godot:android": "npm run build:godot && mkdir -p build/godot && godot --headless --path godot --install-android-build-template --export-release Android build/godot/unicorn-arcade.aab"
   },
   "dependencies": {
     "@capacitor/android": "5.7.8",

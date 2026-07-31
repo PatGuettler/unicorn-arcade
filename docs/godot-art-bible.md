@@ -13,25 +13,27 @@
 
 ## Character (unicorns)
 
-- Low–mid poly (5k–15k tris target)
-- Shared skeleton across 6 skins: sparkle, rainbow, star, cloud, dream, mystic
+- Runtime low-poly procedural model shared by 6 themed variants: sparkle, rainbow, star, cloud, dream, mystic
+- Model parts: capsule body, chest, neck, head, muzzle, ears, eyes, horn, four articulated-looking legs, hooves, mane, and tail
 - Shader: `shaders/toon_magical.gdshader` (toon diffuse + cyan rim)
-- Placeholder: colored `BoxMesh` / capsule in alley until rigged GLB lands
+- Used consistently on the home pedestal, game arena, rooms, and Unicorn Alley
+- Optional production upgrade: replace the procedural model with one shared-skeleton GLB while preserving `build_unicorn_model()` as low-tier fallback
 
 ## Sparkle vertical slice (Phase 0)
 
 | Asset | Status | Notes |
 |-------|--------|-------|
-| Sparkle room floor | Placeholder | Indigo plane in `room_editor_3d.tscn` |
-| 5 props (lamp, rug, plant, chair, trophy) | Placeholder boxes | Tint violet; map to catalog IDs |
-| Unicorn pedestal (home) | Emoji label | Replace with rig + idle anim |
-| Alley houses | 1.2m cubes | Pink if owned, slate if locked |
+| Sparkle room floor | Complete | Sparkle texture + modular 3D walls |
+| 5 props (lamp, rug, plant, chair, trophy) | Complete | Procedural category meshes mapped to catalog IDs |
+| Unicorn pedestal (home) | Complete | Spinning themed 3D unicorn model |
+| Alley houses | Complete | Six themed houses, 3D unicorn previews, labels, locks, and raycast triggers |
 
 ## Furniture tiers (107 items)
 
-- **Tier A (30):** unique meshes — beds, rugs, fountain, moon chair
-- **Tier B (77):** kitbash scale/tint variants
-- Catalog emoji → `itemId` → mesh or primitive fallback (current)
+- **Tier A families:** multi-part beds, tables, lamps, electronics, plants, kitchen cabinets, wall art, pets/toys, luxury/unicorn pedestals
+- **Tier B variants:** deterministic scale and palette variants generated from each catalog ID
+- All catalog IDs resolve to a multi-part 3D prop; emoji is retained only in shop/bag UI
+- External GLBs can replace individual IDs later without changing save data
 
 ## External mesh requests (for AI/DCC pipeline)
 

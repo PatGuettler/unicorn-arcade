@@ -77,6 +77,7 @@ func complete_level() -> void:
 	if state != State.PLAYING:
 		return
 	_timer.stop()
+	AudioManager.play_success()
 	state = State.SCORING
 	state_changed.emit()
 	var time_sec := elapsed_ms / 1000.0
@@ -88,6 +89,7 @@ func complete_level() -> void:
 
 func fail_level(message: String = "") -> void:
 	_timer.stop()
+	AudioManager.play_fail()
 	fail_message = message
 	state = State.FAILED
 	state_changed.emit()

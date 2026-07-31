@@ -92,10 +92,20 @@ func go_game(category_id: String, game_id: String, push: bool = true) -> void:
 
 func pop() -> void:
 	if _stack.is_empty():
-		get_tree().quit()
+		match _current:
+			Screen.LOGIN:
+				get_tree().quit()
+			Screen.HOME:
+				pass
+			_:
+				go_home(false)
 		return
 	var prev: Dictionary = _stack.pop_back()
 	_apply_screen(prev.screen, prev.params, false)
+
+
+func refresh_current() -> void:
+	_apply_screen(_current, _current_params(), false)
 
 
 func _nav(screen: Screen, params: Dictionary, push: bool) -> void:
@@ -152,9 +162,19 @@ func _apply_screen(screen: Screen, params: Dictionary, _track: bool) -> void:
 
 
 func _swap_packed(packed: PackedScene) -> void:
+	if packed == null:
+		push_error("SceneRouter: missing scene")
+		return
 	for child in _content.get_children():
+		_content.remove_child(child)
 		child.queue_free()
-	var inst := packed.instantiate()
+	var inst: Control = packed.instantiate() as Control
+	if inst == null:
+		push_error("SceneRouter: scene root must be Control")
+		return
+	inst.set_anchors_preset(Control.PRESET_FULL_RECT)
+	inst.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	inst.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_content.add_child(inst)
 
 

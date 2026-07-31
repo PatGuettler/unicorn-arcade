@@ -1,0 +1,78 @@
+name: Build Godot Android
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "godot/**"
+      - "scripts/install-godot-templates.sh"
+      - "scripts/install-android-sdk.sh"
+      - ".github/workflows/build-godot-android.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-and-aab:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GODOT_VERSION: "4.7"
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Install Android API 36
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-36" "build-tools;36.0.0"
+
+      - name: Install Godot
+        run: |
+          curl -fsSL \
+            "https://github.com/godotengine/godot/releases/download/${GODOT_VERSION}-stable/Godot_v${GODOT_VERSION}-stable_linux.x86_64.zip" \
+            -o /tmp/godot.zip
+          unzip -q /tmp/godot.zip -d /tmp/godot
+          sudo install -m 0755 /tmp/godot/Godot_v${GODOT_VERSION}-stable_linux.x86_64 /usr/local/bin/godot
+          bash scripts/install-godot-templates.sh
+
+      - name: Import and runtime smoke test
+        run: |
+          godot --headless --editor --path godot --quit
+          godot --headless --path godot res://tests/runtime_smoke.tscn
+
+      - name: Create ephemeral CI keystore
+        run: |
+          keytool -genkeypair -v \
+            -keystore /tmp/unicorn-ci.keystore \
+            -storepass android -keypass android \
+            -alias androiddebugkey -keyalg RSA -keysize 2048 \
+            -validity 10000 -dname "CN=Unicorn Arcade CI"
+          cat >> godot/export_presets.cfg <<'EOF'
+          keystore/release="/tmp/unicorn-ci.keystore"
+          keystore/release_user="androiddebugkey"
+          keystore/release_password="android"
+          EOF
+
+      - name: Export Android AAB smoke artifact
+        run: |
+          mkdir -p build/godot
+          godot --headless --path godot \
+            --install-android-build-template \
+            --export-release "Android" \
+            build/godot/unicorn-arcade-ci.aab
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: unicorn-arcade-godot-aab
+          path: build/godot/unicorn-arcade-ci.aab
+          if-no-files-found: error

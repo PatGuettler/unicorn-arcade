@@ -64,9 +64,5 @@ func get_furniture_def(item_id: String) -> Dictionary:
 	return {}
 
 
-func game_scene_path(game_id: String) -> String:
-	match game_id:
-		"coin":
-			return "res://scenes/games/coin_count/coin_count.tscn"
-		_:
-			return "res://scenes/games/stub/stub_game.tscn"
+func game_scene_path(_game_id: String) -> String:
+	return "res://scenes/games/playable_game.tscn"

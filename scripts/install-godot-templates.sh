@@ -3,7 +3,9 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 VERSION="$(tr -d '[:space:]' < "$ROOT/tools/godot-version.txt")"
-TEMPLATE_DIR="${HOME}/.local/share/godot/export_templates/${VERSION}"
+# Godot reports a full build string, but template folders use <major>.<minor>.stable.
+TEMPLATE_VERSION="${VERSION%%.official*}"
+TEMPLATE_DIR="${HOME}/.local/share/godot/export_templates/${TEMPLATE_VERSION}"
 
 if [[ -f "$TEMPLATE_DIR/version.txt" ]] || [[ -f "$TEMPLATE_DIR/android_debug.apk" ]]; then
   echo "Export templates already present at $TEMPLATE_DIR"
@@ -23,10 +25,14 @@ trap 'rm -rf "$TMP"' EXIT
 echo "Downloading $URL ..."
 curl -fsSL "$URL" -o "$TMP/templates.tpz"
 unzip -q "$TMP/templates.tpz" -d "$TMP/extract"
-EXTRACTED="$(find "$TMP/extract" -maxdepth 1 -type d -name 'templates_*' | head -1)"
-if [[ -n "$EXTRACTED" ]]; then
-  cp -a "$EXTRACTED/." "$TEMPLATE_DIR/"
+if [[ -d "$TMP/extract/templates" ]]; then
+  cp -a "$TMP/extract/templates/." "$TEMPLATE_DIR/"
 else
-  cp -a "$TMP/extract/." "$TEMPLATE_DIR/"
+  EXTRACTED="$(find "$TMP/extract" -maxdepth 1 -type d -name 'templates_*' | head -1)"
+  if [[ -n "$EXTRACTED" ]]; then
+    cp -a "$EXTRACTED/." "$TEMPLATE_DIR/"
+  else
+    cp -a "$TMP/extract/." "$TEMPLATE_DIR/"
+  fi
 fi
 echo "Installed export templates to $TEMPLATE_DIR"
