@@ -144,7 +144,7 @@ func _show_home() -> void:
 	shop.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shop.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/marketplace.tscn"))
 	row.add_child(shop)
-	var alley := _make_button("VIEW HOUSES  •  UNICORN ALLEY", PINK, 68)
+	var alley := _make_button("UNICORN ALLEY", PINK, 68)
 	alley.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/unicorn_alley.tscn"))
 	page.add_child(alley)
 	status_label = Label.new()
