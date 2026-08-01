@@ -108,7 +108,9 @@ Expected results: `GODOT_PARITY_TESTS_OK: 77 checks passed` and `GODOT_RUNTIME_I
 The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.6.0-alpha-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.6.1-alpha-arm64.apk"
 ```
+
+Upgrade-compatible debug builds must use the established Godot user-profile keystore. Verify the APK signer before delivery: its SHA-256 certificate digest must be `97dcac80c34ab36c9b1e0da8cef5dc87c14911ffdb26d30aa0bc039f1e8be42b`. A portable Godot installation can silently create a different debug keystore; that APK is valid as a fresh install but Android will reject it as an update to 0.5 and earlier.
 
 This checkpoint exposes the complete 22-game registry plus the companion/decor marketplace, Unicorn Alley, and room editor. Production audio, wider physical-device QA, release signing/store packaging, final character refinement, and bespoke furniture sprites remain upcoming work.
