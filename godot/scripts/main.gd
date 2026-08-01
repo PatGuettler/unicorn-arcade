@@ -11,6 +11,8 @@ const TEXT := Color("f7f1ff")
 const MUTED := Color("aab7e8")
 const MEADOW_BACKGROUND = preload("res://assets/meta/environments/magical_meadow_v1.png")
 const TITLE_SIGN = preload("res://assets/ui/title_sign_option3_v1.png")
+const HOME_TITLE_SIGN = preload("res://assets/ui/title_sign_option3_compact_v1.png")
+const ALLEY_STREET_SIGN = preload("res://assets/ui/unicorn_alley_street_sign_compact_v1.png")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 
 var page: VBoxContainer
@@ -173,7 +175,8 @@ func _show_home() -> void:
 	shop.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shop.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/marketplace.tscn"))
 	row.add_child(shop)
-	var alley := _make_button("UNICORN ALLEY", Color("b85882"), 68)
+	var alley := _make_art_button("UNICORN ALLEY", ALLEY_STREET_SIGN, 150)
+	alley.name = "UnicornAlleyStreetSignButton"
 	alley.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/unicorn_alley.tscn"))
 	page.add_child(alley)
 	status_label = Label.new()
@@ -310,32 +313,62 @@ func _show_profile() -> void:
 
 
 func _add_header(title: String, show_back: bool, show_home: bool, back_action: Callable = Callable()) -> void:
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 10)
+	var header := GridContainer.new()
+	header.name = "CenteredHeader"
+	header.columns = 3
+	header.add_theme_constant_override("h_separation", 8)
+	header.custom_minimum_size.y = 150 if title.is_empty() else 60
 	page.add_child(header)
+	var left := HBoxContainer.new()
+	left.custom_minimum_size.x = 125
+	header.add_child(left)
 	if show_back:
 		var back := Button.new()
 		back.text = "‹ BACK"
 		back.pressed.connect(back_action)
-		header.add_child(back)
-	var label := Label.new()
-	label.text = title if not title.is_empty() else "UNICORN ARCADE"
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 22)
-	label.add_theme_color_override("font_color", StorybookUI.CREAM)
-	label.add_theme_color_override("font_outline_color", StorybookUI.PLUM)
-	label.add_theme_constant_override("outline_size", 3)
-	header.add_child(label)
+		left.add_child(back)
+	var center := Control.new()
+	center.name = "TrueCenterHeaderSlot"
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	center.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	center.custom_minimum_size.y = 150 if title.is_empty() else 60
+	center.clip_contents = true
+	header.add_child(center)
+	if title.is_empty():
+		var sign := TextureRect.new()
+		sign.name = "HomeTitleSign"
+		sign.texture = HOME_TITLE_SIGN
+		sign.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		sign.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		sign.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		center.add_child(sign)
+		sign.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	else:
+		var label := Label.new()
+		label.name = "CenteredHeaderTitle"
+		label.text = title
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.add_theme_font_size_override("font_size", 22)
+		label.add_theme_color_override("font_color", StorybookUI.CREAM)
+		label.add_theme_color_override("font_outline_color", StorybookUI.PLUM)
+		label.add_theme_constant_override("outline_size", 3)
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		center.add_child(label)
+		label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var right := HBoxContainer.new()
+	right.custom_minimum_size.x = 125
+	right.alignment = BoxContainer.ALIGNMENT_END
+	header.add_child(right)
 	coin_label = Label.new()
 	coin_label.text = "★ %d" % AppState.coins()
 	coin_label.add_theme_color_override("font_color", YELLOW)
-	header.add_child(coin_label)
+	right.add_child(coin_label)
 	if show_home:
 		var home := Button.new()
 		home.text = "⌂"
 		home.pressed.connect(func() -> void: _show_home())
-		header.add_child(home)
+		right.add_child(home)
 
 
 func _make_button(text: String, color: Color, height: float) -> Button:
@@ -344,6 +377,35 @@ func _make_button(text: String, color: Color, height: float) -> Button:
 	button.custom_minimum_size = Vector2(0, height)
 	button.add_theme_font_size_override("font_size", 18)
 	StorybookUI.apply_button(button, color, StorybookUI.uses_dark_ink(color))
+	return button
+
+
+func _make_art_button(accessible_text: String, texture: Texture2D, height: float) -> Button:
+	var button := Button.new()
+	button.text = accessible_text
+	button.tooltip_text = accessible_text.capitalize()
+	button.custom_minimum_size = Vector2(0, height)
+	button.add_theme_color_override("font_color", Color.TRANSPARENT)
+	button.add_theme_color_override("font_hover_color", Color.TRANSPARENT)
+	button.add_theme_color_override("font_pressed_color", Color.TRANSPARENT)
+	button.add_theme_color_override("font_focus_color", Color.TRANSPARENT)
+	button.add_theme_color_override("font_outline_color", Color.TRANSPARENT)
+	button.add_theme_constant_override("outline_size", 0)
+	for state in ["normal", "hover", "pressed", "disabled"]:
+		button.add_theme_stylebox_override(state, StyleBoxEmpty.new())
+	button.add_theme_stylebox_override("focus", StorybookUI.button_style(Color.TRANSPARENT, StorybookUI.CYAN, 4, 18, 0))
+	var art := TextureRect.new()
+	art.name = "StreetSignArt"
+	art.texture = texture
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	button.add_child(art)
+	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	button.mouse_entered.connect(func() -> void: art.modulate = Color("fff8ee"))
+	button.mouse_exited.connect(func() -> void: art.modulate = Color.WHITE)
+	button.button_down.connect(func() -> void: art.modulate = Color("e8d9ef"))
+	button.button_up.connect(func() -> void: art.modulate = Color.WHITE)
 	return button
 
 

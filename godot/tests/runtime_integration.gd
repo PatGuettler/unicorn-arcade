@@ -220,6 +220,14 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(shell.get_child_count() >= 2, "navigation shell builds its full-screen page")
 	_check(_ui_is_accessible(shell), "navigation shell meets readable text, contrast, and touch-target minimums")
+	var centered_slot := shell.find_child("TrueCenterHeaderSlot", true, false) as Control
+	var home_sign := shell.find_child("HomeTitleSign", true, false) as TextureRect
+	var alley_sign_button := shell.find_child("UnicornAlleyStreetSignButton", true, false) as Button
+	var expected_center: float = shell.global_position.x + shell.size.x * 0.5
+	var actual_center: float = centered_slot.global_position.x + centered_slot.size.x * 0.5 if is_instance_valid(centered_slot) else -1.0
+	_check(is_instance_valid(centered_slot) and absf(actual_center - expected_center) <= 1.0, "navigation headers center titles on the physical screen independently of side controls (actual %.2f, expected %.2f)" % [actual_center, expected_center])
+	_check(is_instance_valid(home_sign) and home_sign.texture.resource_path.ends_with("title_sign_option3_compact_v1.png"), "home meadow uses the approved illustrated Unicorn Arcade sign")
+	_check(is_instance_valid(alley_sign_button) and alley_sign_button.has_node("StreetSignArt") and alley_sign_button.text == "UNICORN ALLEY", "home uses an accessible illustrated Unicorn Alley street-sign action")
 	remove_child(shell)
 	shell.free()
 	AppState.selected_game_id = original_game
