@@ -13,6 +13,7 @@ func _capture() -> void:
 	var mode := "home"
 	var game_id := ""
 	var companion_id := "sparkle"
+	var decor_category := "all"
 	var output := ""
 	var camera_position := Vector3.ZERO
 	var camera_target := Vector3.ZERO
@@ -25,6 +26,8 @@ func _capture() -> void:
 			game_id = argument.trim_prefix("--game-id=")
 		elif argument.begins_with("--companion-id="):
 			companion_id = argument.trim_prefix("--companion-id=")
+		elif argument.begins_with("--category="):
+			decor_category = argument.trim_prefix("--category=")
 		elif argument.begins_with("--output="):
 			output = argument.trim_prefix("--output=")
 		elif argument.begins_with("--camera="):
@@ -84,6 +87,7 @@ func _capture() -> void:
 			if ortho_size > 0.0:
 				camera.size = ortho_size
 	if mode == "marketplace_decor":
+		captured.category = decor_category
 		captured.call("_show_decor")
 	elif mode == "room_selected":
 		captured.selected_id = "preview_rug"

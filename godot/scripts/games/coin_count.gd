@@ -1,6 +1,9 @@
 extends Control
 
 const COINS := {"Penny": 1, "Nickel": 5, "Dime": 10, "Quarter": 25}
+const COIN_SIZES := {"Penny": 0.86, "Nickel": 0.96, "Dime": 0.76, "Quarter": 1.0}
+const CoinChoiceButtonScene = preload("res://scripts/games/coin_choice_button.gd")
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 
 var level := 1
 var target := 0
@@ -95,14 +98,14 @@ func _build_ui() -> void:
 	layout.add_child(message_label)
 	var grid := GridContainer.new()
 	grid.columns = 2
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 12)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 4)
 	layout.add_child(grid)
 	for coin_name in COINS:
-		var button := Button.new()
-		button.text = "%s\n%s" % [coin_name, _money(COINS[coin_name])]
-		button.custom_minimum_size = Vector2(250, 110)
-		button.add_theme_font_size_override("font_size", 20)
+		var button := CoinChoiceButtonScene.new()
+		button.setup(coin_name, COINS[coin_name], COIN_SIZES[coin_name])
+		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(_add_coin.bind(COINS[coin_name]))
 		grid.add_child(button)
 		coin_buttons.append(button)
@@ -111,10 +114,14 @@ func _build_ui() -> void:
 	layout.add_child(actions)
 	var retry := Button.new()
 	retry.text = "Retry / Next"
+	retry.custom_minimum_size = Vector2(210, 58)
+	StorybookUI.apply_button(retry, StorybookUI.NAVY)
 	retry.pressed.connect(_start_round)
 	actions.add_child(retry)
 	var back := Button.new()
 	back.text = "Number Games"
+	back.custom_minimum_size = Vector2(210, 58)
+	StorybookUI.apply_button(back, StorybookUI.NAVY)
 	back.pressed.connect(func() -> void:
 		AppState.set_shell_destination("category", "Number")
 		get_tree().change_scene_to_file("res://scenes/main.tscn")

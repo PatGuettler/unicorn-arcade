@@ -61,6 +61,8 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(coin_count.target > 0, "Coin Count begins with a positive target")
 	_check(_ui_is_accessible(coin_count), "Coin Count meets readable text, contrast, and touch-target minimums")
+	_check(coin_count.coin_buttons.size() == 4 and coin_count.coin_buttons.all(func(button: Button) -> bool: return button is CoinChoiceButton), "Coin Count uses four illustrated denomination coins instead of text boxes")
+	_check(coin_count.coin_buttons[0].custom_minimum_size.y >= 170.0 and coin_count.coin_buttons[0].tooltip_text.contains("worth"), "illustrated coins retain large accessible tap targets and denomination descriptions")
 	remove_child(coin_count)
 	coin_count.free()
 	var rhyme = RHYME_SCENE.instantiate()
@@ -145,6 +147,16 @@ func _run() -> void:
 	_check(_ui_is_accessible(market), "decor Marketplace meets readable text, contrast, and touch-target minimums")
 	_check(market.tab == "decor" and market.content.get_child_count() > 100, "Marketplace exposes the full decor catalog")
 	_check(market.find_children("CatalogModelPreview", "RoomItemPreview3D", true, false).size() == MetaCatalog.furniture().size(), "every marketplace decor record uses a modeled object preview")
+	_check(market.find_children("DecorCard_*", "PanelContainer", true, false).size() == MetaCatalog.furniture().size(), "decor catalog presents every object in a polished rarity-framed card")
+	_check(market.find_child("DecorCategoryChips", true, false) != null and market.find_child("DecorSearch", true, false) != null, "decor catalog restores quick category chips and search")
+	var model_previews := market.find_children("CatalogModelPreview", "RoomItemPreview3D", true, false)
+	var signature_nodes := {"bed_race": "RaceCarBody", "pet_fish": "FishBowl", "tv_retro": "RetroTelevision", "xmas_sock": "StockingLeg"}
+	var signatures_found := 0
+	for model_preview in model_previews:
+		var expected_signature := str(signature_nodes.get(model_preview.item_id, ""))
+		if not expected_signature.is_empty() and model_preview.find_child(expected_signature, true, false) != null:
+			signatures_found += 1
+	_check(signatures_found == signature_nodes.size(), "decor previews use item-specific production silhouettes across beds, pets, electronics, and seasonal art")
 	remove_child(market)
 	market.free()
 	var alley = ALLEY_SCENE.instantiate()

@@ -145,64 +145,98 @@ func _companion_action(companion_id: String, was_owned: bool) -> void:
 func _show_decor() -> void:
 	tab = "decor"
 	_clear_content()
-	var filters := HBoxContainer.new()
-	content.add_child(filters)
 	var search := LineEdit.new()
+	search.name = "DecorSearch"
 	search.placeholder_text = "Search decor..."
 	search.text = query
+	search.custom_minimum_size.y = 58
 	search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	search.add_theme_font_size_override("font_size", 19)
+	search.add_theme_constant_override("outline_size", 2)
+	StorybookUI.apply_line_edit(search)
 	search.text_submitted.connect(func(value: String) -> void: query = value; _show_decor())
-	filters.add_child(search)
-	var category_picker := OptionButton.new()
-	var selected_index := 0
-	for index in Catalog.categories().size():
-		var item: Dictionary = Catalog.categories()[index]
-		category_picker.add_item(str(item["label"]))
-		category_picker.set_item_metadata(index, str(item["id"]))
-		if str(item["id"]) == category:
-			selected_index = index
-	category_picker.select(selected_index)
-	category_picker.item_selected.connect(func(index: int) -> void: category = str(category_picker.get_item_metadata(index)); _show_decor())
-	filters.add_child(category_picker)
+	content.add_child(search)
+	var category_scroll := ScrollContainer.new()
+	category_scroll.name = "DecorCategoryScroll"
+	category_scroll.custom_minimum_size.y = 66
+	category_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	category_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	content.add_child(category_scroll)
+	var category_row := HBoxContainer.new()
+	category_row.name = "DecorCategoryChips"
+	category_row.add_theme_constant_override("separation", 8)
+	category_scroll.add_child(category_row)
+	for item in Catalog.categories():
+		var category_id := str(item["id"])
+		var chip := _button(str(item["label"]).to_upper(), PINK if category_id == category else PANEL, 56)
+		chip.name = "Category_%s" % category_id
+		chip.custom_minimum_size.x = maxf(94.0, float(str(item["label"]).length() * 12 + 34))
+		chip.pressed.connect(func() -> void: category = category_id; _show_decor())
+		category_row.add_child(chip)
 	for definition in Catalog.filtered_furniture(category, query):
 		var id := str(definition["id"])
+		var rarity := str(definition.get("rarity", "common"))
+		var card := PanelContainer.new()
+		card.name = "DecorCard_%s" % id
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		card.custom_minimum_size.y = 226
+		card.add_theme_stylebox_override("panel", _decor_card_style(_rarity_color(rarity)))
+		content.add_child(card)
+		var card_layout := VBoxContainer.new()
+		card_layout.add_theme_constant_override("separation", 10)
+		card.add_child(card_layout)
 		var row := HBoxContainer.new()
-		row.custom_minimum_size.y = 112
-		row.add_theme_constant_override("separation", 8)
-		content.add_child(row)
+		row.add_theme_constant_override("separation", 12)
+		card_layout.add_child(row)
+		var preview_frame := PanelContainer.new()
+		preview_frame.name = "DecorPreviewFrame"
+		preview_frame.custom_minimum_size = Vector2(126, 126)
+		preview_frame.add_theme_stylebox_override("panel", _preview_style())
+		row.add_child(preview_frame)
 		var preview := RoomItemPreviewScene.new()
 		preview.name = "CatalogModelPreview"
-		preview.custom_minimum_size = Vector2(82, 88)
+		preview.custom_minimum_size = Vector2(118, 118)
 		preview.setup(definition)
-		row.add_child(preview)
+		preview_frame.add_child(preview)
 		var details := VBoxContainer.new()
 		details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		details.add_theme_constant_override("separation", 5)
 		row.add_child(details)
 		var name := Label.new()
-		name.text = "%s  [%s]" % [definition["name"], str(definition.get("rarity", "common")).to_upper()]
-		name.add_theme_font_size_override("font_size", 17)
+		name.text = str(definition["name"]).to_upper()
+		name.add_theme_font_size_override("font_size", 21)
 		details.add_child(name)
+		var rarity_badge := Label.new()
+		rarity_badge.text = "  %s  " % rarity.to_upper()
+		rarity_badge.add_theme_font_size_override("font_size", 19)
+		rarity_badge.add_theme_color_override("font_color", NAVY if _rarity_color(rarity).get_luminance() > 0.56 else TEXT)
+		rarity_badge.add_theme_stylebox_override("normal", _badge_style(_rarity_color(rarity)))
+		rarity_badge.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		details.add_child(rarity_badge)
 		var desc := Label.new()
 		desc.text = str(definition.get("desc", ""))
 		desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		desc.add_theme_color_override("font_color", MUTED)
+		desc.add_theme_font_size_override("font_size", 19)
 		details.add_child(desc)
 		var counts := Label.new()
-		counts.text = "Owned %d  |  Placed %d  |  Bag %d" % [int(AppState.data["inventory"].get(id, 0)), AppState.placed_count(id), AppState.available_count(id)]
+		counts.text = "OWNED %d   •   PLACED %d   •   BAG %d" % [int(AppState.data["inventory"].get(id, 0)), AppState.placed_count(id), AppState.available_count(id)]
 		counts.add_theme_color_override("font_color", CYAN)
+		counts.add_theme_font_size_override("font_size", 19)
 		details.add_child(counts)
-		var actions := VBoxContainer.new()
-		row.add_child(actions)
-		var buy := Button.new()
-		buy.text = "BUY\n%d" % int(definition["price"])
+		var actions := HBoxContainer.new()
+		actions.add_theme_constant_override("separation", 10)
+		card_layout.add_child(actions)
+		var buy := _button("★ %d   BUY" % int(definition["price"]), PANEL, 60)
+		buy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		buy.disabled = AppState.coins() < int(definition["price"])
 		buy.pressed.connect(_buy_decor.bind(id))
 		actions.add_child(buy)
-		var sell := Button.new()
-		sell.text = "SELL\n%d" % Rules.sell_refund(int(definition["price"]))
-		sell.disabled = AppState.available_count(id) <= 0
-		sell.pressed.connect(_sell_decor.bind(id))
-		actions.add_child(sell)
+		if AppState.available_count(id) > 0:
+			var sell := _button("SELL   +★ %d" % Rules.sell_refund(int(definition["price"])), Color("4a2859"), 60)
+			sell.custom_minimum_size.x = 170
+			sell.pressed.connect(_sell_decor.bind(id))
+			actions.add_child(sell)
 	var alley := _button("VISIT UNICORN ALLEY", PINK, 56)
 	alley.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/unicorn_alley.tscn"))
 	content.add_child(alley)
@@ -237,3 +271,36 @@ func _button(text: String, color: Color, height: float) -> Button:
 
 func _rarity_color(rarity: String) -> Color:
 	return {"common": MUTED, "uncommon": Color("62e6a7"), "rare": Color("6da9ff"), "legendary": YELLOW}.get(rarity, MUTED)
+
+
+func _decor_card_style(border: Color) -> StyleBoxFlat:
+	var style := StorybookUI.plaque_style(Color("111c41"), border, 18)
+	style.content_margin_left = 14
+	style.content_margin_right = 14
+	style.content_margin_top = 14
+	style.content_margin_bottom = 14
+	return style
+
+
+func _preview_style() -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("202f5e")
+	style.border_color = Color("e1ae4f")
+	style.set_border_width_all(2)
+	style.set_corner_radius_all(14)
+	style.content_margin_left = 4
+	style.content_margin_right = 4
+	style.content_margin_top = 4
+	style.content_margin_bottom = 4
+	return style
+
+
+func _badge_style(fill: Color) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = fill
+	style.set_corner_radius_all(10)
+	style.content_margin_left = 6
+	style.content_margin_right = 6
+	style.content_margin_top = 3
+	style.content_margin_bottom = 3
+	return style
