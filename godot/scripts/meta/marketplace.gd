@@ -2,6 +2,7 @@ extends Control
 
 const Catalog = preload("res://scripts/meta_catalog.gd")
 const Rules = preload("res://scripts/room_rules.gd")
+const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -102,12 +103,13 @@ func _show_companions() -> void:
 		var owned := id in AppState.owned_companions()
 		var equipped := id == AppState.equipped_companion()
 		var card := VBoxContainer.new()
-		card.custom_minimum_size = Vector2(190, 210)
+		card.custom_minimum_size = Vector2(190, 252)
 		card.add_theme_constant_override("separation", 6)
 		grid.add_child(card)
-		var portrait := ColorRect.new()
-		portrait.color = Color(str(definition.get("color", "f26fa7")))
-		portrait.custom_minimum_size.y = 72
+		var portrait := RoomItemPreviewScene.new()
+		portrait.name = "CompanionModelPreview"
+		portrait.custom_minimum_size.y = 112
+		portrait.setup({"id": "companion_%s" % id, "category": "companions"})
 		card.add_child(portrait)
 		var name := Label.new()
 		name.text = str(definition["name"]).to_upper()
@@ -167,14 +169,11 @@ func _show_decor() -> void:
 		row.custom_minimum_size.y = 112
 		row.add_theme_constant_override("separation", 8)
 		content.add_child(row)
-		var badge := Label.new()
-		badge.text = str(definition["name"]).left(1).to_upper()
-		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		badge.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		badge.custom_minimum_size = Vector2(58, 58)
-		badge.add_theme_font_size_override("font_size", 28)
-		badge.add_theme_color_override("font_color", _rarity_color(str(definition.get("rarity", "common"))))
-		row.add_child(badge)
+		var preview := RoomItemPreviewScene.new()
+		preview.name = "CatalogModelPreview"
+		preview.custom_minimum_size = Vector2(82, 88)
+		preview.setup(definition)
+		row.add_child(preview)
 		var details := VBoxContainer.new()
 		details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(details)

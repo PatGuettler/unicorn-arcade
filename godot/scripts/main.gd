@@ -9,6 +9,7 @@ const YELLOW := Color("ffd166")
 const TEXT := Color("f7f1ff")
 const MUTED := Color("aab7e8")
 const MEADOW_BACKGROUND = preload("res://assets/meta/environments/magical_meadow_v1.png")
+const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 
 var page: VBoxContainer
 var status_label: Label
@@ -47,7 +48,7 @@ func _reset_page(use_meadow: bool = false) -> VBoxContainer:
 		meadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(meadow)
 		var meadow_tint := ColorRect.new()
-		meadow_tint.color = Color(0.02, 0.05, 0.16, 0.62)
+		meadow_tint.color = Color(0.12, 0.08, 0.22, 0.24)
 		meadow_tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		meadow_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(meadow_tint)
@@ -336,55 +337,10 @@ func _make_button(text: String, color: Color, height: float) -> Button:
 
 
 func _build_sparkle_preview() -> SubViewportContainer:
-	var container := SubViewportContainer.new()
+	var container := RoomItemPreviewScene.new()
 	container.custom_minimum_size = Vector2(0, 300)
 	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	container.stretch = true
-	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var viewport := SubViewport.new()
-	# Match the wide mobile presentation panel instead of vertically compressing a
-	# square render target into it. This keeps Sparkle's proportions intact.
-	viewport.size = Vector2i(896, 512)
-	viewport.transparent_bg = true
-	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
-	container.add_child(viewport)
-	var stage := Node3D.new()
-	viewport.add_child(stage)
-	var sparkle_scene = load("res://assets/characters/sparkle/sparkle_v1.glb")
-	if sparkle_scene is PackedScene:
-		var sparkle: Node = sparkle_scene.instantiate()
-		sparkle.rotation_degrees = Vector3(0, 0, 0)
-		# glTF is converted from Blender's Z-up coordinates into Godot's Y-up world.
-		# Lower Sparkle on Godot's Y axis to center the full silhouette in the panel.
-		sparkle.position.y = -0.25
-		stage.add_child(sparkle)
-	var camera := Camera3D.new()
-	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 3.4
-	stage.add_child(camera)
-	# Front three-quarter presentation keeps the face, horn, flank mark, and tail
-	# readable at phone size.
-	camera.look_at_from_position(Vector3(4.6, 2.8, 6.5), Vector3(0.0, 1.5, -0.35), Vector3.UP)
-	camera.current = true
-	var key := DirectionalLight3D.new()
-	key.rotation_degrees = Vector3(-38, -28, -20)
-	key.light_energy = 0.65
-	key.shadow_enabled = true
-	stage.add_child(key)
-	var fill := DirectionalLight3D.new()
-	fill.rotation_degrees = Vector3(35, 145, 15)
-	fill.light_color = Color("8adff0")
-	fill.light_energy = 0.25
-	stage.add_child(fill)
-	var environment := WorldEnvironment.new()
-	var environment_resource := Environment.new()
-	environment_resource.background_mode = Environment.BG_COLOR
-	environment_resource.background_color = Color(0, 0, 0, 0)
-	environment_resource.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment_resource.ambient_light_color = Color("d9ccff")
-	environment_resource.ambient_light_energy = 0.35
-	environment.environment = environment_resource
-	stage.add_child(environment)
+	container.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions"})
 	return container
 
 

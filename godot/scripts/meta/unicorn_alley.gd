@@ -1,6 +1,7 @@
 extends Control
 
 const Catalog = preload("res://scripts/meta_catalog.gd")
+const DoorStateArtScene = preload("res://scripts/meta/door_state_art.gd")
 
 const NAVY := Color("07142c")
 const PANEL := Color("14214a")
@@ -79,18 +80,20 @@ func _build_ui() -> void:
 	for definition in Catalog.companions():
 		var companion_id := str(definition["id"])
 		var owned := companion_id in AppState.owned_companions()
-		var count := AppState.room_items(companion_id).size()
 		var house := Button.new()
-		house.text = "%s\n%s" % [str(definition["name"]).to_upper(), "ENTER • %d" % count if owned else "LOCKED"]
+		house.text = ""
+		house.tooltip_text = "%s's house - %s" % [str(definition["name"]), "open" if owned else "locked"]
 		house.custom_minimum_size = Vector2(82, 122)
 		house.size = house.custom_minimum_size
-		house.add_theme_font_size_override("font_size", 11)
-		house.add_theme_color_override("font_color", Color.WHITE)
-		house.add_theme_color_override("font_outline_color", Color("aa10172e"))
-		house.add_theme_constant_override("outline_size", 5)
-		house.add_theme_stylebox_override("normal", _house_style(Color(str(definition["color"])), owned))
+		for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+			house.add_theme_stylebox_override(state, StyleBoxEmpty.new())
 		house.pressed.connect(_house_pressed.bind(companion_id, owned))
 		stage.add_child(house)
+		var state_art := DoorStateArtScene.new()
+		state_art.name = "DoorStateArt"
+		state_art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		state_art.setup(owned, Color(str(definition["color"])))
+		house.add_child(state_art)
 		house_buttons[companion_id] = house
 	stage.resized.connect(_layout_alley.bind(stage))
 	_layout_alley.call_deferred(stage)
@@ -127,17 +130,3 @@ func _house_pressed(companion_id: String, owned: bool) -> void:
 func _go_home() -> void:
 	AppState.shell_view = "home"
 	get_tree().change_scene_to_file("res://scenes/main.tscn")
-
-
-func _house_style(color: Color, owned: bool) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(color, 0.18) if owned else Color(0.03, 0.04, 0.1, 0.46)
-	style.border_color = Color(color.lightened(0.22), 0.94) if owned else Color("7b7893")
-	style.set_border_width_all(3)
-	style.corner_radius_top_left = 36
-	style.corner_radius_top_right = 36
-	style.corner_radius_bottom_left = 8
-	style.corner_radius_bottom_right = 8
-	style.shadow_color = Color("6608172f")
-	style.shadow_size = 5
-	return style

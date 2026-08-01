@@ -2,7 +2,7 @@ extends Control
 
 const Catalog = preload("res://scripts/meta_catalog.gd")
 const Rules = preload("res://scripts/room_rules.gd")
-const FurnitureArtScene = preload("res://scripts/meta/furniture_art.gd")
+const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -70,6 +70,8 @@ func _clear_ui() -> void:
 
 func _build_editor() -> void:
 	_clear_ui()
+	local_items = AppState.room_items(companion_id)
+	_ensure_companion_present()
 	local_items = AppState.room_items(companion_id)
 	local_items.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a.get("z_index", 0)) < int(b.get("z_index", 0)))
 	var definition := Catalog.companion(companion_id)
@@ -167,7 +169,7 @@ func _create_item_button(item: Dictionary) -> void:
 	var button := Button.new()
 	button.text = ""
 	button.tooltip_text = str(definition.get("name", item_id))
-	button.custom_minimum_size = Vector2(92, 92) * float(item.get("scale", 1.0))
+	button.custom_minimum_size = _item_base_size(item_id) * float(item.get("scale", 1.0))
 	button.rotation_degrees = int(item.get("rotation", 0))
 	button.z_index = int(item.get("z_index", 0))
 	button.mouse_default_cursor_shape = Control.CURSOR_DRAG
@@ -175,8 +177,8 @@ func _create_item_button(item: Dictionary) -> void:
 	button.add_theme_stylebox_override("hover", _item_style(str(definition.get("category", "cozy")), true))
 	button.gui_input.connect(_item_input.bind(str(item.get("instance_id", "")), button))
 	room_canvas.add_child(button)
-	var art := FurnitureArtScene.new()
-	art.name = "FurnitureArt"
+	var art := RoomItemPreviewScene.new()
+	art.name = "RoomItemPreview3D"
 	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	art.setup(definition.merged({"id": item_id}, true))
 	button.add_child(art)
@@ -325,7 +327,7 @@ func _refresh_room_items() -> void:
 		var button := item_buttons.get(instance_id) as Button
 		if not is_instance_valid(button):
 			continue
-		button.custom_minimum_size = Vector2(92, 92) * float(item.get("scale", 1.0))
+		button.custom_minimum_size = _item_base_size(str(item.get("item_id", ""))) * float(item.get("scale", 1.0))
 		button.size = button.custom_minimum_size
 		button.rotation_degrees = int(item.get("rotation", 0))
 		button.z_index = int(item.get("z_index", 0))
@@ -469,8 +471,8 @@ func _rebuild_bag_grid(count_label: Label) -> void:
 		place.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		place.pressed.connect(_place_from_bag.bind(item_id))
 		bag_grid.add_child(place)
-		var art := FurnitureArtScene.new()
-		art.name = "FurnitureArt"
+		var art := RoomItemPreviewScene.new()
+		art.name = "RoomItemPreview3D"
 		art.set_anchor(SIDE_LEFT, 0.0)
 		art.set_anchor(SIDE_TOP, 0.0)
 		art.set_anchor(SIDE_RIGHT, 1.0)
@@ -535,6 +537,28 @@ func _item_definition(item_id: String) -> Dictionary:
 		var definition := Catalog.companion(item_id.trim_prefix("companion_"))
 		return {"name": definition.get("name", "Companion"), "icon": "🦄", "category": "companions"}
 	return Catalog.furniture_item(item_id)
+
+
+func _item_base_size(item_id: String) -> Vector2:
+	return Vector2(150, 118) if item_id.begins_with("companion_") else Vector2(104, 104)
+
+
+func _ensure_companion_present() -> void:
+	var companion_item_id := "companion_%s" % companion_id
+	for item in local_items:
+		if str(item.get("item_id", "")) == companion_item_id:
+			return
+	if AppState.available_count(companion_item_id) <= 0:
+		return
+	AppState.place_room_item(companion_id, {
+		"instance_id": "room_companion_%s" % companion_id,
+		"item_id": companion_item_id,
+		"x": 50.0,
+		"y": 61.0,
+		"rotation": 0,
+		"scale": 1.0,
+		"z_index": Rules.next_z(local_items),
+	})
 
 
 func _item_style(category: String, selected: bool) -> StyleBoxFlat:

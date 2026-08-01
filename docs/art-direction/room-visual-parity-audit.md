@@ -57,3 +57,13 @@ Checkpoint 0.5.0 therefore restores those seven source illustrations directly
 for immediate parity. The login/Home meadow is newly authored. Furniture object
 sprites, companion gift art, contextual item controls, and the visual bag drawer
 remain open from the comparison above.
+
+## 0.7.0 implementation note
+
+Rooms now automatically present the companion as the approved live 3D unicorn
+model, with companion-specific material variants and randomized idle motion.
+Every catalog decoration is represented by a lightweight, independently rendered
+3D object family rather than a text label or icon. The Alley keeps invisible
+door-shaped hit targets and communicates an unlocked house through light leaking
+from its seam, window, and keyhole instead of floating label panels. The Home
+meadow is brighter and shares the same animated, companion-aware renderer.

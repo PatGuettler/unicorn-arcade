@@ -115,9 +115,11 @@ func _run() -> void:
 	add_child(market)
 	await get_tree().process_frame
 	_check(market.tab == "companions" and market.content.get_child_count() > 0, "Marketplace launches its companion catalog")
+	_check(market.find_children("CompanionModelPreview", "RoomItemPreview3D", true, false).size() == 6, "Marketplace companion cards use the six live 3D variants")
 	market.call("_show_decor")
 	await get_tree().process_frame
 	_check(market.tab == "decor" and market.content.get_child_count() > 100, "Marketplace exposes the full decor catalog")
+	_check(market.find_children("CatalogModelPreview", "RoomItemPreview3D", true, false).size() == MetaCatalog.furniture().size(), "every marketplace decor record uses a modeled object preview")
 	remove_child(market)
 	market.free()
 	var alley = ALLEY_SCENE.instantiate()
@@ -127,6 +129,7 @@ func _run() -> void:
 	_check(alley.map_rect.texture.resource_path.ends_with("unicorn_alley_production_v1.png"), "Unicorn Alley uses the new unified six-door pastel map")
 	var door_button: Button = alley.house_buttons.get("sparkle")
 	_check(door_button.custom_minimum_size.y > door_button.custom_minimum_size.x, "Alley house targets use tall door-shaped controls")
+	_check(door_button.text.is_empty() and door_button.has_node("DoorStateArt"), "Alley doors use environmental light cues without floating label shapes")
 	remove_child(alley)
 	alley.free()
 	AppState.active_room_companion = "sparkle"
@@ -135,6 +138,11 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(room.companion_id == "sparkle" and is_instance_valid(room.room_canvas), "Sparkle's room editor launches")
 	_check(room.grid_snap, "room editor starts with eight-percent grid snapping enabled")
+	var companion_button: Button = room.item_buttons.get("room_companion_sparkle")
+	var companion_preview = companion_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(companion_button) else null
+	_check(is_instance_valid(companion_preview) and companion_preview.uses_character_model and companion_preview.mesh_count >= 20, "rooms automatically present the live approved 3D unicorn model")
+	var idle_animator = companion_preview.find_child("IdleAnimator", true, false) if is_instance_valid(companion_preview) else null
+	_check(is_instance_valid(idle_animator) and is_instance_valid(idle_animator.timer) and not idle_animator.timer.is_stopped(), "live unicorn previews schedule randomized idle animations")
 	remove_child(room)
 	room.free()
 	var original_data := AppState.data.duplicate(true)
@@ -154,7 +162,8 @@ func _run() -> void:
 	var room_press := InputEventScreenTouch.new()
 	room_press.pressed = true
 	touch_room.call("_item_input", room_press, "test_lamp", lamp_button)
-	_check(lamp_button.text.is_empty() and lamp_button.tooltip_text == "Lava Lamp" and lamp_button.has_node("FurnitureArt"), "room decor uses real item artwork instead of an icon glyph")
+	var lamp_preview = lamp_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(lamp_button) else null
+	_check(lamp_button.text.is_empty() and lamp_button.tooltip_text == "Lava Lamp" and is_instance_valid(lamp_preview) and lamp_preview.mesh_count > 0 and not lamp_preview.uses_character_model, "room decor uses a modeled 3D object instead of an icon glyph")
 	_check(is_instance_valid(touch_room.selection_toolbar) and touch_room.selection_toolbar.get_child_count() == 6, "selecting decor opens the original six-action contextual toolbar")
 	var room_drag := InputEventScreenDrag.new()
 	room_drag.position = touch_room.room_canvas.global_position + Vector2(touch_room.room_canvas.size.x * 0.82, touch_room.room_canvas.size.y * 0.66)
@@ -164,7 +173,8 @@ func _run() -> void:
 	room_release.position = room_drag.position
 	touch_room.call("_input", room_release)
 	var moved_items := AppState.room_items("rainbow")
-	_check(moved_items.size() == 1 and is_equal_approx(float(moved_items[0]["x"]), 80.0) and is_equal_approx(float(moved_items[0]["y"]), 64.0), "room decor follows and commits an Android drag outside its button")
+	var moved_lamp := moved_items.filter(func(item: Dictionary) -> bool: return str(item.get("instance_id", "")) == "test_lamp")
+	_check(moved_lamp.size() == 1 and is_equal_approx(float(moved_lamp[0]["x"]), 80.0) and is_equal_approx(float(moved_lamp[0]["y"]), 64.0), "room decor follows and commits an Android drag outside its button")
 	touch_room.call("_show_bag")
 	await get_tree().process_frame
 	_check(is_instance_valid(touch_room.bag_overlay) and is_instance_valid(touch_room.bag_grid) and touch_room.bag_grid.columns == 3, "furniture bag opens as the original three-column bottom sheet without replacing the room")
