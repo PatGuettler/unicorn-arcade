@@ -3,6 +3,7 @@ extends Control
 const Catalog = preload("res://scripts/meta_catalog.gd")
 const Rules = preload("res://scripts/room_rules.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -230,19 +231,8 @@ func _button(text: String, color: Color, height: float) -> Button:
 	var button := Button.new()
 	button.text = text
 	button.custom_minimum_size.y = height
-	button.add_theme_stylebox_override("normal", _style(color))
-	button.add_theme_stylebox_override("hover", _style(color.lightened(0.12)))
+	StorybookUI.apply_button(button, color, StorybookUI.uses_dark_ink(color))
 	return button
-
-
-func _style(color: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	style.corner_radius_top_left = 12
-	style.corner_radius_top_right = 12
-	style.corner_radius_bottom_left = 12
-	style.corner_radius_bottom_right = 12
-	return style
 
 
 func _rarity_color(rarity: String) -> Color:

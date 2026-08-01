@@ -1,5 +1,6 @@
 extends Control
 
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
 const PANEL_HOVER := Color("24366b")
@@ -9,6 +10,7 @@ const YELLOW := Color("ffd166")
 const TEXT := Color("f7f1ff")
 const MUTED := Color("aab7e8")
 const MEADOW_BACKGROUND = preload("res://assets/meta/environments/magical_meadow_v1.png")
+const TITLE_SIGN = preload("res://assets/ui/title_sign_option3_v1.png")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 
 var page: VBoxContainer
@@ -48,7 +50,7 @@ func _reset_page(use_meadow: bool = false) -> VBoxContainer:
 		meadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(meadow)
 		var meadow_tint := ColorRect.new()
-		meadow_tint.color = Color(0.12, 0.08, 0.22, 0.24)
+		meadow_tint.color = Color(0.16, 0.08, 0.20, 0.10)
 		meadow_tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		meadow_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		add_child(meadow_tint)
@@ -75,25 +77,35 @@ func _show_login() -> void:
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page.add_child(spacer)
-	var brand := Label.new()
-	brand.text = "UNICORN\nARCADE"
-	brand.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	brand.add_theme_font_size_override("font_size", 52)
-	brand.add_theme_color_override("font_color", PINK)
+	var brand := TextureRect.new()
+	brand.name = "IllustratedTitleSign"
+	brand.texture = TITLE_SIGN
+	brand.custom_minimum_size = Vector2(0, 245)
+	brand.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	brand.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	brand.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	page.add_child(brand)
+	var tagline_plaque := PanelContainer.new()
+	tagline_plaque.name = "TaglinePlaque"
+	tagline_plaque.custom_minimum_size = Vector2(0, 56)
+	tagline_plaque.add_theme_stylebox_override("panel", StorybookUI.plaque_style())
+	page.add_child(tagline_plaque)
 	var tagline := Label.new()
 	tagline.text = "Train your brain with code-based games."
 	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tagline.add_theme_color_override("font_color", MUTED)
-	tagline.add_theme_font_size_override("font_size", 17)
-	page.add_child(tagline)
+	tagline.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	tagline.add_theme_color_override("font_color", StorybookUI.INK)
+	tagline.add_theme_color_override("font_outline_color", Color("fff3d600"))
+	tagline.add_theme_constant_override("outline_size", 0)
+	tagline.add_theme_font_size_override("font_size", 19)
+	tagline_plaque.add_child(tagline)
 	page.add_child(_build_sparkle_preview())
 	var name_input := LineEdit.new()
 	name_input.placeholder_text = "Enter player name…"
 	name_input.custom_minimum_size = Vector2(0, 64)
 	name_input.add_theme_font_size_override("font_size", 21)
 	page.add_child(name_input)
-	var enter := _make_button("ENTER ARCADE", CYAN, 68)
+	var enter := _make_button("ENTER ARCADE", StorybookUI.NAVY, 68)
 	enter.disabled = true
 	name_input.text_changed.connect(func(value: String) -> void: enter.disabled = value.strip_edges().is_empty())
 	var submit := func() -> void:
@@ -146,22 +158,22 @@ func _show_home() -> void:
 	preview.offset_right = 0
 	preview.offset_top = -150
 	preview.offset_bottom = 150
-	var play := _make_button("▶  PLAY", Color("36d399"), 82)
+	var play := _make_button("▶  PLAY", StorybookUI.NAVY, 82)
 	play.add_theme_font_size_override("font_size", 28)
 	play.pressed.connect(func() -> void: _show_dashboard())
 	page.add_child(play)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	page.add_child(row)
-	var profile := _make_button("PROFILE", PANEL, 74)
+	var profile := _make_button("PROFILE", StorybookUI.NAVY, 74)
 	profile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	profile.pressed.connect(func() -> void: _show_profile())
 	row.add_child(profile)
-	var shop := _make_button("SHOP", PANEL, 74)
+	var shop := _make_button("SHOP", StorybookUI.NAVY, 74)
 	shop.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	shop.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/marketplace.tscn"))
 	row.add_child(shop)
-	var alley := _make_button("UNICORN ALLEY", PINK, 68)
+	var alley := _make_button("UNICORN ALLEY", Color("b85882"), 68)
 	alley.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/unicorn_alley.tscn"))
 	page.add_child(alley)
 	status_label = Label.new()
@@ -311,7 +323,9 @@ func _add_header(title: String, show_back: bool, show_home: bool, back_action: C
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	label.add_theme_font_size_override("font_size", 22)
-	label.add_theme_color_override("font_color", PINK)
+	label.add_theme_color_override("font_color", StorybookUI.CREAM)
+	label.add_theme_color_override("font_outline_color", StorybookUI.PLUM)
+	label.add_theme_constant_override("outline_size", 3)
 	header.add_child(label)
 	coin_label = Label.new()
 	coin_label.text = "★ %d" % AppState.coins()
@@ -329,10 +343,7 @@ func _make_button(text: String, color: Color, height: float) -> Button:
 	button.text = text
 	button.custom_minimum_size = Vector2(0, height)
 	button.add_theme_font_size_override("font_size", 18)
-	button.add_theme_color_override("font_color", TEXT)
-	button.add_theme_stylebox_override("normal", _panel_style(color))
-	button.add_theme_stylebox_override("hover", _panel_style(color.lightened(0.12)))
-	button.add_theme_stylebox_override("pressed", _panel_style(color.darkened(0.12)))
+	StorybookUI.apply_button(button, color, StorybookUI.uses_dark_ink(color))
 	return button
 
 
@@ -342,20 +353,3 @@ func _build_sparkle_preview() -> SubViewportContainer:
 	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	container.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions"})
 	return container
-
-
-func _panel_style(color: Color) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = color
-	style.corner_radius_top_left = 18
-	style.corner_radius_top_right = 18
-	style.corner_radius_bottom_left = 18
-	style.corner_radius_bottom_right = 18
-	style.border_width_left = 2
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 2
-	style.border_color = Color(CYAN, 0.30)
-	style.content_margin_left = 18
-	style.content_margin_right = 18
-	return style

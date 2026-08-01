@@ -1,14 +1,11 @@
 extends Node
 
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const MIN_BODY_FONT := 19
 const MIN_BUTTON_FONT := 18
 const MIN_TOUCH_SIZE := 56.0
-const TEXT := Color("f7f4ff")
-const MUTED_TEXT := Color("c8d2ff")
-const NAVY := Color("111d43")
-const NAVY_HOVER := Color("203463")
-const NAVY_PRESSED := Color("0b1433")
-const CYAN_BORDER := Color("58d6e880")
+const TEXT := StorybookUI.CREAM
+const MUTED_TEXT := StorybookUI.MUTED
 const OUTLINE := Color("08112fd0")
 
 var applied := {}
@@ -80,59 +77,39 @@ func _apply_button(button: BaseButton) -> void:
 	button.custom_minimum_size = minimum
 	if button.get_theme_font_size("font_size") < MIN_BUTTON_FONT:
 		button.add_theme_font_size_override("font_size", MIN_BUTTON_FONT)
-	button.add_theme_color_override("font_color", TEXT)
-	button.add_theme_color_override("font_hover_color", Color.WHITE)
-	button.add_theme_color_override("font_pressed_color", Color.WHITE)
-	button.add_theme_color_override("font_focus_color", Color.WHITE)
-	button.add_theme_color_override("font_disabled_color", MUTED_TEXT)
-	button.add_theme_color_override("font_outline_color", OUTLINE)
+	if not button.has_theme_color_override("font_color"):
+		button.add_theme_color_override("font_color", TEXT)
+	if not button.has_theme_color_override("font_hover_color"):
+		button.add_theme_color_override("font_hover_color", Color.WHITE)
+	if not button.has_theme_color_override("font_pressed_color"):
+		button.add_theme_color_override("font_pressed_color", Color.WHITE)
+	if not button.has_theme_color_override("font_focus_color"):
+		button.add_theme_color_override("font_focus_color", Color.WHITE)
+	if not button.has_theme_color_override("font_disabled_color"):
+		button.add_theme_color_override("font_disabled_color", MUTED_TEXT)
+	if not button.has_theme_color_override("font_outline_color"):
+		button.add_theme_color_override("font_outline_color", OUTLINE)
 	button.add_theme_constant_override("outline_size", maxi(2, button.get_theme_constant("outline_size")))
 	if button is CheckButton or button is CheckBox or not button is Button:
 		return
 	var text_button := button as Button
 	if text_button.text.strip_edges().is_empty():
 		return
-	if not text_button.has_theme_stylebox_override("disabled"):
-		text_button.add_theme_stylebox_override("disabled", _button_style(Color("18213c"), Color("61719c88")))
 	if not text_button.has_theme_stylebox_override("normal"):
-		text_button.add_theme_stylebox_override("normal", _button_style(NAVY, CYAN_BORDER))
-		text_button.add_theme_stylebox_override("hover", _button_style(NAVY_HOVER, CYAN_BORDER.lightened(0.18)))
-		text_button.add_theme_stylebox_override("pressed", _button_style(NAVY_PRESSED, Color("58d6e8b0")))
-		text_button.add_theme_stylebox_override("focus", _button_style(NAVY_HOVER, Color("ffd166d0"), 3))
+		StorybookUI.apply_button(text_button)
 
 
 func _apply_line_edit(line_edit: LineEdit) -> void:
 	line_edit.custom_minimum_size.y = maxf(line_edit.custom_minimum_size.y, MIN_TOUCH_SIZE)
 	if line_edit.get_theme_font_size("font_size") < MIN_BODY_FONT:
 		line_edit.add_theme_font_size_override("font_size", MIN_BODY_FONT)
-	line_edit.add_theme_color_override("font_color", TEXT)
-	line_edit.add_theme_color_override("font_placeholder_color", MUTED_TEXT)
 	if not line_edit.has_theme_stylebox_override("normal"):
-		line_edit.add_theme_stylebox_override("normal", _input_style(NAVY, CYAN_BORDER))
-		line_edit.add_theme_stylebox_override("focus", _input_style(NAVY_HOVER, Color("ffd166d0"), 3))
+		StorybookUI.apply_line_edit(line_edit)
 
 
 func _apply_text_edit(text_edit: TextEdit) -> void:
 	text_edit.custom_minimum_size.y = maxf(text_edit.custom_minimum_size.y, MIN_TOUCH_SIZE)
 	if text_edit.get_theme_font_size("font_size") < MIN_BODY_FONT:
 		text_edit.add_theme_font_size_override("font_size", MIN_BODY_FONT)
-	text_edit.add_theme_color_override("font_color", TEXT)
-
-
-func _button_style(fill: Color, border: Color, width := 2) -> StyleBoxFlat:
-	var style := StyleBoxFlat.new()
-	style.bg_color = fill
-	style.border_color = border
-	style.set_border_width_all(width)
-	style.set_corner_radius_all(12)
-	style.content_margin_left = 14
-	style.content_margin_right = 14
-	style.content_margin_top = 10
-	style.content_margin_bottom = 10
-	return style
-
-
-func _input_style(fill: Color, border: Color, width := 2) -> StyleBoxFlat:
-	var style := _button_style(fill, border, width)
-	style.set_corner_radius_all(10)
-	return style
+	if not text_edit.has_theme_color_override("font_color"):
+		text_edit.add_theme_color_override("font_color", TEXT)

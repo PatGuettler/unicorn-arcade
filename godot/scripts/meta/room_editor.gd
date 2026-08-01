@@ -3,6 +3,7 @@ extends Control
 const Catalog = preload("res://scripts/meta_catalog.gd")
 const Rules = preload("res://scripts/room_rules.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -147,9 +148,7 @@ func _build_editor() -> void:
 	bag_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	bag_button.position = Vector2(-98, -88)
 	bag_button.add_theme_font_size_override("font_size", 18)
-	bag_button.add_theme_color_override("font_color", Color.WHITE)
-	bag_button.add_theme_stylebox_override("normal", _rounded_style(PINK, Color.WHITE, 3, 22))
-	bag_button.add_theme_stylebox_override("hover", _rounded_style(PINK.lightened(0.08), Color.WHITE, 3, 22))
+	StorybookUI.apply_button(bag_button, StorybookUI.NAVY, false, 22)
 	bag_button.pressed.connect(_show_bag)
 	add_child(bag_button)
 	_position_items.call_deferred()
@@ -255,7 +254,7 @@ func _show_selection_toolbar() -> void:
 	selection_toolbar.name = "SelectionToolbar"
 	selection_toolbar.z_index = 2000
 	selection_toolbar.add_theme_constant_override("separation", 2)
-	selection_toolbar.add_theme_stylebox_override("panel", _rounded_style(Color("0d1738e9"), Color("ffffff99"), 2, 12))
+	selection_toolbar.add_theme_stylebox_override("panel", StorybookUI.plaque_style(StorybookUI.NAVY, StorybookUI.GOLD, 12))
 	room_canvas.add_child(selection_toolbar)
 	var actions := [
 		["REMOVE", "×", "Remove"],
@@ -271,7 +270,7 @@ func _show_selection_toolbar() -> void:
 		control.tooltip_text = action[2]
 		control.custom_minimum_size = Vector2(40, 38)
 		control.add_theme_font_size_override("font_size", 22)
-		control.add_theme_stylebox_override("normal", _rounded_style(Color("202b53e9"), Color("6be6ff44"), 1, 9))
+		StorybookUI.apply_button(control, StorybookUI.NAVY, false, 9)
 		control.pressed.connect(_selection_action.bind(action[0]))
 		selection_toolbar.add_child(control)
 	_position_selection_toolbar.call_deferred()
@@ -376,7 +375,7 @@ func _show_bag() -> void:
 	sheet.offset_top = 0
 	sheet.offset_right = -8
 	sheet.offset_bottom = -8
-	sheet.add_theme_stylebox_override("panel", _rounded_style(Color("14214afa"), Color("58d6e866"), 2, 24))
+	sheet.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254dfa"), StorybookUI.GOLD, 24))
 	bag_overlay.add_child(sheet)
 	var sheet_margin := MarginContainer.new()
 	sheet_margin.add_theme_constant_override("margin_left", 16)
@@ -401,7 +400,9 @@ func _show_bag() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", PINK)
+	title.add_theme_color_override("font_color", StorybookUI.CREAM)
+	title.add_theme_color_override("font_outline_color", StorybookUI.PLUM)
+	title.add_theme_constant_override("outline_size", 3)
 	header.add_child(title)
 	var shop := Button.new()
 	shop.text = "SHOP"
