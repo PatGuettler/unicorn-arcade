@@ -124,6 +124,7 @@ func _spawn_enemy(force_boss: bool) -> void:
 				break
 	var hp := int(template["hp"]) + level / 6
 	var enemy := template.duplicate(true)
+	enemy["speed"] = float(template["speed"]) * Rules.galaxy_enemy_speed_scale(level)
 	enemy["position"] = Vector2(randf_range(0.1, 0.9) * size.x, -30.0)
 	enemy["hp"] = hp
 	enemy["max_hp"] = hp

@@ -72,6 +72,19 @@ The Sparkle asset has passed the directional graybox gate, not the final product
 - Real-render phone review captures live under `previews/meta_art_v0_5/`.
 - Furniture object sprites and contextual editing controls remain an explicit visual-parity follow-up.
 
+## Checkpoint 06 production rooms
+
+- All six companion rooms now use newly authored, cohesive production environment plates with clear furniture-placement floors.
+- Placed decor uses original transparent item illustrations instead of placeholder word buttons or icon glyphs.
+- Selecting decor opens the original six-action contextual toolbar directly beside the item.
+- The furniture bag is restored as a modal bottom sheet with horizontally scrolling categories and a three-column visual item grid.
+- Room previews can target a specific house with `--companion-id=<sparkle|rainbow|star|cloud|dream|mystic>`.
+- Room decor is rendered as original transparent item artwork rather than emoji or text glyphs.
+- Galaxy Unicorn now starts enemies at 25% of their late-game movement rate and scales smoothly to a capped 135% by level 20.
+- A global safe-area layer keeps controls below phone notches, camera cutouts, and system UI on every scene.
+- Unicorn Alley now uses a newly authored unified pastel street with six destination-themed doors and door-shaped hit targets placed directly over them.
+- Phone-sized review captures live under `previews/production_rooms_v0_6/`.
+
 ## Run
 
 ```powershell
@@ -88,14 +101,14 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\gu
 Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" res://tests/runtime_integration.tscn --quit-after 120
 ```
 
-Expected results: `GODOT_PARITY_TESTS_OK: 75 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 95 checks passed`.
+Expected results: `GODOT_PARITY_TESTS_OK: 77 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 101 checks passed`.
 
 ## Export the Android prototype
 
 The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.5.0-alpha-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.6.0-alpha-arm64.apk"
 ```
 
-This checkpoint exposes the complete 22-game registry plus the companion/decor marketplace, Unicorn Alley, and room editor. Production audio, wider physical-device QA, release signing/store packaging, and final character/environment/furniture art remain upcoming work.
+This checkpoint exposes the complete 22-game registry plus the companion/decor marketplace, Unicorn Alley, and room editor. Production audio, wider physical-device QA, release signing/store packaging, final character refinement, and bespoke furniture sprites remain upcoming work.

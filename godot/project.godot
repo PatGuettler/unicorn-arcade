@@ -13,6 +13,7 @@ SaveService="*res://autoload/save_service.gd"
 RewardService="*res://autoload/reward_service.gd"
 GameRegistry="*res://autoload/game_registry.gd"
 AppState="*res://autoload/app_state.gd"
+SafeArea="*res://autoload/safe_area.gd"
 
 [display]
 

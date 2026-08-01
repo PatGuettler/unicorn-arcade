@@ -46,63 +46,78 @@
   "categories": [
     {
       "id": "all",
-      "label": "All"
+      "label": "All",
+      "icon": "✨"
     },
     {
       "id": "cozy",
-      "label": "Cozy"
+      "label": "Cozy",
+      "icon": "🏠"
     },
     {
       "id": "beds",
-      "label": "Beds"
+      "label": "Beds",
+      "icon": "🛏️"
     },
     {
       "id": "tables",
-      "label": "Tables"
+      "label": "Tables",
+      "icon": "🪑"
     },
     {
       "id": "lighting",
-      "label": "Lighting"
+      "label": "Lighting",
+      "icon": "💡"
     },
     {
       "id": "rugs",
-      "label": "Rugs"
+      "label": "Rugs",
+      "icon": "🧶"
     },
     {
       "id": "kitchen",
-      "label": "Kitchen"
+      "label": "Kitchen",
+      "icon": "🍳"
     },
     {
       "id": "nature",
-      "label": "Nature"
+      "label": "Nature",
+      "icon": "🌿"
     },
     {
       "id": "pets",
-      "label": "Pets"
+      "label": "Pets",
+      "icon": "🐾"
     },
     {
       "id": "toys",
-      "label": "Toys"
+      "label": "Toys",
+      "icon": "🧸"
     },
     {
       "id": "electronics",
-      "label": "Tech"
+      "label": "Tech",
+      "icon": "📺"
     },
     {
       "id": "wall",
-      "label": "Wall"
+      "label": "Wall",
+      "icon": "🖼️"
     },
     {
       "id": "luxury",
-      "label": "Luxury"
+      "label": "Luxury",
+      "icon": "👑"
     },
     {
       "id": "unicorn",
-      "label": "Unicorn"
+      "label": "Unicorn",
+      "icon": "🦄"
     },
     {
       "id": "seasonal",
-      "label": "Seasonal"
+      "label": "Seasonal",
+      "icon": "🎃"
     }
   ],
   "furniture": [
@@ -110,6 +125,7 @@
       "id": "lamp",
       "name": "Lava Lamp",
       "price": 150,
+      "icon": "💡",
       "category": "lighting",
       "rarity": "common",
       "desc": "Groovy bubbles that never go out of style."
@@ -118,6 +134,7 @@
       "id": "rug",
       "name": "Fluffy Rug",
       "price": 300,
+      "icon": "🧶",
       "category": "rugs",
       "rarity": "common",
       "desc": "Soft enough for afternoon naps."
@@ -126,6 +143,7 @@
       "id": "plant",
       "name": "Magic Plant",
       "price": 500,
+      "icon": "🪴",
       "category": "nature",
       "rarity": "uncommon",
       "desc": "Grows a little sparkle each week."
@@ -134,6 +152,7 @@
       "id": "chair",
       "name": "Gaming Chair",
       "price": 1200,
+      "icon": "💺",
       "category": "cozy",
       "rarity": "uncommon",
       "desc": "RGB not included, comfort guaranteed."
@@ -142,6 +161,7 @@
       "id": "arcade",
       "name": "Mini Arcade",
       "price": 2500,
+      "icon": "🕹️",
       "category": "electronics",
       "rarity": "rare",
       "desc": "High scores and higher vibes."
@@ -150,6 +170,7 @@
       "id": "trophy",
       "name": "Gold Trophy",
       "price": 5000,
+      "icon": "🏆",
       "category": "luxury",
       "rarity": "rare",
       "desc": "For champions of every mini-game."
@@ -158,6 +179,7 @@
       "id": "bed_single",
       "name": "Single Bed",
       "price": 800,
+      "icon": "🛏️",
       "category": "beds",
       "rarity": "common",
       "desc": "A classic starter bed with crisp sheets."
@@ -166,6 +188,7 @@
       "id": "bed_king",
       "name": "King Size Bed",
       "price": 2500,
+      "icon": "🏨",
       "category": "beds",
       "rarity": "uncommon",
       "desc": "Roll in any direction. Still fits one unicorn."
@@ -174,6 +197,7 @@
       "id": "bed_race",
       "name": "Race Car Bed",
       "price": 3200,
+      "icon": "🏎️",
       "category": "beds",
       "rarity": "rare",
       "desc": "Vroom into dreamland at top speed."
@@ -182,6 +206,7 @@
       "id": "bed_cloud",
       "name": "Cloud Bed",
       "price": 4500,
+      "icon": "☁️",
       "category": "beds",
       "rarity": "rare",
       "desc": "Floats slightly. No alarm clock needed."
@@ -190,6 +215,7 @@
       "id": "bed_bunk",
       "name": "Bunk Bed",
       "price": 1500,
+      "icon": "🪜",
       "category": "beds",
       "rarity": "uncommon",
       "desc": "Top bunk reserved for best friends."
@@ -198,6 +224,7 @@
       "id": "bed_coffin",
       "name": "Vampire Bed",
       "price": 666,
+      "icon": "⚰️",
       "category": "beds",
       "rarity": "uncommon",
       "desc": "Spooky chic. Very breathable velvet."
@@ -206,6 +233,7 @@
       "id": "table_coffee",
       "name": "Coffee Table",
       "price": 450,
+      "icon": "☕",
       "category": "tables",
       "rarity": "common",
       "desc": "Perfect for mugs and board games."
@@ -214,6 +242,7 @@
       "id": "table_dining",
       "name": "Dining Table",
       "price": 1100,
+      "icon": "🍽️",
       "category": "tables",
       "rarity": "uncommon",
       "desc": "Hosts dinner parties of up to four plushies."
@@ -222,6 +251,7 @@
       "id": "desk_office",
       "name": "Office Desk",
       "price": 900,
+      "icon": "🖥️",
       "category": "tables",
       "rarity": "uncommon",
       "desc": "For homework, crafts, and grand plans."
@@ -230,6 +260,7 @@
       "id": "table_night",
       "name": "Nightstand",
       "price": 250,
+      "icon": "🌃",
       "category": "tables",
       "rarity": "common",
       "desc": "Keeps books and midnight snacks handy."
@@ -238,6 +269,7 @@
       "id": "table_pool",
       "name": "Pool Table",
       "price": 3500,
+      "icon": "🎱",
       "category": "tables",
       "rarity": "rare",
       "desc": "Cue sticks sold separately. Coolness included."
@@ -246,6 +278,7 @@
       "id": "lamp_floor",
       "name": "Floor Lamp",
       "price": 350,
+      "icon": "🛋️",
       "category": "lighting",
       "rarity": "common",
       "desc": "Warm light for reading corners."
@@ -254,6 +287,7 @@
       "id": "lamp_desk",
       "name": "Desk Lamp",
       "price": 120,
+      "icon": "🔦",
       "category": "lighting",
       "rarity": "common",
       "desc": "A focused beam for late-night sketches."
@@ -262,6 +296,7 @@
       "id": "chandelier",
       "name": "Chandelier",
       "price": 5000,
+      "icon": "💎",
       "category": "lighting",
       "rarity": "legendary",
       "desc": "Crystal sparkle worthy of a palace."
@@ -270,6 +305,7 @@
       "id": "candle",
       "name": "Candle",
       "price": 50,
+      "icon": "🕯️",
       "category": "lighting",
       "rarity": "common",
       "desc": "Vanilla-scented calm in a jar."
@@ -278,6 +314,7 @@
       "id": "lantern",
       "name": "Paper Lantern",
       "price": 200,
+      "icon": "🏮",
       "category": "lighting",
       "rarity": "common",
       "desc": "Festival glow without the festival crowd."
@@ -286,6 +323,7 @@
       "id": "disco",
       "name": "Disco Ball",
       "price": 1800,
+      "icon": "🕺",
       "category": "lighting",
       "rarity": "rare",
       "desc": "Every room becomes a dance floor."
@@ -294,6 +332,7 @@
       "id": "flashlight",
       "name": "Flashlight",
       "price": 80,
+      "icon": "🔦",
       "category": "lighting",
       "rarity": "common",
       "desc": "For blanket-fort expeditions."
@@ -302,6 +341,7 @@
       "id": "rug_welcome",
       "name": "Welcome Mat",
       "price": 100,
+      "icon": "🚪",
       "category": "rugs",
       "rarity": "common",
       "desc": "Says hello before you do."
@@ -310,6 +350,7 @@
       "id": "rug_persian",
       "name": "Persian Rug",
       "price": 1500,
+      "icon": "📜",
       "category": "rugs",
       "rarity": "uncommon",
       "desc": "Ornate patterns, timeless charm."
@@ -318,6 +359,7 @@
       "id": "rug_bear",
       "name": "Faux Bear Rug",
       "price": 2200,
+      "icon": "🐻",
       "category": "rugs",
       "rarity": "rare",
       "desc": "Cozy and cruelty-free."
@@ -326,6 +368,7 @@
       "id": "rug_magic",
       "name": "Magic Carpet",
       "price": 8000,
+      "icon": "🧞",
       "category": "rugs",
       "rarity": "legendary",
       "desc": "Flies on Tuesdays. Otherwise, fabulous floor decor."
@@ -334,6 +377,7 @@
       "id": "rug_puzzle",
       "name": "Puzzle Mat",
       "price": 400,
+      "icon": "🧩",
       "category": "rugs",
       "rarity": "common",
       "desc": "Soft tiles for playtime puzzles."
@@ -342,6 +386,7 @@
       "id": "pet_cat_blk",
       "name": "Black Cat",
       "price": 2000,
+      "icon": "🐈‍⬛",
       "category": "pets",
       "rarity": "uncommon",
       "desc": "Lucky roommate. Knocks one item off tables daily."
@@ -350,6 +395,7 @@
       "id": "pet_cat_org",
       "name": "Tabby Cat",
       "price": 2000,
+      "icon": "🐈",
       "category": "pets",
       "rarity": "uncommon",
       "desc": "Purrs on command. Demands treats."
@@ -358,6 +404,7 @@
       "id": "pet_dog_dog",
       "name": "Good Boy",
       "price": 2200,
+      "icon": "🐕",
       "category": "pets",
       "rarity": "uncommon",
       "desc": "Tail wags sync to your favorite songs."
@@ -366,6 +413,7 @@
       "id": "pet_dog_pud",
       "name": "Poodle",
       "price": 2500,
+      "icon": "🐩",
       "category": "pets",
       "rarity": "uncommon",
       "desc": "Fluff level: maximum."
@@ -374,6 +422,7 @@
       "id": "pet_dog_ser",
       "name": "Service Dog",
       "price": 2500,
+      "icon": "🦮",
       "category": "pets",
       "rarity": "rare",
       "desc": "Official helper with a very official vest."
@@ -382,6 +431,7 @@
       "id": "pet_paw",
       "name": "Paw Prints",
       "price": 300,
+      "icon": "🐾",
       "category": "pets",
       "rarity": "common",
       "desc": "Decorative tracks—no muddy floors."
@@ -390,6 +440,7 @@
       "id": "pet_fish",
       "name": "Goldfish",
       "price": 500,
+      "icon": "🐠",
       "category": "pets",
       "rarity": "common",
       "desc": "Bowl sold separately. Bubbles included."
@@ -398,6 +449,7 @@
       "id": "pet_hamster",
       "name": "Hamster",
       "price": 600,
+      "icon": "🐹",
       "category": "pets",
       "rarity": "common",
       "desc": "Runs on a wheel of pure ambition."
@@ -406,6 +458,7 @@
       "id": "pet_mouse",
       "name": "Mouse",
       "price": 400,
+      "icon": "🐁",
       "category": "pets",
       "rarity": "common",
       "desc": "Tiny friend, big personality."
@@ -414,6 +467,7 @@
       "id": "pet_chick",
       "name": "Baby Chick",
       "price": 350,
+      "icon": "🐤",
       "category": "pets",
       "rarity": "common",
       "desc": "Peeps hello every morning."
@@ -422,6 +476,7 @@
       "id": "pet_frog",
       "name": "Tree Frog",
       "price": 700,
+      "icon": "🐸",
       "category": "pets",
       "rarity": "uncommon",
       "desc": "Ribbits in harmony with rain sounds."
@@ -430,6 +485,7 @@
       "id": "pet_turtle",
       "name": "Turtle",
       "price": 800,
+      "icon": "🐢",
       "category": "pets",
       "rarity": "uncommon",
       "desc": "Slow and steady room companion."
@@ -438,6 +494,7 @@
       "id": "pet_dragon",
       "name": "Tiny Dragon",
       "price": 9999,
+      "icon": "🐉",
       "category": "pets",
       "rarity": "legendary",
       "desc": "Breaths warm tea steam, not fire."
@@ -446,6 +503,7 @@
       "id": "toy_bear",
       "name": "Teddy Bear",
       "price": 250,
+      "icon": "🧸",
       "category": "toys",
       "rarity": "common",
       "desc": "Hug-certified since forever."
@@ -454,6 +512,7 @@
       "id": "toy_robot",
       "name": "Robot",
       "price": 550,
+      "icon": "🤖",
       "category": "toys",
       "rarity": "uncommon",
       "desc": "Beeps encouragement during homework."
@@ -462,6 +521,7 @@
       "id": "toy_doll",
       "name": "Doll",
       "price": 300,
+      "icon": "🎎",
       "category": "toys",
       "rarity": "common",
       "desc": "Traditional dress, modern charm."
@@ -470,6 +530,7 @@
       "id": "toy_kite",
       "name": "Kite",
       "price": 150,
+      "icon": "🪁",
       "category": "toys",
       "rarity": "common",
       "desc": "Wall display mode—wind not required."
@@ -478,6 +539,7 @@
       "id": "toy_yoyo",
       "name": "Yo-Yo",
       "price": 80,
+      "icon": "🪀",
       "category": "toys",
       "rarity": "common",
       "desc": "Tricks sold separately."
@@ -486,6 +548,7 @@
       "id": "toy_train",
       "name": "Train Set",
       "price": 900,
+      "icon": "🚂",
       "category": "toys",
       "rarity": "uncommon",
       "desc": "Circles the rug twice before bedtime."
@@ -494,6 +557,7 @@
       "id": "toy_blocks",
       "name": "Building Blocks",
       "price": 200,
+      "icon": "🧱",
       "category": "toys",
       "rarity": "common",
       "desc": "Build castles, knock them down, repeat."
@@ -502,6 +566,7 @@
       "id": "toy_ball",
       "name": "Soccer Ball",
       "price": 180,
+      "icon": "⚽",
       "category": "toys",
       "rarity": "common",
       "desc": "Indoor-friendly. Goals imaginary."
@@ -510,6 +575,7 @@
       "id": "tv_retro",
       "name": "Retro TV",
       "price": 800,
+      "icon": "📺",
       "category": "electronics",
       "rarity": "uncommon",
       "desc": "Plays static that somehow feels cozy."
@@ -518,6 +584,7 @@
       "id": "tv_flat",
       "name": "Wall TV",
       "price": 2200,
+      "icon": "🖥️",
       "category": "electronics",
       "rarity": "rare",
       "desc": "Mount high for optimal cartoon angles."
@@ -526,6 +593,7 @@
       "id": "pc_gamer",
       "name": "Gamer PC",
       "price": 3500,
+      "icon": "⌨️",
       "category": "electronics",
       "rarity": "rare",
       "desc": "Fans spin. Frames soar."
@@ -534,6 +602,7 @@
       "id": "console",
       "name": "Game Console",
       "price": 1200,
+      "icon": "🎮",
       "category": "electronics",
       "rarity": "uncommon",
       "desc": "Two controllers, infinite rematches."
@@ -542,6 +611,7 @@
       "id": "radio",
       "name": "Radio",
       "price": 400,
+      "icon": "📻",
       "category": "electronics",
       "rarity": "common",
       "desc": "Tunes from every decade, one dial."
@@ -550,6 +620,7 @@
       "id": "phone_retro",
       "name": "Rotary Phone",
       "price": 600,
+      "icon": "☎️",
       "category": "electronics",
       "rarity": "uncommon",
       "desc": "Rings dramatically. No voicemail."
@@ -558,6 +629,7 @@
       "id": "camera",
       "name": "Camera",
       "price": 900,
+      "icon": "📸",
       "category": "electronics",
       "rarity": "uncommon",
       "desc": "Capture room tours for friends."
@@ -566,6 +638,7 @@
       "id": "xmas_tree",
       "name": "Xmas Tree",
       "price": 1500,
+      "icon": "🎄",
       "category": "seasonal",
       "rarity": "uncommon",
       "desc": "Pine-fresh scent optional."
@@ -574,6 +647,7 @@
       "id": "xmas_santa",
       "name": "Santa Claus",
       "price": 800,
+      "icon": "🎅",
       "category": "seasonal",
       "rarity": "uncommon",
       "desc": "Jolly figurine. Cookie not included."
@@ -582,6 +656,7 @@
       "id": "xmas_sock",
       "name": "Stocking",
       "price": 150,
+      "icon": "🧦",
       "category": "seasonal",
       "rarity": "common",
       "desc": "Hung with care and glitter."
@@ -590,6 +665,7 @@
       "id": "xmas_gift",
       "name": "Gift Box",
       "price": 250,
+      "icon": "🎁",
       "category": "seasonal",
       "rarity": "common",
       "desc": "Shake gently. Contents are mystery."
@@ -598,6 +674,7 @@
       "id": "xmas_bell",
       "name": "Jingle Bell",
       "price": 100,
+      "icon": "🔔",
       "category": "seasonal",
       "rarity": "common",
       "desc": "Tiny chime, big holiday cheer."
@@ -606,6 +683,7 @@
       "id": "xmas_deer",
       "name": "Reindeer",
       "price": 1200,
+      "icon": "🦌",
       "category": "seasonal",
       "rarity": "uncommon",
       "desc": "Rudolph's cousin. Also photogenic."
@@ -614,6 +692,7 @@
       "id": "xmas_snow",
       "name": "Snowman",
       "price": 600,
+      "icon": "☃️",
       "category": "seasonal",
       "rarity": "common",
       "desc": "Never melts indoors. Carrot nose eternal."
@@ -622,6 +701,7 @@
       "id": "xmas_flake",
       "name": "Snowflake",
       "price": 200,
+      "icon": "❄️",
       "category": "seasonal",
       "rarity": "common",
       "desc": "Window cling or wall sparkle."
@@ -630,6 +710,7 @@
       "id": "hall_pump",
       "name": "Pumpkin",
       "price": 300,
+      "icon": "🎃",
       "category": "seasonal",
       "rarity": "common",
       "desc": "Jack-o'-lantern grin optional."
@@ -638,6 +719,7 @@
       "id": "hall_ghost",
       "name": "Ghost",
       "price": 400,
+      "icon": "👻",
       "category": "seasonal",
       "rarity": "common",
       "desc": "Boo! Friendly edition."
@@ -646,6 +728,7 @@
       "id": "hall_skull",
       "name": "Skull",
       "price": 250,
+      "icon": "💀",
       "category": "seasonal",
       "rarity": "common",
       "desc": "Spooky decor, zero scares."
@@ -654,6 +737,7 @@
       "id": "hall_web",
       "name": "Spider Web",
       "price": 150,
+      "icon": "🕸️",
       "category": "seasonal",
       "rarity": "common",
       "desc": "Corner accent. Spiders not included."
@@ -662,6 +746,7 @@
       "id": "hall_spider",
       "name": "Giant Spider",
       "price": 450,
+      "icon": "🕷️",
       "category": "seasonal",
       "rarity": "uncommon",
       "desc": "Eight legs, zero bite."
@@ -670,6 +755,7 @@
       "id": "hall_bat",
       "name": "Bat",
       "price": 200,
+      "icon": "🦇",
       "category": "seasonal",
       "rarity": "common",
       "desc": "Hangs upside down with style."
@@ -678,6 +764,7 @@
       "id": "hall_alien",
       "name": "Alien",
       "price": 1000,
+      "icon": "👽",
       "category": "seasonal",
       "rarity": "rare",
       "desc": "Came for the decor, stayed for snacks."
@@ -686,6 +773,7 @@
       "id": "hall_mask",
       "name": "Goblin Mask",
       "price": 350,
+      "icon": "👺",
       "category": "seasonal",
       "rarity": "common",
       "desc": "Wall trophy from the fall festival."
@@ -694,6 +782,7 @@
       "id": "mush_stool",
       "name": "Mushroom Log Stool",
       "price": 450,
+      "icon": "🍄",
       "category": "nature",
       "rarity": "uncommon",
       "desc": "Forest-fairytale seating. Slightly bouncy."
@@ -702,6 +791,7 @@
       "id": "mom_tea",
       "name": "Mom's Tea Set",
       "price": 1200,
+      "icon": "🫖",
       "category": "kitchen",
       "rarity": "uncommon",
       "desc": "Porcelain cups and a note that says 'Take a break.'"
@@ -710,6 +800,7 @@
       "id": "fruit_basket",
       "name": "Fruit Basket",
       "price": 350,
+      "icon": "🍎",
       "category": "kitchen",
       "rarity": "common",
       "desc": "Seasonal picks that never spoil."
@@ -718,6 +809,7 @@
       "id": "bamboo_speaker",
       "name": "Bamboo Speaker",
       "price": 800,
+      "icon": "🎋",
       "category": "nature",
       "rarity": "uncommon",
       "desc": "Plays island radio at gentle volume."
@@ -726,6 +818,7 @@
       "id": "butterfly_model",
       "name": "Butterfly Model",
       "price": 600,
+      "icon": "🦋",
       "category": "nature",
       "rarity": "common",
       "desc": "Pinned with love. Wings still shimmer."
@@ -734,6 +827,7 @@
       "id": "star_lamp",
       "name": "Star Fragment Lamp",
       "price": 5500,
+      "icon": "⭐",
       "category": "luxury",
       "rarity": "legendary",
       "desc": "Wish upon it. Batteries are stardust."
@@ -742,6 +836,7 @@
       "id": "moon_chair",
       "name": "Crescent Moon Chair",
       "price": 4200,
+      "icon": "🌙",
       "category": "luxury",
       "rarity": "rare",
       "desc": "Sit and plot gentle mischief."
@@ -750,6 +845,7 @@
       "id": "moss_ball",
       "name": "Glowing Moss Ball",
       "price": 900,
+      "icon": "🟢",
       "category": "nature",
       "rarity": "uncommon",
       "desc": "Bioluminescent zen. Hums softly at night."
@@ -758,6 +854,7 @@
       "id": "espresso_maker",
       "name": "Stovetop Espresso",
       "price": 1100,
+      "icon": "☕",
       "category": "kitchen",
       "rarity": "uncommon",
       "desc": "Steam whistle means 'good morning.'"
@@ -766,6 +863,7 @@
       "id": "ironwood_counter",
       "name": "Ironwood Counter",
       "price": 2400,
+      "icon": "🪵",
       "category": "kitchen",
       "rarity": "rare",
       "desc": "Crafted grain. Smells like a cozy café."
@@ -774,6 +872,7 @@
       "id": "fairy_lights",
       "name": "Fairy Light Strand",
       "price": 280,
+      "icon": "✨",
       "category": "wall",
       "rarity": "common",
       "desc": "Drape along walls for instant festival."
@@ -782,6 +881,7 @@
       "id": "skylight_poster",
       "name": "Skylight Poster",
       "price": 400,
+      "icon": "🌤️",
       "category": "wall",
       "rarity": "common",
       "desc": "Fake window, real daydreams."
@@ -790,6 +890,7 @@
       "id": "peach_wall",
       "name": "Peach Wallpaper",
       "price": 650,
+      "icon": "🍑",
       "category": "wall",
       "rarity": "uncommon",
       "desc": "Juicy pattern. Pairs with fruit basket."
@@ -798,6 +899,7 @@
       "id": "crown_display",
       "name": "Royal Crown Display",
       "price": 12000,
+      "icon": "👑",
       "category": "luxury",
       "rarity": "legendary",
       "desc": "Glass case for a crown you'll maybe afford someday."
@@ -806,6 +908,7 @@
       "id": "golden_toilet",
       "name": "Golden Toilet",
       "price": 8888,
+      "icon": "🚽",
       "category": "luxury",
       "rarity": "legendary",
       "desc": "The ultimate flex. Flush sounds like coins."
@@ -814,6 +917,7 @@
       "id": "studio_spot",
       "name": "Studio Spotlight",
       "price": 1600,
+      "icon": "🔆",
       "category": "lighting",
       "rarity": "rare",
       "desc": "You're always the main character."
@@ -822,6 +926,7 @@
       "id": "book_stack",
       "name": "Cozy Book Stack",
       "price": 220,
+      "icon": "📚",
       "category": "cozy",
       "rarity": "common",
       "desc": "Titles change when you're not looking."
@@ -830,6 +935,7 @@
       "id": "record_player",
       "name": "Vintage Record Player",
       "price": 1400,
+      "icon": "💿",
       "category": "electronics",
       "rarity": "uncommon",
       "desc": "Crackly warmth. One record: 'Island Chill.'"
@@ -838,6 +944,7 @@
       "id": "bubble_machine",
       "name": "Bubble Machine",
       "price": 750,
+      "icon": "🫧",
       "category": "cozy",
       "rarity": "uncommon",
       "desc": "Fills rooms with floating rainbows."
@@ -846,6 +953,7 @@
       "id": "zen_garden",
       "name": "Mini Zen Garden",
       "price": 1800,
+      "icon": "🏯",
       "category": "nature",
       "rarity": "rare",
       "desc": "Rake patterns. Find inner peace."
@@ -854,6 +962,7 @@
       "id": "terrarium",
       "name": "Fairy Terrarium",
       "price": 2200,
+      "icon": "🔮",
       "category": "nature",
       "rarity": "rare",
       "desc": "Tiny forest with a door that twinkles."
@@ -862,6 +971,7 @@
       "id": "uni_fountain",
       "name": "Unicorn Fountain",
       "price": 7500,
+      "icon": "⛲",
       "category": "unicorn",
       "rarity": "legendary",
       "desc": "Sparkling water grants +10 cozy points."
@@ -870,6 +980,7 @@
       "id": "crystal_ball",
       "name": "Fortune Crystal Ball",
       "price": 3300,
+      "icon": "🔮",
       "category": "luxury",
       "rarity": "rare",
       "desc": "Foretells tomorrow's weather and snack cravings."
@@ -878,6 +989,7 @@
       "id": "hammock",
       "name": "Leaf Hammock",
       "price": 1100,
+      "icon": "🌴",
       "category": "cozy",
       "rarity": "uncommon",
       "desc": "Indoor tropical nap zone."
@@ -886,6 +998,7 @@
       "id": "brick_oven",
       "name": "Brick Oven",
       "price": 3800,
+      "icon": "🍕",
       "category": "kitchen",
       "rarity": "rare",
       "desc": "Smells like fresh bread. Always."
@@ -894,6 +1007,7 @@
       "id": "ac_fish_tank",
       "name": "Aquarium Tank",
       "price": 2800,
+      "icon": "🐟",
       "category": "pets",
       "rarity": "rare",
       "desc": "Living wallpaper. Feeding reminder blinks gently."
@@ -902,6 +1016,7 @@
       "id": "ac_anthurium",
       "name": "Anthurium Plant",
       "price": 520,
+      "icon": "🌺",
       "category": "nature",
       "rarity": "common",
       "desc": "Heart-shaped leaves. Loves sunny corners."
@@ -910,6 +1025,7 @@
       "id": "ac_typewriter",
       "name": "Typewriter",
       "price": 980,
+      "icon": "⌨️",
       "category": "cozy",
       "rarity": "uncommon",
       "desc": "Click-clack letters to penpal pals."
@@ -918,6 +1034,7 @@
       "id": "ac_cello",
       "name": "Cello",
       "price": 3100,
+      "icon": "🎻",
       "category": "cozy",
       "rarity": "rare",
       "desc": "For serenades and dramatic entrances."
@@ -926,6 +1043,7 @@
       "id": "ac_menu_board",
       "name": "Menu Chalkboard",
       "price": 680,
+      "icon": "📋",
       "category": "kitchen",
       "rarity": "common",
       "desc": "Today's special: rainbow pancakes."
@@ -934,6 +1052,7 @@
       "id": "uni_rainbow_shelf",
       "name": "Rainbow Shelf",
       "price": 1900,
+      "icon": "🌈",
       "category": "unicorn",
       "rarity": "uncommon",
       "desc": "Displays treasures in ROYGBIV order."
@@ -942,6 +1061,7 @@
       "id": "uni_glitter_rug",
       "name": "Glitter Rug",
       "price": 1400,
+      "icon": "✨",
       "category": "unicorn",
       "rarity": "uncommon",
       "desc": "Leaves a tasteful trail of sparkle."
@@ -950,6 +1070,7 @@
       "id": "uni_cloud_lamp",
       "name": "Cloud Pendant Lamp",
       "price": 2100,
+      "icon": "💭",
       "category": "unicorn",
       "rarity": "rare",
       "desc": "Soft light that drifts slowly sideways."
@@ -958,6 +1079,7 @@
       "id": "uni_horn_planter",
       "name": "Horn Planter",
       "price": 870,
+      "icon": "🦄",
       "category": "unicorn",
       "rarity": "uncommon",
       "desc": "Succulents grow in horn-shaped pots."

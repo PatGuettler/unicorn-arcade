@@ -46,6 +46,10 @@ static func galaxy_spawn_ms(level: int) -> int:
 	return maxi(600, 2200 - level * 150)
 
 
+static func galaxy_enemy_speed_scale(level: int) -> float:
+	return minf(1.35, 0.25 + float(maxi(1, level) - 1) * 0.075)
+
+
 static func mathtris_drop_ms(level: int, drops: int = 0, elapsed_seconds: int = 0) -> int:
 	var value: int
 	if level <= 10:

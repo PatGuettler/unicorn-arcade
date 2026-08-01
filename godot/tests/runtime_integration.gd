@@ -98,6 +98,9 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(galaxy.active and galaxy.target_kills == 10 and galaxy.lives == 3, "Galaxy Unicorn launches with the React target and lives")
 	_check(is_equal_approx(galaxy.player_x, 0.5), "Galaxy Unicorn centers the player for its opening wave")
+	galaxy.call("_spawn_enemy", false)
+	_check(float(galaxy.enemies[0]["speed"]) <= 0.000125, "Galaxy Unicorn's opening enemies use the gentle level-one speed curve")
+	galaxy.enemies.clear()
 	galaxy.size = Vector2(720, 1280)
 	var galaxy_drag := InputEventScreenDrag.new()
 	galaxy_drag.position = Vector2(576, 900)
@@ -121,6 +124,9 @@ func _run() -> void:
 	add_child(alley)
 	await get_tree().process_frame
 	_check(is_instance_valid(alley.message_label) and alley.house_buttons.size() == 6, "Unicorn Alley launches all six selectable houses")
+	_check(alley.map_rect.texture.resource_path.ends_with("unicorn_alley_production_v1.png"), "Unicorn Alley uses the new unified six-door pastel map")
+	var door_button: Button = alley.house_buttons.get("sparkle")
+	_check(door_button.custom_minimum_size.y > door_button.custom_minimum_size.x, "Alley house targets use tall door-shaped controls")
 	remove_child(alley)
 	alley.free()
 	AppState.active_room_companion = "sparkle"
@@ -148,6 +154,8 @@ func _run() -> void:
 	var room_press := InputEventScreenTouch.new()
 	room_press.pressed = true
 	touch_room.call("_item_input", room_press, "test_lamp", lamp_button)
+	_check(lamp_button.text.is_empty() and lamp_button.tooltip_text == "Lava Lamp" and lamp_button.has_node("FurnitureArt"), "room decor uses real item artwork instead of an icon glyph")
+	_check(is_instance_valid(touch_room.selection_toolbar) and touch_room.selection_toolbar.get_child_count() == 6, "selecting decor opens the original six-action contextual toolbar")
 	var room_drag := InputEventScreenDrag.new()
 	room_drag.position = touch_room.room_canvas.global_position + Vector2(touch_room.room_canvas.size.x * 0.82, touch_room.room_canvas.size.y * 0.66)
 	touch_room.call("_input", room_drag)
@@ -157,6 +165,10 @@ func _run() -> void:
 	touch_room.call("_input", room_release)
 	var moved_items := AppState.room_items("rainbow")
 	_check(moved_items.size() == 1 and is_equal_approx(float(moved_items[0]["x"]), 80.0) and is_equal_approx(float(moved_items[0]["y"]), 64.0), "room decor follows and commits an Android drag outside its button")
+	touch_room.call("_show_bag")
+	await get_tree().process_frame
+	_check(is_instance_valid(touch_room.bag_overlay) and is_instance_valid(touch_room.bag_grid) and touch_room.bag_grid.columns == 3, "furniture bag opens as the original three-column bottom sheet without replacing the room")
+	touch_room.call("_close_bag")
 	remove_child(touch_room)
 	touch_room.free()
 	_check(AppState.remove_room_item("rainbow", "test_lamp") and AppState.available_count("lamp") == 1, "removed decor returns to the shared bag")

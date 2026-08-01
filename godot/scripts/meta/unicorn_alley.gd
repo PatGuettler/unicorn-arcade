@@ -8,14 +8,14 @@ const CYAN := Color("58d6e8")
 const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 const MUTED := Color("aab7e8")
-const ALLEY_MAP = preload("res://assets/meta/environments/unicorn_alley_original.jpeg")
+const ALLEY_MAP = preload("res://assets/meta/environments/unicorn_alley_production_v1.png")
 const HOUSE_POSITIONS := {
-	"sparkle": Vector2(0.60, 0.65),
-	"rainbow": Vector2(0.82, 0.80),
-	"star": Vector2(0.18, 0.75),
-	"cloud": Vector2(0.55, 0.15),
-	"dream": Vector2(0.30, 0.50),
-	"mystic": Vector2(0.45, 0.80),
+	"sparkle": Vector2(0.17, 0.22),
+	"rainbow": Vector2(0.71, 0.235),
+	"star": Vector2(0.20, 0.465),
+	"cloud": Vector2(0.695, 0.49),
+	"dream": Vector2(0.105, 0.705),
+	"mystic": Vector2(0.86, 0.735),
 }
 
 var message_label: Label
@@ -82,9 +82,12 @@ func _build_ui() -> void:
 		var count := AppState.room_items(companion_id).size()
 		var house := Button.new()
 		house.text = "%s\n%s" % [str(definition["name"]).to_upper(), "ENTER • %d" % count if owned else "LOCKED"]
-		house.custom_minimum_size = Vector2(112, 72)
+		house.custom_minimum_size = Vector2(82, 122)
 		house.size = house.custom_minimum_size
-		house.add_theme_font_size_override("font_size", 13)
+		house.add_theme_font_size_override("font_size", 11)
+		house.add_theme_color_override("font_color", Color.WHITE)
+		house.add_theme_color_override("font_outline_color", Color("aa10172e"))
+		house.add_theme_constant_override("outline_size", 5)
 		house.add_theme_stylebox_override("normal", _house_style(Color(str(definition["color"])), owned))
 		house.pressed.connect(_house_pressed.bind(companion_id, owned))
 		stage.add_child(house)
@@ -105,7 +108,7 @@ func _layout_alley(stage: Control) -> void:
 	var source_size := ALLEY_MAP.get_size()
 	var fit_scale := minf(stage.size.x / source_size.x, stage.size.y / source_size.y)
 	map_rect.size = source_size * fit_scale
-	map_rect.position = (stage.size - map_rect.size) * 0.5
+	map_rect.position = Vector2((stage.size.x - map_rect.size.x) * 0.5, 14.0)
 	for companion_id in house_buttons:
 		var house := house_buttons[companion_id] as Button
 		var normalized: Vector2 = HOUSE_POSITIONS.get(companion_id, Vector2(0.5, 0.5))
@@ -128,11 +131,13 @@ func _go_home() -> void:
 
 func _house_style(color: Color, owned: bool) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color(color, 0.76) if owned else Color(0.05, 0.07, 0.13, 0.82)
-	style.border_color = Color(color, 0.8) if owned else Color("43495d")
+	style.bg_color = Color(color, 0.18) if owned else Color(0.03, 0.04, 0.1, 0.46)
+	style.border_color = Color(color.lightened(0.22), 0.94) if owned else Color("7b7893")
 	style.set_border_width_all(3)
-	style.corner_radius_top_left = 28
-	style.corner_radius_top_right = 28
-	style.corner_radius_bottom_left = 10
-	style.corner_radius_bottom_right = 10
+	style.corner_radius_top_left = 36
+	style.corner_radius_top_right = 36
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	style.shadow_color = Color("6608172f")
+	style.shadow_size = 5
 	return style

@@ -12,6 +12,7 @@ func _ready() -> void:
 func _capture() -> void:
 	var mode := "home"
 	var game_id := ""
+	var companion_id := "sparkle"
 	var output := ""
 	var camera_position := Vector3.ZERO
 	var camera_target := Vector3.ZERO
@@ -22,6 +23,8 @@ func _capture() -> void:
 			mode = argument.trim_prefix("--mode=")
 		elif argument.begins_with("--game-id="):
 			game_id = argument.trim_prefix("--game-id=")
+		elif argument.begins_with("--companion-id="):
+			companion_id = argument.trim_prefix("--companion-id=")
 		elif argument.begins_with("--output="):
 			output = argument.trim_prefix("--output=")
 		elif argument.begins_with("--camera="):
@@ -46,20 +49,21 @@ func _capture() -> void:
 			get_tree().quit(2)
 			return
 		captured = load(scene_path).instantiate()
-	elif mode in ["marketplace", "marketplace_decor", "alley", "room", "room_bag"]:
+	elif mode in ["marketplace", "marketplace_decor", "alley", "room", "room_selected", "room_bag"]:
 		var meta_paths := {
 			"marketplace": "res://scenes/meta/marketplace.tscn",
 			"marketplace_decor": "res://scenes/meta/marketplace.tscn",
 			"alley": "res://scenes/meta/unicorn_alley.tscn",
 			"room": "res://scenes/meta/room_editor.tscn",
+			"room_selected": "res://scenes/meta/room_editor.tscn",
 			"room_bag": "res://scenes/meta/room_editor.tscn",
 		}
-		AppState.active_room_companion = "sparkle"
-		if mode in ["room", "room_bag"]:
-			AppState.data["inventory"]["lamp"] = 1
-			AppState.data["inventory"]["rug"] = 1
-			AppState.data["inventory"]["plant"] = 1
-			AppState.data["rooms"]["sparkle"] = [
+		AppState.active_room_companion = companion_id
+		if mode in ["room", "room_selected", "room_bag"]:
+			AppState.data["inventory"]["lamp"] = 2
+			AppState.data["inventory"]["rug"] = 2
+			AppState.data["inventory"]["plant"] = 2
+			AppState.data["rooms"][companion_id] = [
 				{"instance_id": "preview_lamp", "item_id": "lamp", "x": 24.0, "y": 32.0, "rotation": 0, "scale": 1.0, "z_index": 1},
 				{"instance_id": "preview_rug", "item_id": "rug", "x": 50.0, "y": 76.0, "rotation": 0, "scale": 1.4, "z_index": 2},
 				{"instance_id": "preview_plant", "item_id": "plant", "x": 76.0, "y": 58.0, "rotation": -45, "scale": 1.1, "z_index": 3},
@@ -79,6 +83,9 @@ func _capture() -> void:
 				camera.size = ortho_size
 	if mode == "marketplace_decor":
 		captured.call("_show_decor")
+	elif mode == "room_selected":
+		captured.selected_id = "preview_rug"
+		captured.call("_mark_selected")
 	elif mode == "room_bag":
 		captured.call("_show_bag")
 	await get_tree().process_frame

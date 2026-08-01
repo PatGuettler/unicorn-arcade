@@ -13,11 +13,12 @@ const companions = [
 
 const payload = {
   companions,
-  categories: FURNITURE_CATEGORIES.map(({ id, label }) => ({ id, label })),
-  furniture: FURNITURE.map(({ id, name, price, category, rarity, desc }) => ({
+  categories: FURNITURE_CATEGORIES.map(({ id, label, icon }) => ({ id, label, icon })),
+  furniture: FURNITURE.map(({ id, name, price, icon, category, rarity, desc }) => ({
     id,
     name,
     price,
+    icon,
     category,
     rarity,
     desc,

@@ -40,6 +40,8 @@ func _init() -> void:
 	_check(GameplayRules.rival_move_ms(1) == 2500 and GameplayRules.rival_move_ms(20) == 1000, "Sliding Window rival speed floor matches React")
 	_check(GameplayRules.galaxy_target(1) == 10 and GameplayRules.galaxy_target(5) == 20, "Galaxy target formula matches React")
 	_check(GameplayRules.galaxy_fire_ms(20) == 120 and GameplayRules.galaxy_spawn_ms(20) == 600, "Galaxy timing floors match React")
+	_check(is_equal_approx(GameplayRules.galaxy_enemy_speed_scale(1), 0.25), "Galaxy enemies begin at a deliberately gentle quarter speed")
+	_check(GameplayRules.galaxy_enemy_speed_scale(5) > GameplayRules.galaxy_enemy_speed_scale(1) and is_equal_approx(GameplayRules.galaxy_enemy_speed_scale(20), 1.35), "Galaxy enemy speed rises by level and reaches its safe cap")
 	_check(GameplayRules.mathtris_drop_ms(1) == 950 and GameplayRules.mathtris_drop_ms(50, 99, 99) == 90, "Mathtris drop curve and floor match React")
 	_check(GameplayRules.mathtris_concurrent(0, 1) == 1 and GameplayRules.mathtris_concurrent(70, 1) == 3 and GameplayRules.mathtris_concurrent(150, 12) == 5, "Mathtris concurrency curve matches React")
 	_check(GameplayRules.mathtris_allowed(10) == ["1", "2", "+", "="], "Mathtris basics token set matches React")
