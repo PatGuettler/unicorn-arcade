@@ -197,9 +197,13 @@ func _run() -> void:
 	_check(_ui_is_accessible(room), "room editor meets readable text, contrast, and touch-target minimums")
 	_check(room.companion_id == "sparkle" and is_instance_valid(room.room_canvas), "Sparkle's room editor launches")
 	_check(room.grid_snap, "room editor starts with eight-percent grid snapping enabled")
+	_check(room.call("_item_base_size", "companion_sparkle") == Vector2(210, 150), "room companions use a larger animation-safe placement viewport")
 	var companion_button: Button = room.item_buttons.get("room_companion_sparkle")
 	var companion_preview = companion_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(companion_button) else null
 	_check(is_instance_valid(companion_preview) and companion_preview.uses_character_model and companion_preview.source_model_id == "sparkle" and companion_preview.mesh_count >= 5, "rooms automatically present the authored companion-specific GLB")
+	var companion_cameras: Array[Node] = companion_preview.find_children("*", "Camera3D", true, false) if is_instance_valid(companion_preview) else []
+	var companion_camera = companion_cameras[0] if not companion_cameras.is_empty() else null
+	_check(is_instance_valid(companion_camera) and companion_camera.size >= 5.3, "animated companion framing reserves vertical buffer for rear-up horns and hooves")
 	var idle_animator = companion_preview.find_child("IdleAnimator", true, false) if is_instance_valid(companion_preview) else null
 	_check(is_instance_valid(idle_animator) and is_instance_valid(idle_animator.timer) and not idle_animator.timer.is_stopped() and idle_animator.timer.wait_time >= 10.0 and idle_animator.timer.wait_time <= 30.0, "live unicorn previews schedule authored animations at the requested random interval")
 	if is_instance_valid(idle_animator):

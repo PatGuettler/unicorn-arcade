@@ -93,6 +93,13 @@ That first Sparkle asset was the directional graybox. It was superseded by the s
 - Marketplace companion cards deliberately hold a static authored pose so the catalog stays calm and easy to browse.
 - Phone-frame QA covers all six home presentations, all six themed rooms, and the complete static Marketplace catalog.
 
+## Checkpoint 09.3 animation-safe framing
+
+- Animated companion cameras reserve extra space above horns and below hooves while keeping the Marketplace's static catalog framing unchanged.
+- The frame is shifted upward without changing its viewing angle, protecting the elevated rear-up pose while retaining ground clearance.
+- Room companion placement viewports are larger so the safer camera does not make the in-room unicorn feel undersized.
+- Rear-up QA samples cover all six home companions plus the smaller room presentation.
+
 ## Run
 
 ```powershell
@@ -109,14 +116,14 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\gu
 Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" res://tests/runtime_integration.tscn --quit-after 120
 ```
 
-Expected results: `GODOT_PARITY_TESTS_OK: 77 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 157 checks passed`.
+Expected results: `GODOT_PARITY_TESTS_OK: 77 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 159 checks passed`.
 
 ## Export the Android prototype
 
 The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.9.2-alpha-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.9.3-alpha-arm64.apk"
 ```
 
 Upgrade-compatible debug builds must use the established Godot user-profile keystore. Verify the APK signer before delivery: its SHA-256 certificate digest must be `97dcac80c34ab36c9b1e0da8cef5dc87c14911ffdb26d30aa0bc039f1e8be42b`. A portable Godot installation can silently create a different debug keystore; that APK is valid as a fresh install but Android will reject it as an update to 0.5 and earlier.

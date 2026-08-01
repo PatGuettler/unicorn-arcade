@@ -19,6 +19,8 @@ func _capture() -> void:
 	var camera_target := Vector3.ZERO
 	var camera_override := false
 	var ortho_size := 0.0
+	var animation_name := ""
+	var animation_progress := 0.5
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--mode="):
 			mode = argument.trim_prefix("--mode=")
@@ -37,6 +39,10 @@ func _capture() -> void:
 			camera_target = _parse_vector3(argument.trim_prefix("--target="))
 		elif argument.begins_with("--ortho="):
 			ortho_size = float(argument.trim_prefix("--ortho="))
+		elif argument.begins_with("--animation="):
+			animation_name = argument.trim_prefix("--animation=")
+		elif argument.begins_with("--animation-progress="):
+			animation_progress = clampf(float(argument.trim_prefix("--animation-progress=")), 0.0, 1.0)
 	if output.is_empty():
 		push_error("capture_alpha requires --output=<absolute png path>")
 		get_tree().quit(2)
@@ -84,6 +90,11 @@ func _capture() -> void:
 			AppState.selected_category = "Word"
 		captured = MAIN_SCENE.instantiate()
 	add_child(captured)
+	if not animation_name.is_empty():
+		var animator = captured.find_child("IdleAnimator", true, false)
+		if is_instance_valid(animator) and animator.play_animation_now(animation_name):
+			var clip: Animation = animator.animation_player.get_animation(animator.active_action)
+			animator.animation_player.seek(clip.length * animation_progress, true)
 	if camera_override:
 		var camera := _find_camera(captured)
 		if camera != null:

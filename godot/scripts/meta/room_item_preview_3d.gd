@@ -10,6 +10,9 @@ const CHARACTER_SCENES := {
 	"mystic": preload("res://assets/characters/unicorns/unicorn_mystic_v1.glb"),
 }
 const CHARACTER_SCALES := {"sparkle": 1.28, "rainbow": 1.28, "star": 1.28, "cloud": 1.28, "dream": 1.28, "mystic": 1.12}
+const ANIMATED_CAMERA_SIZE := 5.35
+const STATIC_CAMERA_SIZE := 4.15
+const ANIMATION_FRAME_LIFT := Vector3(0.0, 0.38, 0.0)
 const UnicornIdleAnimatorScene = preload("res://scripts/meta/unicorn_idle_animator.gd")
 
 var item_id := ""
@@ -69,9 +72,10 @@ func _build_companion(stage: Node3D) -> void:
 		_pose_companion(model)
 	var camera := Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 4.15
+	camera.size = ANIMATED_CAMERA_SIZE if animate_character else STATIC_CAMERA_SIZE
 	stage.add_child(camera)
-	camera.look_at_from_position(Vector3(5.2, 3.25, 7.1), Vector3(0.0, 1.72, -0.15), Vector3.UP)
+	var frame_lift := ANIMATION_FRAME_LIFT if animate_character else Vector3.ZERO
+	camera.look_at_from_position(Vector3(5.2, 3.25, 7.1) + frame_lift, Vector3(0.0, 1.72, -0.15) + frame_lift, Vector3.UP)
 	camera.current = true
 
 
