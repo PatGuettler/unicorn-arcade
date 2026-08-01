@@ -71,13 +71,13 @@ func _draw_shadow() -> void:
 	for index in 24:
 		var angle := TAU * float(index) / 24.0
 		points.append(Vector2(50.0 + cos(angle) * 31.0, 83.0 + sin(angle) * 8.0))
-	_poly(points, Color("4208172f"))
+	_poly(points, Color("08172f42"))
 
 
 func _draw_lava_lamp() -> void:
 	_poly([Vector2(35, 75), Vector2(65, 75), Vector2(60, 83), Vector2(40, 83)], dark)
 	_poly([Vector2(39, 70), Vector2(61, 70), Vector2(66, 76), Vector2(34, 76)], accent.darkened(0.28))
-	_poly([Vector2(42, 20), Vector2(58, 20), Vector2(64, 69), Vector2(36, 69)], Color("c579e9f6"))
+	_poly([Vector2(42, 20), Vector2(58, 20), Vector2(64, 69), Vector2(36, 69)], Color("79e9f6c5"))
 	_poly([Vector2(42, 20), Vector2(58, 20), Vector2(55, 13), Vector2(45, 13)], dark)
 	draw_circle(Vector2(47, 51), 7, Color("ffe66d"))
 	draw_circle(Vector2(55, 35), 5, PINKISH)

@@ -29,6 +29,7 @@ var item_buttons := {}
 var local_items: Array = []
 var status_label: Label
 var reset_button: Button
+var bag_button: Button
 var selection_toolbar: HBoxContainer
 var bag_overlay: Control
 var bag_grid: GridContainer
@@ -138,19 +139,19 @@ func _build_editor() -> void:
 	status_label.add_theme_color_override("font_color", MUTED)
 	status_label.text = "%d decorations placed. Tap an item for controls." % local_items.size()
 	root.add_child(status_label)
-	var bag := Button.new()
-	bag.name = "FurnitureBagButton"
-	bag.text = "BAG"
-	bag.tooltip_text = "Open furniture bag"
-	bag.custom_minimum_size = Vector2(72, 58)
-	bag.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	bag.position = Vector2(-88, -82)
-	bag.add_theme_font_size_override("font_size", 16)
-	bag.add_theme_color_override("font_color", Color.WHITE)
-	bag.add_theme_stylebox_override("normal", _rounded_style(PINK, Color.WHITE, 3, 22))
-	bag.add_theme_stylebox_override("hover", _rounded_style(PINK.lightened(0.08), Color.WHITE, 3, 22))
-	bag.pressed.connect(_show_bag)
-	add_child(bag)
+	bag_button = Button.new()
+	bag_button.name = "FurnitureBagButton"
+	bag_button.text = "BAG"
+	bag_button.tooltip_text = "Open furniture bag"
+	bag_button.custom_minimum_size = Vector2(82, 64)
+	bag_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	bag_button.position = Vector2(-98, -88)
+	bag_button.add_theme_font_size_override("font_size", 18)
+	bag_button.add_theme_color_override("font_color", Color.WHITE)
+	bag_button.add_theme_stylebox_override("normal", _rounded_style(PINK, Color.WHITE, 3, 22))
+	bag_button.add_theme_stylebox_override("hover", _rounded_style(PINK.lightened(0.08), Color.WHITE, 3, 22))
+	bag_button.pressed.connect(_show_bag)
+	add_child(bag_button)
 	_position_items.call_deferred()
 
 
@@ -254,7 +255,7 @@ func _show_selection_toolbar() -> void:
 	selection_toolbar.name = "SelectionToolbar"
 	selection_toolbar.z_index = 2000
 	selection_toolbar.add_theme_constant_override("separation", 2)
-	selection_toolbar.add_theme_stylebox_override("panel", _rounded_style(Color("e90d1738"), Color("99ffffff"), 2, 12))
+	selection_toolbar.add_theme_stylebox_override("panel", _rounded_style(Color("0d1738e9"), Color("ffffff99"), 2, 12))
 	room_canvas.add_child(selection_toolbar)
 	var actions := [
 		["REMOVE", "×", "Remove"],
@@ -270,7 +271,7 @@ func _show_selection_toolbar() -> void:
 		control.tooltip_text = action[2]
 		control.custom_minimum_size = Vector2(40, 38)
 		control.add_theme_font_size_override("font_size", 22)
-		control.add_theme_stylebox_override("normal", _rounded_style(Color("e9202b53"), Color("446be6ff"), 1, 9))
+		control.add_theme_stylebox_override("normal", _rounded_style(Color("202b53e9"), Color("6be6ff44"), 1, 9))
 		control.pressed.connect(_selection_action.bind(action[0]))
 		selection_toolbar.add_child(control)
 	_position_selection_toolbar.call_deferred()
@@ -350,6 +351,10 @@ func _reset_room() -> void:
 func _show_bag() -> void:
 	if is_instance_valid(bag_overlay):
 		return
+	if is_instance_valid(bag_button):
+		bag_button.hide()
+	if is_instance_valid(status_label):
+		status_label.hide()
 	bag_overlay = Control.new()
 	bag_overlay.name = "FurnitureBagOverlay"
 	bag_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -357,7 +362,7 @@ func _show_bag() -> void:
 	bag_overlay.z_index = 4000
 	add_child(bag_overlay)
 	var dim := ColorRect.new()
-	dim.color = Color("a8050a20")
+	dim.color = Color("050a20a8")
 	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	bag_overlay.add_child(dim)
@@ -371,13 +376,17 @@ func _show_bag() -> void:
 	sheet.offset_top = 0
 	sheet.offset_right = -8
 	sheet.offset_bottom = -8
-	sheet.add_theme_stylebox_override("panel", _rounded_style(Color("fa14214a"), Color("6658d6e8"), 2, 24))
+	sheet.add_theme_stylebox_override("panel", _rounded_style(Color("14214afa"), Color("58d6e866"), 2, 24))
 	bag_overlay.add_child(sheet)
+	var sheet_margin := MarginContainer.new()
+	sheet_margin.add_theme_constant_override("margin_left", 16)
+	sheet_margin.add_theme_constant_override("margin_right", 16)
+	sheet_margin.add_theme_constant_override("margin_top", 12)
+	sheet_margin.add_theme_constant_override("margin_bottom", 12)
+	sheet.add_child(sheet_margin)
 	var content := VBoxContainer.new()
 	content.add_theme_constant_override("separation", 8)
-	content.add_theme_constant_override("margin_left", 10)
-	content.add_theme_constant_override("margin_right", 10)
-	sheet.add_child(content)
+	sheet_margin.add_child(content)
 	var header := HBoxContainer.new()
 	content.add_child(header)
 	var close := Button.new()
@@ -396,6 +405,7 @@ func _show_bag() -> void:
 	header.add_child(title)
 	var shop := Button.new()
 	shop.text = "SHOP"
+	shop.custom_minimum_size = Vector2(82, 56)
 	shop.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/marketplace.tscn"))
 	header.add_child(shop)
 	var category_scroll := ScrollContainer.new()
@@ -425,6 +435,7 @@ func _show_bag() -> void:
 	content.add_child(count_label)
 	var scroll := ScrollContainer.new()
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	content.add_child(scroll)
 	bag_grid = GridContainer.new()
 	bag_grid.name = "BagGrid"
@@ -441,6 +452,10 @@ func _close_bag() -> void:
 		bag_overlay.queue_free()
 	bag_overlay = null
 	bag_grid = null
+	if is_instance_valid(bag_button):
+		bag_button.show()
+	if is_instance_valid(status_label):
+		status_label.show()
 
 
 func _set_bag_category(category_id: String) -> void:
@@ -450,6 +465,7 @@ func _set_bag_category(category_id: String) -> void:
 
 
 func _rebuild_bag_grid(count_label: Label) -> void:
+	bag_grid.columns = 3
 	for child in bag_grid.get_children():
 		child.queue_free()
 	var candidates: Array = Catalog.furniture().duplicate()
@@ -501,10 +517,16 @@ func _rebuild_bag_grid(count_label: Label) -> void:
 		place.add_child(item_label)
 	count_label.text = "%d available item%s" % [shown, "" if shown == 1 else "s"]
 	if shown == 0:
+		bag_grid.columns = 1
 		var empty := Label.new()
+		empty.name = "EmptyBagMessage"
 		empty.text = "Nothing available here. Buy decor in the Marketplace or remove a placed item."
 		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		empty.custom_minimum_size = Vector2(600, 150)
+		empty.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		empty.add_theme_font_size_override("font_size", 20)
 		empty.add_theme_color_override("font_color", MUTED)
 		bag_grid.add_child(empty)
 
@@ -564,7 +586,7 @@ func _ensure_companion_present() -> void:
 func _item_style(category: String, selected: bool) -> StyleBoxFlat:
 	var colors := {"companions": PINK, "nature": Color("62e6a7"), "lighting": YELLOW, "luxury": Color("d5a4ff"), "pets": Color("ff9f7c"), "electronics": CYAN, "seasonal": Color("f59c5b"), "rugs": Color("c99cff"), "beds": Color("89a9ff"), "tables": Color("d49b6a"), "kitchen": Color("ffb66e"), "toys": Color("ff91bd"), "wall": Color("91c9ff"), "unicorn": Color("f68bd8"), "cozy": Color("9da9d9")}
 	var color: Color = colors.get(category, Color("9da9d9"))
-	var background := Color("12000000") if not selected else Color(color, 0.12)
+	var background := Color("00000012") if not selected else Color(color, 0.12)
 	var style := _rounded_style(background, Color.WHITE if selected else Color("00000000"), 4 if selected else 0, 16)
 	return style
 

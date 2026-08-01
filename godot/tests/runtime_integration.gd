@@ -3,6 +3,8 @@ extends Node
 const Rules = preload("res://scripts/games/word_game_rules.gd")
 const WORD_SCENE = preload("res://scenes/games/word_game.tscn")
 const CASH_SCENE = preload("res://scenes/games/cash_counter.tscn")
+const COIN_SCENE = preload("res://scenes/games/coin_count.tscn")
+const RHYME_SCENE = preload("res://scenes/games/rhyme_rally.tscn")
 const MAIN_SCENE = preload("res://scenes/main.tscn")
 const MATH_SWIPE_SCENE = preload("res://scenes/games/math_swipe.tscn")
 const JUMP_SCENE = preload("res://scenes/games/unicorn_jump.tscn")
@@ -36,6 +38,7 @@ func _run() -> void:
 		var game = WORD_SCENE.instantiate()
 		add_child(game)
 		await get_tree().process_frame
+		_check(_ui_is_accessible(game), "%s meets readable text, contrast, and touch-target minimums" % game_id)
 		_check(game.game_id == game_id, "%s selects the requested shared-game mode" % game_id)
 		_check(game.active, "%s begins in an active play state" % game_id)
 		_check(game.target_rounds > 0, "%s has a positive round target" % game_id)
@@ -45,6 +48,7 @@ func _run() -> void:
 	var cash = CASH_SCENE.instantiate()
 	add_child(cash)
 	await get_tree().process_frame
+	_check(_ui_is_accessible(cash), "Cash Counter meets readable text, contrast, and touch-target minimums")
 	_check(cash.active, "Cash Counter begins in an active play state")
 	cash.target = 20
 	cash.total = 0
@@ -52,9 +56,24 @@ func _run() -> void:
 	_check(cash.total == 5 and cash.active, "Cash Counter accepts a non-overshooting bill")
 	remove_child(cash)
 	cash.free()
+	var coin_count = COIN_SCENE.instantiate()
+	add_child(coin_count)
+	await get_tree().process_frame
+	_check(coin_count.target > 0, "Coin Count begins with a positive target")
+	_check(_ui_is_accessible(coin_count), "Coin Count meets readable text, contrast, and touch-target minimums")
+	remove_child(coin_count)
+	coin_count.free()
+	var rhyme = RHYME_SCENE.instantiate()
+	add_child(rhyme)
+	await get_tree().process_frame
+	_check(rhyme.target_rounds > 0 and not rhyme.challenge.is_empty(), "Rhyme Rally begins with a playable challenge")
+	_check(_ui_is_accessible(rhyme), "Rhyme Rally meets readable text, contrast, and touch-target minimums")
+	remove_child(rhyme)
+	rhyme.free()
 	var math_swipe = MATH_SWIPE_SCENE.instantiate()
 	add_child(math_swipe)
 	await get_tree().process_frame
+	_check(_ui_is_accessible(math_swipe), "Math Swipe meets readable text, contrast, and touch-target minimums")
 	_check(math_swipe.active and math_swipe.cards.size() == 2, "Math Swipe launches with two answer cards")
 	var correct_card: Button
 	for card in math_swipe.cards:
@@ -68,6 +87,7 @@ func _run() -> void:
 	var jump = JUMP_SCENE.instantiate()
 	add_child(jump)
 	await get_tree().process_frame
+	_check(_ui_is_accessible(jump), "Unicorn Jump meets readable text, contrast, and touch-target minimums")
 	_check(jump.active and jump.level_data.size() == 10, "Unicorn Jump launches its level-one ten-node trail")
 	var landing: int = jump.level_data[0]
 	jump.call("_choose_node", landing)
@@ -77,6 +97,7 @@ func _run() -> void:
 	var sliding = SLIDING_SCENE.instantiate()
 	add_child(sliding)
 	await get_tree().process_frame
+	_check(_ui_is_accessible(sliding), "Sliding Window meets readable text, contrast, and touch-target minimums")
 	_check(sliding.active and sliding.window_size == 3, "Sliding Window launches its level-one race")
 	var max_index := 0
 	for index in sliding.window_size:
@@ -89,6 +110,7 @@ func _run() -> void:
 	var mathtris = MATHTRIS_SCENE.instantiate()
 	add_child(mathtris)
 	await get_tree().process_frame
+	_check(_ui_is_accessible(mathtris), "Mathtris meets readable text, contrast, and touch-target minimums")
 	_check(mathtris.active and mathtris.board.size() == 14 and mathtris.board[0].size() == 8, "Mathtris launches an 8 by 14 live board")
 	_check(not mathtris.falling.is_empty(), "Mathtris launches an initial falling wave")
 	remove_child(mathtris)
@@ -96,6 +118,7 @@ func _run() -> void:
 	var galaxy = GALAXY_SCENE.instantiate()
 	add_child(galaxy)
 	await get_tree().process_frame
+	_check(_ui_is_accessible(galaxy), "Galaxy Unicorn meets readable text, contrast, and touch-target minimums")
 	_check(galaxy.active and galaxy.target_kills == 10 and galaxy.lives == 3, "Galaxy Unicorn launches with the React target and lives")
 	_check(is_equal_approx(galaxy.player_x, 0.5), "Galaxy Unicorn centers the player for its opening wave")
 	galaxy.call("_spawn_enemy", false)
@@ -114,10 +137,12 @@ func _run() -> void:
 	var market = MARKET_SCENE.instantiate()
 	add_child(market)
 	await get_tree().process_frame
+	_check(_ui_is_accessible(market), "companion Marketplace meets readable text, contrast, and touch-target minimums")
 	_check(market.tab == "companions" and market.content.get_child_count() > 0, "Marketplace launches its companion catalog")
 	_check(market.find_children("CompanionModelPreview", "RoomItemPreview3D", true, false).size() == 6, "Marketplace companion cards use the six live 3D variants")
 	market.call("_show_decor")
 	await get_tree().process_frame
+	_check(_ui_is_accessible(market), "decor Marketplace meets readable text, contrast, and touch-target minimums")
 	_check(market.tab == "decor" and market.content.get_child_count() > 100, "Marketplace exposes the full decor catalog")
 	_check(market.find_children("CatalogModelPreview", "RoomItemPreview3D", true, false).size() == MetaCatalog.furniture().size(), "every marketplace decor record uses a modeled object preview")
 	remove_child(market)
@@ -125,6 +150,7 @@ func _run() -> void:
 	var alley = ALLEY_SCENE.instantiate()
 	add_child(alley)
 	await get_tree().process_frame
+	_check(_ui_is_accessible(alley), "Unicorn Alley meets readable text, contrast, and touch-target minimums")
 	_check(is_instance_valid(alley.message_label) and alley.house_buttons.size() == 6, "Unicorn Alley launches all six selectable houses")
 	_check(alley.map_rect.texture.resource_path.ends_with("unicorn_alley_production_v1.png"), "Unicorn Alley uses the new unified six-door pastel map")
 	var door_button: Button = alley.house_buttons.get("sparkle")
@@ -136,6 +162,7 @@ func _run() -> void:
 	var room = ROOM_SCENE.instantiate()
 	add_child(room)
 	await get_tree().process_frame
+	_check(_ui_is_accessible(room), "room editor meets readable text, contrast, and touch-target minimums")
 	_check(room.companion_id == "sparkle" and is_instance_valid(room.room_canvas), "Sparkle's room editor launches")
 	_check(room.grid_snap, "room editor starts with eight-percent grid snapping enabled")
 	var companion_button: Button = room.item_buttons.get("room_companion_sparkle")
@@ -177,7 +204,10 @@ func _run() -> void:
 	_check(moved_lamp.size() == 1 and is_equal_approx(float(moved_lamp[0]["x"]), 80.0) and is_equal_approx(float(moved_lamp[0]["y"]), 64.0), "room decor follows and commits an Android drag outside its button")
 	touch_room.call("_show_bag")
 	await get_tree().process_frame
-	_check(is_instance_valid(touch_room.bag_overlay) and is_instance_valid(touch_room.bag_grid) and touch_room.bag_grid.columns == 3, "furniture bag opens as the original three-column bottom sheet without replacing the room")
+	var empty_bag_message := touch_room.bag_grid.find_child("EmptyBagMessage", true, false) as Label
+	_check(is_instance_valid(touch_room.bag_overlay) and touch_room.bag_grid.columns == 1 and is_instance_valid(empty_bag_message) and empty_bag_message.custom_minimum_size.x >= 600.0, "empty furniture bag uses one full-width message instead of a one-character column")
+	_check(not touch_room.bag_button.visible and not touch_room.status_label.visible, "open furniture bag hides the underlying floating button and room status")
+	_check(_ui_is_accessible(touch_room.bag_overlay), "Furniture Bag meets readable text, contrast, and touch-target minimums")
 	touch_room.call("_close_bag")
 	remove_child(touch_room)
 	touch_room.free()
@@ -189,6 +219,7 @@ func _run() -> void:
 	add_child(shell)
 	await get_tree().process_frame
 	_check(shell.get_child_count() >= 2, "navigation shell builds its full-screen page")
+	_check(_ui_is_accessible(shell), "navigation shell meets readable text, contrast, and touch-target minimums")
 	remove_child(shell)
 	shell.free()
 	AppState.selected_game_id = original_game
@@ -265,3 +296,31 @@ func _check(condition: bool, message: String) -> void:
 	check_count += 1
 	if not condition:
 		failures.append(message)
+
+
+func _ui_is_accessible(root: Node) -> bool:
+	var issues: Array[String] = []
+	_collect_ui_issues(root, issues)
+	if not issues.is_empty():
+		push_warning("UI accessibility issues: %s" % "; ".join(issues.slice(0, 8)))
+	return issues.is_empty()
+
+
+func _collect_ui_issues(node: Node, issues: Array[String]) -> void:
+	if node is Control and (node as Control).is_visible_in_tree():
+		var control := node as Control
+		if control is Label and not (control as Label).text.strip_edges().is_empty():
+			if control.get_theme_font_size("font_size") < 19:
+				issues.append("small label %s" % control.name)
+			if control.get_theme_constant("outline_size") < 2:
+				issues.append("low-contrast label %s" % control.name)
+		if control is BaseButton:
+			if control.custom_minimum_size.y < 56.0:
+				issues.append("short touch target %s" % control.name)
+			if control.get_theme_font_size("font_size") < 18:
+				issues.append("small button text %s" % control.name)
+		if control is LineEdit or control is TextEdit:
+			if control.custom_minimum_size.y < 56.0 or control.get_theme_font_size("font_size") < 19:
+				issues.append("small text input %s" % control.name)
+	for child in node.get_children():
+		_collect_ui_issues(child, issues)

@@ -49,7 +49,7 @@ func _capture() -> void:
 			get_tree().quit(2)
 			return
 		captured = load(scene_path).instantiate()
-	elif mode in ["marketplace", "marketplace_decor", "alley", "room", "room_selected", "room_bag"]:
+	elif mode in ["marketplace", "marketplace_decor", "alley", "room", "room_selected", "room_bag", "room_bag_empty"]:
 		var meta_paths := {
 			"marketplace": "res://scenes/meta/marketplace.tscn",
 			"marketplace_decor": "res://scenes/meta/marketplace.tscn",
@@ -57,12 +57,14 @@ func _capture() -> void:
 			"room": "res://scenes/meta/room_editor.tscn",
 			"room_selected": "res://scenes/meta/room_editor.tscn",
 			"room_bag": "res://scenes/meta/room_editor.tscn",
+			"room_bag_empty": "res://scenes/meta/room_editor.tscn",
 		}
 		AppState.active_room_companion = companion_id
-		if mode in ["room", "room_selected", "room_bag"]:
-			AppState.data["inventory"]["lamp"] = 2
-			AppState.data["inventory"]["rug"] = 2
-			AppState.data["inventory"]["plant"] = 2
+		if mode in ["room", "room_selected", "room_bag", "room_bag_empty"]:
+			var inventory_count := 1 if mode == "room_bag_empty" else 2
+			AppState.data["inventory"]["lamp"] = inventory_count
+			AppState.data["inventory"]["rug"] = inventory_count
+			AppState.data["inventory"]["plant"] = inventory_count
 			AppState.data["rooms"][companion_id] = [
 				{"instance_id": "preview_lamp", "item_id": "lamp", "x": 24.0, "y": 32.0, "rotation": 0, "scale": 1.0, "z_index": 1},
 				{"instance_id": "preview_rug", "item_id": "rug", "x": 50.0, "y": 76.0, "rotation": 0, "scale": 1.4, "z_index": 2},
@@ -86,7 +88,7 @@ func _capture() -> void:
 	elif mode == "room_selected":
 		captured.selected_id = "preview_rug"
 		captured.call("_mark_selected")
-	elif mode == "room_bag":
+	elif mode in ["room_bag", "room_bag_empty"]:
 		captured.call("_show_bag")
 	await get_tree().process_frame
 	await get_tree().process_frame
