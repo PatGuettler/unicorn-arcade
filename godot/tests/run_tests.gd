@@ -7,6 +7,14 @@ const WordRules = preload("res://scripts/games/word_game_rules.gd")
 const GameplayRules = preload("res://scripts/games/gameplay_rules.gd")
 const MetaCatalog = preload("res://scripts/meta_catalog.gd")
 const RoomRules = preload("res://scripts/room_rules.gd")
+const UNICORN_IMPORTS := {
+	"sparkle": {"path": "res://assets/characters/unicorns/unicorn_sparkle_v1.glb", "signature": "sparkle_skip"},
+	"rainbow": {"path": "res://assets/characters/unicorns/unicorn_rainbow_v1.glb", "signature": "prism"},
+	"star": {"path": "res://assets/characters/unicorns/unicorn_star_v1.glb", "signature": "shooting_star"},
+	"cloud": {"path": "res://assets/characters/unicorns/unicorn_cloud_v1.glb", "signature": "thunder_puff"},
+	"dream": {"path": "res://assets/characters/unicorns/unicorn_dreamer_v1.glb", "signature": "living_dream"},
+	"mystic": {"path": "res://assets/characters/unicorns/unicorn_mystic_v1.glb", "signature": "crystal_ascension"},
+}
 
 var failures: Array[String] = []
 var check_count := 0
@@ -65,7 +73,7 @@ func _init() -> void:
 	_check(defaults["owned_companions"] == ["sparkle"], "new players own Sparkle")
 	_check(defaults["inventory"].get("companion_sparkle", 0) == 1, "Sparkle includes one placeable room gift")
 	_check(defaults["settings"]["reduced_motion"] == false, "reduced motion defaults off")
-	_check(_validate_sparkle_import(), "Sparkle GLB exposes required runtime pivots and meshes")
+	_check(_validate_unicorn_imports(), "all six textured unicorn GLBs expose a 14-bone rig and their four authored animations")
 	_check(WordRules.target_for_level(1) == 4, "word target formula starts at four rounds")
 	_check(WordRules.target_for_level(5) == 9, "word target formula scales at level five")
 	_check(WordRules.target_for_level(20) == 12, "word target formula caps at twelve")
@@ -115,19 +123,77 @@ func _check(condition: bool, message: String) -> void:
 		failures.append(message)
 
 
-func _validate_sparkle_import() -> bool:
-	var scene = load("res://assets/characters/sparkle/sparkle_v1.glb")
-	if scene == null or not scene is PackedScene:
-		return false
-	var instance: Node = scene.instantiate()
-	var required := ["SparkleRoot", "Pivot_Body", "Pivot_Head", "Pivot_Horn", "Pivot_Tail", "Pivot_FrontLeg_L", "Pivot_FrontLeg_R", "Pivot_HindLeg_L", "Pivot_HindLeg_R"]
-	for node_name in required:
-		if instance.find_child(node_name, true, false) == null:
+func _validate_unicorn_imports() -> bool:
+	var valid := true
+	for companion_id in UNICORN_IMPORTS:
+		var definition: Dictionary = UNICORN_IMPORTS[companion_id]
+		var scene = load(str(definition["path"]))
+		if scene == null or not scene is PackedScene:
+			print("UNICORN_IMPORT_FAIL id=%s scene_load=false" % companion_id)
+			valid = false
+			continue
+		var instance: Node = scene.instantiate()
+		var skeleton := _find_skeleton(instance)
+		var animation_player := _find_animation_player(instance)
+		if skeleton == null or skeleton.get_bone_count() < 14 or animation_player == null:
+			print("UNICORN_IMPORT_FAIL id=%s skeleton=%s bones=%d player=%s" % [companion_id, skeleton != null, skeleton.get_bone_count() if skeleton != null else 0, animation_player != null])
 			instance.free()
-			return false
-	var mesh_count := _count_meshes(instance)
-	instance.free()
-	return mesh_count >= 20
+			valid = false
+			continue
+		var animation_names := PackedStringArray()
+		for animation_name in animation_player.get_animation_list():
+			animation_names.append(String(animation_name).get_file().get_basename().to_lower())
+		var expected := ["idle", "walk", "rear_up", str(definition["signature"])]
+		var mesh_count := _count_meshes(instance)
+		var textured_surfaces := _count_textured_surfaces(instance)
+		print("UNICORN_IMPORT id=%s bones=%d meshes=%d textured=%d clips=%s" % [companion_id, skeleton.get_bone_count(), mesh_count, textured_surfaces, ",".join(animation_names)])
+		for expected_name in expected:
+			if expected_name not in animation_names:
+				print("UNICORN_IMPORT_FAIL id=%s missing_clip=%s" % [companion_id, expected_name])
+				valid = false
+				continue
+			animation_player.play(expected_name)
+			animation_player.advance(0.1)
+			if String(animation_player.current_animation).get_file().get_basename().to_lower() != expected_name:
+				print("UNICORN_IMPORT_FAIL id=%s unplayable_clip=%s" % [companion_id, expected_name])
+				valid = false
+		if mesh_count < 5 or textured_surfaces < 5:
+			valid = false
+		instance.free()
+	return valid
+
+
+func _find_skeleton(node: Node) -> Skeleton3D:
+	if node is Skeleton3D:
+		return node as Skeleton3D
+	for child in node.get_children():
+		var found := _find_skeleton(child)
+		if found != null:
+			return found
+	return null
+
+
+func _find_animation_player(node: Node) -> AnimationPlayer:
+	if node is AnimationPlayer:
+		return node as AnimationPlayer
+	for child in node.get_children():
+		var found := _find_animation_player(child)
+		if found != null:
+			return found
+	return null
+
+
+func _count_textured_surfaces(node: Node) -> int:
+	var count := 0
+	if node is MeshInstance3D:
+		var mesh_instance := node as MeshInstance3D
+		for surface in mesh_instance.mesh.get_surface_count():
+			var material := mesh_instance.get_active_material(surface) as StandardMaterial3D
+			if material != null and material.albedo_texture != null:
+				count += 1
+	for child in node.get_children():
+		count += _count_textured_surfaces(child)
+	return count
 
 
 func _count_meshes(node: Node) -> int:

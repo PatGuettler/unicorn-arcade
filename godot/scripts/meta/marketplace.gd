@@ -121,7 +121,7 @@ func _show_companions() -> void:
 		var portrait := RoomItemPreviewScene.new()
 		portrait.name = "CompanionModelPreview"
 		portrait.custom_minimum_size.y = 112
-		portrait.setup({"id": "companion_%s" % id, "category": "companions"})
+		portrait.setup({"id": "companion_%s" % id, "category": "companions", "animate": false})
 		card.add_child(portrait)
 		var name := Label.new()
 		name.text = str(definition["name"]).to_upper()

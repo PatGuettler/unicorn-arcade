@@ -1,19 +1,30 @@
 class_name RoomItemPreview3D
 extends SubViewportContainer
 
-const CHARACTER_SCENE = preload("res://assets/characters/sparkle/sparkle_v1.glb")
+const CHARACTER_SCENES := {
+	"sparkle": preload("res://assets/characters/unicorns/unicorn_sparkle_v1.glb"),
+	"rainbow": preload("res://assets/characters/unicorns/unicorn_rainbow_v1.glb"),
+	"star": preload("res://assets/characters/unicorns/unicorn_star_v1.glb"),
+	"cloud": preload("res://assets/characters/unicorns/unicorn_cloud_v1.glb"),
+	"dream": preload("res://assets/characters/unicorns/unicorn_dreamer_v1.glb"),
+	"mystic": preload("res://assets/characters/unicorns/unicorn_mystic_v1.glb"),
+}
+const CHARACTER_SCALES := {"sparkle": 1.28, "rainbow": 1.28, "star": 1.28, "cloud": 1.28, "dream": 1.28, "mystic": 1.12}
 const UnicornIdleAnimatorScene = preload("res://scripts/meta/unicorn_idle_animator.gd")
 
 var item_id := ""
 var category := "cozy"
 var mesh_count := 0
 var uses_character_model := false
+var source_model_id := ""
+var animate_character := true
 
 
 func setup(definition: Dictionary) -> void:
 	item_id = str(definition.get("id", definition.get("item_id", "decor")))
 	category = str(definition.get("category", "cozy"))
 	uses_character_model = item_id.begins_with("companion_") or category == "companions"
+	animate_character = bool(definition.get("animate", true))
 	stretch = true
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_viewport()
@@ -37,23 +48,53 @@ func _build_viewport() -> void:
 
 
 func _build_companion(stage: Node3D) -> void:
-	var model: Node = CHARACTER_SCENE.instantiate()
+	var companion_id := item_id.trim_prefix("companion_")
+	if not CHARACTER_SCENES.has(companion_id):
+		companion_id = "sparkle"
+	source_model_id = companion_id
+	var packed_scene: PackedScene = CHARACTER_SCENES[companion_id]
+	var model: Node3D = packed_scene.instantiate() as Node3D
 	model.name = "LiveUnicornModel"
 	model.position.y = -0.25
+	model.scale = Vector3.ONE * float(CHARACTER_SCALES.get(companion_id, 1.28))
 	stage.add_child(model)
-	_tint_companion(model, item_id.trim_prefix("companion_"))
 	mesh_count = _count_meshes(model)
 	_add_companion_shadow(stage)
-	var animator := UnicornIdleAnimatorScene.new()
-	animator.name = "IdleAnimator"
-	stage.add_child(animator)
-	animator.setup(model)
+	if animate_character:
+		var animator := UnicornIdleAnimatorScene.new()
+		animator.name = "IdleAnimator"
+		stage.add_child(animator)
+		animator.setup(model)
+	else:
+		_pose_companion(model)
 	var camera := Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = 3.55
+	camera.size = 4.15
 	stage.add_child(camera)
-	camera.look_at_from_position(Vector3(4.6, 2.8, 6.5), Vector3(0.0, 1.48, -0.35), Vector3.UP)
+	camera.look_at_from_position(Vector3(5.2, 3.25, 7.1), Vector3(0.0, 1.72, -0.15), Vector3.UP)
 	camera.current = true
+
+
+func _pose_companion(model: Node) -> void:
+	var animation_player := _find_animation_player(model)
+	if animation_player == null:
+		return
+	for animation_name in animation_player.get_animation_list():
+		if String(animation_name).get_file().get_basename().to_lower() == "idle":
+			animation_player.play(animation_name)
+			animation_player.seek(0.0, true)
+			animation_player.pause()
+			return
+
+
+func _find_animation_player(node: Node) -> AnimationPlayer:
+	if node is AnimationPlayer:
+		return node as AnimationPlayer
+	for child in node.get_children():
+		var found := _find_animation_player(child)
+		if found != null:
+			return found
+	return null
 
 
 func _add_companion_shadow(stage: Node3D) -> void:
@@ -827,43 +868,6 @@ func _palette() -> Dictionary:
 	var hue := float(abs(item_id.hash()) % 360) / 360.0
 	var accent := Color.from_hsv(hue, 0.5, 0.92)
 	return {"hue": hue, "accent": accent, "dark": accent.darkened(0.58), "light": accent.lightened(0.42)}
-
-
-func _tint_companion(node: Node, companion_id: String) -> void:
-	var palettes := {
-		"rainbow": {"coat": Color("f3f0ff"), "hoof": Color("7654a8"), "mane": [Color("ef699f"), Color("55cfe0"), Color("ffd166"), Color("8f73dc")]},
-		"star": {"coat": Color("ded8f6"), "hoof": Color("45356f"), "mane": [Color("ffe077"), Color("6678d7"), Color("68d4e7"), Color("b57bd8")]},
-		"cloud": {"coat": Color("eef6ff"), "hoof": Color("758bbd"), "mane": [Color("bcdfff"), Color("d9bdf4"), Color("f6c8df"), Color("91d6de")]},
-		"dream": {"coat": Color("d7d5ec"), "hoof": Color("30325d"), "mane": [Color("303b75"), Color("7f59a8"), Color("d49ad8"), Color("e7bd66")]},
-		"mystic": {"coat": Color("d9d4ef"), "hoof": Color("3e285d"), "mane": [Color("35c9bd"), Color("8257cb"), Color("d65faa"), Color("5aa7d8")]},
-	}
-	if not palettes.has(companion_id):
-		return
-	var palette: Dictionary = palettes[companion_id]
-	for child in node.get_children():
-		_tint_companion(child, companion_id)
-	if not node is MeshInstance3D:
-		return
-	var mesh_instance := node as MeshInstance3D
-	for surface in mesh_instance.mesh.get_surface_count():
-		var source := mesh_instance.get_active_material(surface)
-		if not source is BaseMaterial3D:
-			continue
-		var material := source.duplicate() as BaseMaterial3D
-		var label := "%s %s" % [source.resource_name, mesh_instance.name]
-		if "Coat" in label or "Muzzle" in label or "InnerEar" in label:
-			material.albedo_color = palette.coat
-		elif "Hoof" in label:
-			material.albedo_color = palette.hoof
-		elif "ManeCyan" in label:
-			material.albedo_color = palette.mane[0]
-		elif "ManePink" in label:
-			material.albedo_color = palette.mane[1]
-		elif "ManeYellow" in label:
-			material.albedo_color = palette.mane[2]
-		elif "ManePurple" in label:
-			material.albedo_color = palette.mane[3]
-		mesh_instance.set_surface_override_material(surface, material)
 
 
 func _count_meshes(node: Node) -> int:

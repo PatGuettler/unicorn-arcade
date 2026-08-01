@@ -141,7 +141,16 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(_ui_is_accessible(market), "companion Marketplace meets readable text, contrast, and touch-target minimums")
 	_check(market.tab == "companions" and market.content.get_child_count() > 0, "Marketplace launches its companion catalog")
-	_check(market.find_children("CompanionModelPreview", "RoomItemPreview3D", true, false).size() == 6, "Marketplace companion cards use the six live 3D variants")
+	var companion_previews := market.find_children("CompanionModelPreview", "RoomItemPreview3D", true, false)
+	var source_model_ids: Dictionary = {}
+	var static_marketplace_models := 0
+	for live_preview in companion_previews:
+		source_model_ids[live_preview.source_model_id] = true
+		var preview_animator = live_preview.find_child("IdleAnimator", true, false)
+		if not is_instance_valid(preview_animator) and not live_preview.animate_character:
+			static_marketplace_models += 1
+	_check(companion_previews.size() == 6 and source_model_ids.size() == 6, "Marketplace companion cards use six distinct authored GLB models")
+	_check(static_marketplace_models == 6, "Marketplace companion models remain in a static authored pose")
 	market.call("_show_decor")
 	await get_tree().process_frame
 	_check(_ui_is_accessible(market), "decor Marketplace meets readable text, contrast, and touch-target minimums")
@@ -190,9 +199,21 @@ func _run() -> void:
 	_check(room.grid_snap, "room editor starts with eight-percent grid snapping enabled")
 	var companion_button: Button = room.item_buttons.get("room_companion_sparkle")
 	var companion_preview = companion_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(companion_button) else null
-	_check(is_instance_valid(companion_preview) and companion_preview.uses_character_model and companion_preview.mesh_count >= 20, "rooms automatically present the live approved 3D unicorn model")
+	_check(is_instance_valid(companion_preview) and companion_preview.uses_character_model and companion_preview.source_model_id == "sparkle" and companion_preview.mesh_count >= 5, "rooms automatically present the authored companion-specific GLB")
 	var idle_animator = companion_preview.find_child("IdleAnimator", true, false) if is_instance_valid(companion_preview) else null
-	_check(is_instance_valid(idle_animator) and is_instance_valid(idle_animator.timer) and not idle_animator.timer.is_stopped(), "live unicorn previews schedule randomized idle animations")
+	_check(is_instance_valid(idle_animator) and is_instance_valid(idle_animator.timer) and not idle_animator.timer.is_stopped() and idle_animator.timer.wait_time >= 10.0 and idle_animator.timer.wait_time <= 30.0, "live unicorn previews schedule authored animations at the requested random interval")
+	if is_instance_valid(idle_animator):
+		idle_animator.play_random_animation_now()
+	_check(is_instance_valid(idle_animator) and idle_animator.last_animation_name in ["walk", "rear_up", "sparkle_skip"], "Sparkle can immediately exercise a random non-idle embedded animation")
+	if is_instance_valid(idle_animator):
+		var walk_home_position: Vector3 = idle_animator.model.position
+		var walk_home_rotation: float = idle_animator.model.rotation.y
+		_check(idle_animator.play_animation_now("walk"), "authored walk clip can be selected deterministically")
+		idle_animator.walk_tween.custom_step(1.5)
+		_check(idle_animator.model.position.distance_to(walk_home_position) > 0.1 and not is_equal_approx(idle_animator.model.rotation.y, walk_home_rotation), "walking unicorn travels and pivots instead of walking in place")
+		idle_animator.walk_tween.custom_step(10.0)
+		_check(idle_animator.model.position.is_equal_approx(walk_home_position) and is_equal_approx(idle_animator.model.rotation.y, walk_home_rotation), "walking unicorn returns to its exact display position and facing")
+		_check(idle_animator.animation_player.current_animation == idle_animator.idle_animation and not idle_animator.timer.is_stopped(), "walking route returns to idle and schedules the next 10 to 30 second action")
 	remove_child(room)
 	room.free()
 	var original_data := AppState.data.duplicate(true)

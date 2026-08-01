@@ -1,138 +1,191 @@
 class_name UnicornIdleAnimator
 extends Node
 
+const MIN_IDLE_SECONDS := 10.0
+const MAX_IDLE_SECONDS := 30.0
+const WALK_DISTANCE := 1.15
+const WALK_LEG_SECONDS := 2.0
+const WALK_TURN_SECONDS := 0.32
+
 var model: Node3D
-var pivots := {}
-var bases := {}
+var animation_player: AnimationPlayer
 var timer: Timer
-var last_animation := -1
+var available_animations: Array[StringName] = []
+var idle_animation := StringName()
+var active_action := StringName()
+var last_animation_name := ""
+var next_delay_seconds := 0.0
+var rng := RandomNumberGenerator.new()
+var walk_tween: Tween
+var home_position := Vector3.ZERO
+var home_rotation_y := 0.0
 
 
 func setup(target: Node3D) -> void:
 	model = target
-	for pivot_name in ["Pivot_Body", "Pivot_Head", "Pivot_Tail", "Pivot_FrontLeg_L", "Pivot_FrontLeg_R", "Pivot_HindLeg_L", "Pivot_HindLeg_R"]:
-		var pivot := model.find_child(pivot_name, true, false) as Node3D
-		if is_instance_valid(pivot):
-			pivots[pivot_name] = pivot
-			bases[pivot_name] = {"position": pivot.position, "rotation": pivot.rotation_degrees, "scale": pivot.scale}
+	home_position = model.position
+	home_rotation_y = model.rotation.y
+	rng.randomize()
+	animation_player = _find_animation_player(model)
 	timer = Timer.new()
+	timer.name = "RandomAnimationTimer"
 	timer.one_shot = true
 	timer.timeout.connect(_play_random_animation)
 	add_child(timer)
+	if not is_instance_valid(animation_player):
+		push_warning("Unicorn model %s has no AnimationPlayer." % model.name)
+		return
+	animation_player.animation_finished.connect(_on_animation_finished)
+	_collect_animations()
+	idle_animation = _resolve_animation("idle")
+	if idle_animation == &"":
+		push_warning("Unicorn model %s has no idle animation." % model.name)
+		return
+	_configure_loop_modes()
+	_begin_idle()
+	_schedule_next()
 
 
-func _ready() -> void:
+func animation_names() -> PackedStringArray:
+	var names := PackedStringArray()
+	for animation_name in available_animations:
+		names.append(_simple_name(animation_name))
+	return names
+
+
+func play_random_animation_now() -> void:
 	if is_instance_valid(timer):
-		timer.start(randf_range(1.4, 2.8))
+		timer.stop()
+	_play_random_animation()
+
+
+func play_animation_now(requested: String) -> bool:
+	var resolved := _resolve_animation(requested)
+	if resolved == &"" or resolved == idle_animation:
+		return false
+	if is_instance_valid(timer):
+		timer.stop()
+	_start_action(resolved)
+	return true
+
+
+func _collect_animations() -> void:
+	available_animations.clear()
+	for animation_name in animation_player.get_animation_list():
+		if _simple_name(animation_name).to_lower() == "reset":
+			continue
+		available_animations.append(animation_name)
+
+
+func _configure_loop_modes() -> void:
+	for animation_name in available_animations:
+		var animation := animation_player.get_animation(animation_name)
+		if animation != null:
+			var simple_name := _simple_name(animation_name)
+			animation.loop_mode = Animation.LOOP_LINEAR if animation_name == idle_animation or simple_name == "walk" else Animation.LOOP_NONE
 
 
 func _play_random_animation() -> void:
-	if not is_instance_valid(model) or pivots.is_empty():
+	if not is_instance_valid(animation_player):
 		return
-	_reset_pose()
-	var animation := randi_range(0, 4)
-	if animation == last_animation:
-		animation = (animation + 1) % 5
-	last_animation = animation
-	match animation:
-		0: _look_around()
-		1: _tail_swish()
-		2: _happy_step()
-		3: _gentle_bow()
-		_: _soft_breathe()
-
-
-func _reset_pose() -> void:
-	for pivot_name in pivots:
-		var pivot: Node3D = pivots[pivot_name]
-		var base: Dictionary = bases[pivot_name]
-		pivot.position = base["position"]
-		pivot.rotation_degrees = base["rotation"]
-		pivot.scale = base["scale"]
-
-
-func _look_around() -> void:
-	var head := _pivot("Pivot_Head")
-	if not is_instance_valid(head):
-		_finish_later(1.2)
+	var choices: Array[StringName] = []
+	for animation_name in available_animations:
+		if animation_name != idle_animation and _simple_name(animation_name).to_lower() != "reset":
+			choices.append(animation_name)
+	if choices.is_empty():
+		_schedule_next()
 		return
-	var base: Vector3 = bases["Pivot_Head"]["rotation"]
-	var tween := create_tween()
-	tween.tween_property(head, "rotation_degrees", base + Vector3(-5, 12, 4), 0.5).set_trans(Tween.TRANS_SINE)
-	tween.tween_interval(0.35)
-	tween.tween_property(head, "rotation_degrees", base, 0.55).set_trans(Tween.TRANS_SINE)
-	tween.finished.connect(_schedule_next)
+	var selected := choices[rng.randi_range(0, choices.size() - 1)]
+	if choices.size() > 1 and _simple_name(selected) == last_animation_name:
+		selected = choices[(choices.find(selected) + 1) % choices.size()]
+	_start_action(selected)
 
 
-func _tail_swish() -> void:
-	var tail := _pivot("Pivot_Tail")
-	if not is_instance_valid(tail):
-		_finish_later(1.2)
+func _start_action(selected: StringName) -> void:
+	_cancel_walk_journey()
+	active_action = selected
+	last_animation_name = _simple_name(selected)
+	animation_player.play(selected, 0.18)
+	if last_animation_name == "walk":
+		_start_walk_journey()
+
+
+func _start_walk_journey() -> void:
+	if not is_instance_valid(model):
 		return
-	var base: Vector3 = bases["Pivot_Tail"]["rotation"]
-	var tween := create_tween()
-	for angle in [16.0, -18.0, 11.0, 0.0]:
-		tween.tween_property(tail, "rotation_degrees", base + Vector3(0, angle, angle * 0.35), 0.24).set_trans(Tween.TRANS_SINE)
-	tween.finished.connect(_schedule_next)
+	model.position = home_position
+	model.rotation.y = home_rotation_y
+	walk_tween = create_tween()
+	walk_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	walk_tween.tween_property(model, "rotation:y", home_rotation_y - PI / 2.0, WALK_TURN_SECONDS)
+	walk_tween.tween_property(model, "position", home_position + Vector3(WALK_DISTANCE, 0.0, 0.0), WALK_LEG_SECONDS)
+	walk_tween.tween_property(model, "rotation:y", home_rotation_y + PI / 2.0, WALK_TURN_SECONDS)
+	walk_tween.tween_property(model, "position", home_position, WALK_LEG_SECONDS)
+	walk_tween.tween_property(model, "rotation:y", home_rotation_y, WALK_TURN_SECONDS)
+	walk_tween.tween_callback(_finish_walk_journey)
 
 
-func _happy_step() -> void:
-	var body := _pivot("Pivot_Body")
-	var front_left := _pivot("Pivot_FrontLeg_L")
-	var front_right := _pivot("Pivot_FrontLeg_R")
-	if not is_instance_valid(body):
-		_finish_later(1.2)
+func _finish_walk_journey() -> void:
+	if is_instance_valid(model):
+		model.position = home_position
+		model.rotation.y = home_rotation_y
+	walk_tween = null
+	active_action = &""
+	_begin_idle()
+	_schedule_next()
+
+
+func _cancel_walk_journey() -> void:
+	if walk_tween != null and walk_tween.is_valid():
+		walk_tween.kill()
+	walk_tween = null
+	if is_instance_valid(model):
+		model.position = home_position
+		model.rotation.y = home_rotation_y
+
+
+func _on_animation_finished(animation_name: StringName) -> void:
+	if active_action == &"" or animation_name != active_action:
 		return
-	var body_base: Vector3 = bases["Pivot_Body"]["position"]
-	var tween := create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(body, "position", body_base + Vector3(0, 0.09, 0), 0.22).set_trans(Tween.TRANS_SINE)
-	if is_instance_valid(front_left):
-		tween.tween_property(front_left, "rotation_degrees", bases["Pivot_FrontLeg_L"]["rotation"] + Vector3(18, 0, 0), 0.22)
-	if is_instance_valid(front_right):
-		tween.tween_property(front_right, "rotation_degrees", bases["Pivot_FrontLeg_R"]["rotation"] + Vector3(-12, 0, 0), 0.22)
-	tween.chain().set_parallel(true)
-	tween.tween_property(body, "position", body_base, 0.28).set_trans(Tween.TRANS_BOUNCE)
-	if is_instance_valid(front_left):
-		tween.tween_property(front_left, "rotation_degrees", bases["Pivot_FrontLeg_L"]["rotation"], 0.28)
-	if is_instance_valid(front_right):
-		tween.tween_property(front_right, "rotation_degrees", bases["Pivot_FrontLeg_R"]["rotation"], 0.28)
-	tween.finished.connect(_schedule_next)
-
-
-func _gentle_bow() -> void:
-	var head := _pivot("Pivot_Head")
-	if not is_instance_valid(head):
-		_finish_later(1.2)
+	if _simple_name(active_action) == "walk":
 		return
-	var base: Vector3 = bases["Pivot_Head"]["rotation"]
-	var tween := create_tween()
-	tween.tween_property(head, "rotation_degrees", base + Vector3(18, 0, -3), 0.42).set_trans(Tween.TRANS_SINE)
-	tween.tween_interval(0.32)
-	tween.tween_property(head, "rotation_degrees", base, 0.5).set_trans(Tween.TRANS_SINE)
-	tween.finished.connect(_schedule_next)
+	active_action = &""
+	_begin_idle()
+	_schedule_next()
 
 
-func _soft_breathe() -> void:
-	var body := _pivot("Pivot_Body")
-	if not is_instance_valid(body):
-		_finish_later(1.2)
-		return
-	var base: Vector3 = bases["Pivot_Body"]["scale"]
-	var tween := create_tween()
-	tween.tween_property(body, "scale", base * Vector3(1.012, 1.022, 1.012), 0.7).set_trans(Tween.TRANS_SINE)
-	tween.tween_property(body, "scale", base, 0.7).set_trans(Tween.TRANS_SINE)
-	tween.finished.connect(_schedule_next)
-
-
-func _pivot(pivot_name: String) -> Node3D:
-	return pivots.get(pivot_name) as Node3D
-
-
-func _finish_later(duration: float) -> void:
-	get_tree().create_timer(duration).timeout.connect(_schedule_next)
+func _begin_idle() -> void:
+	if is_instance_valid(animation_player) and idle_animation != &"":
+		animation_player.play(idle_animation, 0.18)
 
 
 func _schedule_next() -> void:
-	if is_instance_valid(timer):
-		timer.start(randf_range(2.2, 5.5))
+	if not is_instance_valid(timer):
+		return
+	next_delay_seconds = rng.randf_range(MIN_IDLE_SECONDS, MAX_IDLE_SECONDS)
+	timer.wait_time = next_delay_seconds
+	if timer.is_inside_tree():
+		timer.start()
+	else:
+		timer.autostart = true
+
+
+func _resolve_animation(requested: String) -> StringName:
+	for animation_name in available_animations:
+		if _simple_name(animation_name).to_lower() == requested.to_lower():
+			return animation_name
+	return &""
+
+
+func _simple_name(animation_name: StringName) -> String:
+	return String(animation_name).get_file().get_basename().to_lower()
+
+
+func _find_animation_player(node: Node) -> AnimationPlayer:
+	if node is AnimationPlayer:
+		return node as AnimationPlayer
+	for child in node.get_children():
+		var found := _find_animation_player(child)
+		if found != null:
+			return found
+	return null

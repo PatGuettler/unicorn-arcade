@@ -12,7 +12,7 @@ This folder is the Godot 4 parity implementation. The React/Capacitor source rem
 - Playable Rhyme Rally port with the original 24 challenge records, level target formula, difficulty-window selection, and one-wrong-answer failure.
 - Imported `sparkle_v1.glb` with named body/head/horn/tail/leg pivots.
 
-The Sparkle asset has passed the directional graybox gate, not the final production gate. Rigging, production UVs, final textures, and idle/celebrate animations remain open.
+That first Sparkle asset was the directional graybox. It was superseded by the six authored, rigged, textured companion packages described in the authored-companions checkpoint below.
 
 ## Checkpoint 02
 
@@ -85,6 +85,14 @@ The Sparkle asset has passed the directional graybox gate, not the final product
 - Unicorn Alley now uses a newly authored unified pastel street with six destination-themed doors and door-shaped hit targets placed directly over them.
 - Phone-sized review captures live under `previews/production_rooms_v0_6/`.
 
+## Checkpoint 09.2 authored companions
+
+- Sparkle, Rainbow, Star, Cloud, Dreamer, and Mystic now use distinct production GLBs with embedded rigs, textures, and four authored clips each.
+- Home and room companions idle continuously, then choose a random walk, rear-up, or signature action every 10 to 30 seconds.
+- Walk actions turn the unicorn, travel across the available stage, pivot back, return to the exact starting transform, and resume idle.
+- Marketplace companion cards deliberately hold a static authored pose so the catalog stays calm and easy to browse.
+- Phone-frame QA covers all six home presentations, all six themed rooms, and the complete static Marketplace catalog.
+
 ## Run
 
 ```powershell
@@ -101,14 +109,14 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\gu
 Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" res://tests/runtime_integration.tscn --quit-after 120
 ```
 
-Expected results: `GODOT_PARITY_TESTS_OK: 77 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 101 checks passed`.
+Expected results: `GODOT_PARITY_TESTS_OK: 77 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 157 checks passed`.
 
 ## Export the Android prototype
 
 The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.6.1-alpha-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.9.2-alpha-arm64.apk"
 ```
 
 Upgrade-compatible debug builds must use the established Godot user-profile keystore. Verify the APK signer before delivery: its SHA-256 certificate digest must be `97dcac80c34ab36c9b1e0da8cef5dc87c14911ffdb26d30aa0bc039f1e8be42b`. A portable Godot installation can silently create a different debug keystore; that APK is valid as a fresh install but Android will reject it as an update to 0.5 and earlier.

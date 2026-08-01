@@ -42,6 +42,10 @@ func _capture() -> void:
 		get_tree().quit(2)
 		return
 	AppState.data["player"]["name"] = "" if mode == "login" else "Playtester"
+	AppState.data["player"]["equipped_companion"] = companion_id
+	if companion_id not in AppState.data["owned_companions"]:
+		AppState.data["owned_companions"].append(companion_id)
+	AppState.data["inventory"]["companion_%s" % companion_id] = maxi(1, int(AppState.data["inventory"].get("companion_%s" % companion_id, 0)))
 	var captured: Node
 	if mode == "game":
 		AppState.selected_game_id = game_id
