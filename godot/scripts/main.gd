@@ -8,6 +8,7 @@ const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 const TEXT := Color("f7f1ff")
 const MUTED := Color("aab7e8")
+const MEADOW_BACKGROUND = preload("res://assets/meta/environments/magical_meadow_v1.png")
 
 var page: VBoxContainer
 var status_label: Label
@@ -33,14 +34,28 @@ func _show_view(view: String) -> void:
 		_: _show_home()
 
 
-func _reset_page() -> VBoxContainer:
+func _reset_page(use_meadow: bool = false) -> VBoxContainer:
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()
-	var background := ColorRect.new()
-	background.color = NAVY
-	background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	add_child(background)
+	if use_meadow:
+		var meadow := TextureRect.new()
+		meadow.texture = MEADOW_BACKGROUND
+		meadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		meadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		meadow.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		meadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(meadow)
+		var meadow_tint := ColorRect.new()
+		meadow_tint.color = Color(0.02, 0.05, 0.16, 0.62)
+		meadow_tint.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		meadow_tint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(meadow_tint)
+	else:
+		var background := ColorRect.new()
+		background.color = NAVY
+		background.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		add_child(background)
 	var margin := MarginContainer.new()
 	margin.add_theme_constant_override("margin_left", 24)
 	margin.add_theme_constant_override("margin_right", 24)
@@ -55,7 +70,7 @@ func _reset_page() -> VBoxContainer:
 
 
 func _show_login() -> void:
-	_reset_page()
+	_reset_page(true)
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page.add_child(spacer)
@@ -71,6 +86,7 @@ func _show_login() -> void:
 	tagline.add_theme_color_override("font_color", MUTED)
 	tagline.add_theme_font_size_override("font_size", 17)
 	page.add_child(tagline)
+	page.add_child(_build_sparkle_preview())
 	var name_input := LineEdit.new()
 	name_input.placeholder_text = "Enter player name…"
 	name_input.custom_minimum_size = Vector2(0, 64)
@@ -95,7 +111,7 @@ func _show_login() -> void:
 
 
 func _show_home() -> void:
-	_reset_page()
+	_reset_page(true)
 	_add_header("", false, false)
 	var welcome := Label.new()
 	welcome.text = "WELCOME, %s" % AppState.player_name().to_upper()

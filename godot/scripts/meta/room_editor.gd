@@ -9,6 +9,14 @@ const CYAN := Color("58d6e8")
 const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 const MUTED := Color("aab7e8")
+const ROOM_BACKGROUNDS := {
+	"sparkle": preload("res://assets/meta/environments/room_sparkle.png"),
+	"rainbow": preload("res://assets/meta/environments/room_rainbow.png"),
+	"star": preload("res://assets/meta/environments/room_star.png"),
+	"cloud": preload("res://assets/meta/environments/room_cloud.png"),
+	"dream": preload("res://assets/meta/environments/room_dream.png"),
+	"mystic": preload("res://assets/meta/environments/room_mystic.png"),
+}
 
 var companion_id := "sparkle"
 var grid_snap := true
@@ -96,27 +104,27 @@ func _build_editor() -> void:
 	reset_button.text = "RESET ROOM" if not reset_armed else "CONFIRM RESET?"
 	reset_button.pressed.connect(_reset_room)
 	tools.add_child(reset_button)
+	var room_stage := Control.new()
+	room_stage.custom_minimum_size = Vector2(420, 500)
+	room_stage.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	room_stage.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	root.add_child(room_stage)
 	room_canvas = Control.new()
-	room_canvas.custom_minimum_size = Vector2(420, 500)
-	room_canvas.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	room_canvas.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	room_canvas.clip_contents = true
-	root.add_child(room_canvas)
-	var room_bg := ColorRect.new()
-	room_bg.color = Color(str(definition.get("color", "f26fa7"))).darkened(0.72)
+	room_stage.add_child(room_canvas)
+	var room_texture: Texture2D = ROOM_BACKGROUNDS.get(companion_id, ROOM_BACKGROUNDS["sparkle"])
+	var room_bg := TextureRect.new()
+	room_bg.texture = room_texture
+	room_bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	room_bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	room_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	room_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	room_canvas.add_child(room_bg)
-	var floor := ColorRect.new()
-	floor.color = Color("29345c")
-	floor.anchor_top = 0.42
-	floor.anchor_right = 1.0
-	floor.anchor_bottom = 1.0
-	floor.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	room_bg.add_child(floor)
 	for item in local_items:
 		_create_item_button(item)
 	room_canvas.resized.connect(_position_items)
+	room_stage.resized.connect(_fit_room_canvas.bind(room_stage, room_texture.get_size()))
+	_fit_room_canvas.call_deferred(room_stage, room_texture.get_size())
 	selection_label = Label.new()
 	selection_label.text = "Select and drag an item"
 	selection_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -142,6 +150,15 @@ func _build_editor() -> void:
 	status_label.text = "%d decorations placed. Drag, rotate, resize, and layer them." % local_items.size()
 	root.add_child(status_label)
 	_position_items.call_deferred()
+
+
+func _fit_room_canvas(stage: Control, source_size: Vector2) -> void:
+	if not is_instance_valid(room_canvas) or stage.size.x < 1.0 or stage.size.y < 1.0:
+		return
+	var fit_scale := minf(stage.size.x / source_size.x, stage.size.y / source_size.y)
+	room_canvas.size = source_size * fit_scale
+	room_canvas.position = (stage.size - room_canvas.size) * 0.5
+	_position_items()
 
 
 func _create_item_button(item: Dictionary) -> void:

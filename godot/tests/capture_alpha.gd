@@ -35,7 +35,7 @@ func _capture() -> void:
 		push_error("capture_alpha requires --output=<absolute png path>")
 		get_tree().quit(2)
 		return
-	AppState.data["player"]["name"] = "Playtester"
+	AppState.data["player"]["name"] = "" if mode == "login" else "Playtester"
 	var captured: Node
 	if mode == "game":
 		AppState.selected_game_id = game_id

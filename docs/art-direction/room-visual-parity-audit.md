@@ -47,5 +47,13 @@ editor are graybox UI, not presentation-complete ports.
 5. Validate each room at the reported 574x1280 phone ratio with placed items at
    wall, floor, edge, rotated, scaled, and layered positions.
 
-The old room and Alley images are comparison references only. The Godot release
-should use newly authored graphics, consistent with the project's art direction.
+At the time of this audit, the old room and Alley images were treated as
+comparison references while a fully new graphic set was the intended direction.
+
+## 0.5.0 implementation note
+
+The user subsequently authorized using the original room and Alley artwork.
+Checkpoint 0.5.0 therefore restores those seven source illustrations directly
+for immediate parity. The login/Home meadow is newly authored. Furniture object
+sprites, companion gift art, contextual item controls, and the visual bag drawer
+remain open from the comparison above.

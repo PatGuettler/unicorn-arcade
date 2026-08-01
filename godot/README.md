@@ -63,6 +63,15 @@ The Sparkle asset has passed the directional graybox gate, not the final product
 - The Home metagame action is restored to its original `UNICORN ALLEY` label.
 - The selected phone review frame lives under `previews/hotfix_v0_4_3/`.
 
+## Checkpoint 05 environment art
+
+- Login and Home now use a newly generated magical-meadow background behind the live companion model.
+- Login includes the live Sparkle preview rather than presenting only text and form controls.
+- Unicorn Alley restores the original illustrated street as an interactive map with six positioned house hotspots.
+- Every companion room restores its original themed background while retaining Godot drag, grid, rotation, scale, and layer persistence.
+- Real-render phone review captures live under `previews/meta_art_v0_5/`.
+- Furniture object sprites and contextual editing controls remain an explicit visual-parity follow-up.
+
 ## Run
 
 ```powershell
@@ -86,7 +95,7 @@ Expected results: `GODOT_PARITY_TESTS_OK: 75 checks passed` and `GODOT_RUNTIME_I
 The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.4.3-alpha-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.5.0-alpha-arm64.apk"
 ```
 
 This checkpoint exposes the complete 22-game registry plus the companion/decor marketplace, Unicorn Alley, and room editor. Production audio, wider physical-device QA, release signing/store packaging, and final character/environment/furniture art remain upcoming work.
