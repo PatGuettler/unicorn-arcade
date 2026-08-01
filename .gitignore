@@ -181,6 +181,9 @@ captures/
 .externalNativeBuild
 .cxx/
 
+# Godot's generated Android Gradle custom-build template
+godot/android/
+
 # Playwright artifacts
 playwright-report/
 test-results/

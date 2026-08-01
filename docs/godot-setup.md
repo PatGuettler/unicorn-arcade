@@ -51,7 +51,7 @@ mkdir -p build/godot
 godot --headless --path godot \
   --install-android-build-template \
   --export-release "Android" \
-  build/godot/unicorn-arcade.aab
+  ../build/godot/unicorn-arcade.aab
 ```
 
 Export preset: `godot/export_presets.cfg` (AAB via Gradle build).
