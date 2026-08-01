@@ -37,6 +37,8 @@ var _mathtris_drops := 0
 var _type_word: String = ""
 var _type_index: int = 0
 var _type_buffer: String = ""
+var _blast_lives := 3
+var _blast_time_left := 0.0
 
 # Space shooter
 var _space_kills: int = 0
@@ -46,7 +48,7 @@ var _space_lives: int = 3
 
 const WORD_MODES := {
 	"missingMagic": {"list": "MISSING_WORD", "mode": "blank"},
-	"rhymeRally": {"list": "RHYME_CHALLENGES", "mode": "mcq", "key": "word"},
+	"rhymeRally": {"list": "RHYME_CHALLENGES", "mode": "mcq", "key": "prompt"},
 	"oppositeOrbit": {"list": "OPPOSITE_CHALLENGES", "mode": "mcq", "key": "word"},
 	"prefixPotion": {"list": "PREFIX_MIX", "mode": "prefix"},
 	"captionQuest": {"list": "CAPTION_SCENES", "mode": "caption"},
@@ -110,7 +112,10 @@ func on_level_started(lvl: int) -> void:
 				_target_round = WordData.target_for_level(lvl)
 				if game_id == "oddOneOut":
 					_target_round = mini(6, _target_round)
+				elif game_id == "captionQuest":
+					_target_round = mini(4, _target_round)
 				_lives = 3
+				_blast_lives = 3
 				_load_word_round(lvl)
 			else:
 				_show_message("Unknown game: %s" % game_id)
@@ -172,6 +177,8 @@ func _build_amount_ui(title: String, coins: bool) -> void:
 			var btn := UiFactory.make_coin_button(value, _coin_tex(value))
 			btn.pressed.connect(func(): _add_amount(value))
 			row.add_child(btn)
+	if GameSession.show_hint:
+		on_hint_revealed()
 	else:
 		var values: Array[int] = [1, 5, 10, 20, 50, 100]
 		game_arena().present_currency(values, false)
@@ -216,7 +223,7 @@ func _refresh_amount_labels() -> void:
 
 func _start_math_swipe(lvl: int) -> void:
 	_math_done = 0
-	_math_need = mini(8, 3 + lvl / 2)
+	_math_need = 3 + lvl / 2
 	_next_math_problem(lvl)
 
 
@@ -230,8 +237,9 @@ func _next_math_problem(lvl: int) -> void:
 	_arena_answer = str(prob.answer)
 	game_arena().present_choices(prob.answers)
 	for ans in prob.answers:
-		var btn := UiFactory.make_button(str(ans), UiFactory.CYAN, 52)
 		var a := int(ans)
+		var accent := Color("#fde68a") if GameSession.show_hint and a == int(prob.answer) else UiFactory.CYAN
+		var btn := UiFactory.make_button(str(ans), accent, 52)
 		btn.pressed.connect(func(): _pick_math_answer(a))
 		_play_area.add_child(btn)
 
@@ -380,7 +388,7 @@ func _jump_to(idx: int) -> void:
 # --- Sliding window ---
 
 func _start_sliding(lvl: int) -> void:
-	_window_size = mini(5, 3 + lvl / 4)
+	_window_size = mini(5, 3 + lvl / 3)
 	_window_data = []
 	var length := 15 + (5 if lvl > 5 else 0)
 	var minimum := -100 if lvl > 5 else 0
@@ -412,7 +420,9 @@ func _render_window() -> void:
 	for i in slice.size():
 		var value := int(slice[i])
 		var absolute_index := _window_pos + i
-		var btn := UiFactory.make_button(str(value), UiFactory.VIOLET, 58)
+		var max_value := int(slice.max())
+		var accent := Color("#fde68a") if GameSession.show_hint and value == max_value else UiFactory.VIOLET
+		var btn := UiFactory.make_button(str(value), accent, 58)
 		btn.pressed.connect(func(): _collect_window_pick(absolute_index))
 		row.add_child(btn)
 
@@ -682,7 +692,7 @@ func _render_word_mode(mode: String, cfg: Dictionary) -> void:
 			var line := ""
 			for p in parts:
 				if p == null:
-					line += " ___ "
+					line += " %s " % (_puzzle.get("answer", "___") if GameSession.show_hint else "___")
 				else:
 					line += " %s " % str(p)
 			_play_area.add_child(UiFactory.make_title(line, 20))
@@ -694,6 +704,8 @@ func _render_word_mode(mode: String, cfg: Dictionary) -> void:
 				key = "prompt"
 			if mode == "prefix":
 				_play_area.add_child(UiFactory.make_title("%s + %s" % [_puzzle.get("prefix", ""), _puzzle.get("root", "")], 22))
+				if GameSession.show_hint:
+					_play_area.add_child(UiFactory.make_subtitle("= %s" % _puzzle.get("answer", "")))
 				var choices: Array = WordData.shuffle_array([_puzzle.get("answer", "")] + _puzzle.get("wrong", []))
 				_add_option_buttons(choices, _puzzle.get("answer", ""))
 				return
@@ -708,18 +720,27 @@ func _render_word_mode(mode: String, cfg: Dictionary) -> void:
 			for item_variant in WordData.shuffle_array(_puzzle.get("items", [])):
 				var item: Dictionary = item_variant
 				odd_labels.append(String(item.get("label", "")))
-				var btn := UiFactory.make_button("%s\n%s" % [item.get("emoji", ""), item.get("label", "")], UiFactory.VIOLET, 72)
 				var label := String(item.get("label", ""))
+				var accent := Color("#fde68a") if GameSession.show_hint and label == str(_puzzle.get("odd", "")) else UiFactory.VIOLET
+				var btn := UiFactory.make_button("%s\n%s" % [item.get("emoji", ""), label], accent, 72)
 				btn.pressed.connect(func(): _pick_odd(label))
 				grid.add_child(btn)
 			_play_area.add_child(grid)
 			_arena_mode = "odd"
 			game_arena().present_choices(odd_labels)
 		"scramble":
-			_play_area.add_child(UiFactory.make_title(String(_puzzle.get("hint", "")), 18))
-			_picked.clear()
+			_play_area.add_child(UiFactory.make_title(
+				"%s  %s" % [_puzzle.get("emoji", ""), _puzzle.get("hint", "")],
+				18
+			))
+			if not _picked.is_empty():
+				var picked := PackedStringArray()
+				for letter in _picked:
+					picked.append(str(letter).to_upper())
+				_play_area.add_child(UiFactory.make_subtitle("Picked: %s" % " ".join(picked)))
 			var word: String = String(_puzzle.get("word", ""))
-			_pool = WordData.shuffle_array(word.split(""))
+			if _pool.is_empty() and _picked.is_empty():
+				_pool = WordData.shuffle_array(word.split(""))
 			_add_scramble_pool()
 		"size_order":
 			var order_arr: Array = _puzzle.get("order", [])
@@ -737,7 +758,9 @@ func _render_word_mode(mode: String, cfg: Dictionary) -> void:
 			var parts: Array = _puzzle.get("parts", [])
 			if _built.is_empty():
 				_pool = WordData.shuffle_array(parts.duplicate())
-			_play_area.add_child(UiFactory.make_subtitle("Stamp syllables in order"))
+			_play_area.add_child(UiFactory.make_subtitle(
+				"Stamp %s in syllable order" % _puzzle.get("word", "")
+			))
 			_add_pool_buttons_for_order(parts)
 		"chain":
 			_play_area.add_child(UiFactory.make_title("Chain: %s" % _puzzle.get("start", ""), 22))
@@ -750,8 +773,9 @@ func _add_option_buttons(options: Array, answer: String) -> void:
 	_arena_mode = "mcq"
 	game_arena().present_choices(options)
 	for o in options:
-		var btn := UiFactory.make_button(String(o), UiFactory.CYAN, 48)
 		var pick := String(o)
+		var accent := Color("#fde68a") if GameSession.show_hint and pick == str(answer) else UiFactory.CYAN
+		var btn := UiFactory.make_button(pick, accent, 48)
 		btn.pressed.connect(func(): _word_mcq_pick(pick, answer))
 		_play_area.add_child(btn)
 
@@ -761,6 +785,12 @@ func _word_mcq_pick(pick: String, answer: String) -> void:
 		return
 	if pick == str(answer):
 		_advance_word_round()
+	elif game_id == "captionQuest":
+		_lives -= 1
+		GameSession.register_move(false)
+		_update_status()
+		if _lives <= 0:
+			fail_level("No lives left!")
 	else:
 		fail_level("Oops!")
 
@@ -772,8 +802,58 @@ func _pick_odd(label: String) -> void:
 		_advance_word_round()
 	else:
 		_lives -= 1
+		GameSession.register_move(false)
+		_update_status()
 		if _lives <= 0:
 			fail_level("Wrong item!")
+
+
+func status_suffix() -> String:
+	if game_id == "captionQuest" or game_id == "oddOneOut":
+		return " · Hearts %d" % _lives
+	return ""
+
+
+func on_hint_revealed() -> void:
+	match game_id:
+		"coin", "cash":
+			var remaining := _amount_target - _amount_current
+			var values: Array = [25, 10, 5, 1] if game_id == "coin" else [100, 50, 20, 10, 5, 1]
+			var suggestion := 1
+			for value in values:
+				if value <= remaining:
+					suggestion = value
+					break
+			var old_hint := _play_area.get_node_or_null("amount_hint")
+			if old_hint:
+				old_hint.queue_free()
+			var text := "Try %d¢ next" % suggestion if game_id == "coin" else "Try $%d next" % suggestion
+			var hint := UiFactory.make_subtitle(text)
+			hint.name = "amount_hint"
+			hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			_play_area.add_child(hint)
+		"unicorn":
+			_render_jump_path()
+		"sliding":
+			_render_window()
+		"mathSwipe":
+			for child in _play_area.get_children():
+				if child is Button and child.text == str(_puzzle.get("answer", "")):
+					child.add_theme_stylebox_override(
+						"normal",
+						UiFactory.stylebox_flat(Color("#ca8a04"), 14)
+					)
+		_:
+			if WORD_MODES.has(game_id):
+				if _active_mode == "type":
+					var prompt: Label = _play_area.get_node_or_null("type_prompt")
+					if prompt:
+						prompt.text = _type_word.to_upper()
+				elif _active_mode == "vowel":
+					var hint := UiFactory.make_subtitle("Starts with %s" % _puzzle.get("vowel", ""))
+					_play_area.add_child(hint)
+				elif not _active_mode.is_empty():
+					_render_word_mode(_active_mode, _active_cfg)
 
 
 func _add_scramble_pool() -> void:
@@ -786,7 +866,9 @@ func _add_scramble_pool() -> void:
 	var next_i := _picked.size()
 	for i in _pool.size():
 		var ch: String = str(_pool[i])
-		var btn := UiFactory.make_button(ch, UiFactory.PINK, 44)
+		var expected := word[next_i] if next_i < word.length() else ""
+		var accent := Color("#fde68a") if GameSession.show_hint and ch == expected else UiFactory.PINK
+		var btn := UiFactory.make_button(ch, accent, 44)
 		var idx := i
 		btn.pressed.connect(func(): _scramble_pick(ch, idx, word, next_i))
 		row.add_child(btn)
@@ -822,7 +904,8 @@ func _add_pool_buttons_for_order(order: Array) -> void:
 		_play_area.add_child(built_label)
 	for i in _pool.size():
 		var w: String = str(_pool[i])
-		var btn := UiFactory.make_button(w, UiFactory.CYAN, 44)
+		var accent := Color("#fde68a") if GameSession.show_hint and w == next_w else UiFactory.CYAN
+		var btn := UiFactory.make_button(w, accent, 44)
 		var idx := i
 		btn.pressed.connect(func(): _sequence_pick(w, idx, next_w, order))
 		_play_area.add_child(btn)
@@ -853,8 +936,10 @@ func _add_chain_buttons(options: Array) -> void:
 	_arena_mode = "chain"
 	game_arena().present_choices(options)
 	for o in options:
-		var btn := UiFactory.make_button(String(o), UiFactory.VIOLET, 44)
 		var pick := String(o)
+		var is_valid := pick.length() > 0 and pick[0].to_lower() == req
+		var accent := Color("#fde68a") if GameSession.show_hint and is_valid else UiFactory.VIOLET
+		var btn := UiFactory.make_button(pick, accent, 44)
 		btn.pressed.connect(func(): _chain_pick(pick, req))
 		_play_area.add_child(btn)
 
@@ -872,19 +957,26 @@ func _advance_word_round() -> void:
 	GameSession.register_move(true)
 	_r_idx += 1
 	if _r_idx >= _target_round:
+		if game_id == "unicornBlast":
+			set_process(false)
 		win_level()
 	else:
 		_load_word_round(GameSession.level)
 
 
 func _start_type_word(lvl: int) -> void:
+	_active_mode = "type"
 	var words := WordData.words_for_level(lvl)
 	if words.is_empty():
 		words = ["cat", "dog", "sun", "play", "unicorn"]
-	_type_word = str(words[(_r_idx + lvl) % words.size()])
+	var word_offset := 3 - _blast_lives if game_id == "unicornBlast" else 0
+	_type_word = str(words[(_r_idx + lvl + word_offset) % words.size()])
 	_type_index = 0
 	_type_buffer = ""
 	game_arena().set_companion_progress(0.0)
+	if game_id == "unicornBlast":
+		_blast_time_left = maxf(2.0, 6.0 - lvl * 0.2)
+		set_process(true)
 	clear_play_children()
 	var show_word := game_id != "sightSpark" or GameSession.show_hint
 	var prompt := UiFactory.make_title(_type_word if show_word else "Memorize…", 28)
@@ -912,7 +1004,8 @@ func _start_type_word(lvl: int) -> void:
 		keyboard.add_child(btn)
 	if game_id == "sightSpark" and not GameSession.show_hint:
 		prompt.text = _type_word.to_upper()
-		get_tree().create_timer(1.5).timeout.connect(func():
+		var flash_seconds := maxf(0.8, 2.2 - lvl * 0.08)
+		get_tree().create_timer(flash_seconds).timeout.connect(func():
 			if is_instance_valid(prompt) and _type_index == 0:
 				prompt.text = "Type it from memory!"
 		)
@@ -938,10 +1031,14 @@ func _type_char(ch: String) -> void:
 		if _type_index >= _type_word.length():
 			_advance_word_round()
 	else:
-		fail_level("Wrong letter!")
+		if game_id == "unicornBlast":
+			GameSession.register_move(false)
+		else:
+			fail_level("Wrong letter!")
 
 
 func _start_vowel(lvl: int) -> void:
+	_active_mode = "vowel"
 	var vowels := ["a", "e", "i", "o", "u"]
 	var v: String = vowels[(_r_idx + lvl) % vowels.size()]
 	var words: Array = WordData.vowel_word_list(v)
@@ -971,7 +1068,7 @@ func _start_vowel(lvl: int) -> void:
 
 func _start_space(lvl: int) -> void:
 	_space_kills = 0
-	_space_need = 10 + lvl
+	_space_need = 8 + int(floor(lvl * 2.5))
 	_space_lives = 3
 	set_process(true)
 	clear_play_children()
@@ -1066,3 +1163,19 @@ func _process(delta: float) -> void:
 				0.95 - GameSession.level * 0.055 - minf(0.3, _mathtris_drops * 0.008)
 			)
 			_step_mathtris()
+	elif game_id == "unicornBlast" and GameSession.state == GameSession.State.PLAYING:
+		_blast_time_left -= delta
+		_status.text = "Level %d · Blasts %d/%d · Hearts %d · %.1fs" % [
+			GameSession.level,
+			_r_idx,
+			_target_round,
+			_blast_lives,
+			maxf(0.0, _blast_time_left),
+		]
+		if _blast_time_left <= 0.0:
+			_blast_lives -= 1
+			if _blast_lives <= 0:
+				set_process(false)
+				fail_level("Three words escaped!")
+			else:
+				_start_type_word(GameSession.level)

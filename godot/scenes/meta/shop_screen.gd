@@ -57,7 +57,7 @@ func _ready() -> void:
 	decor_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	decor_scroll.add_child(decor_list)
 
-	for item_variant in GameCatalog.furniture.slice(0, 50):
+	for item_variant in GameCatalog.furniture:
 		var item: Dictionary = item_variant
 		var iid: String = String(item.get("id", ""))
 		var row2 := HBoxContainer.new()

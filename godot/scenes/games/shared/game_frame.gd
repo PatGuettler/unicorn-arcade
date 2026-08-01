@@ -48,7 +48,7 @@ func mount(game_id_in: String, title: String) -> void:
 	_play_area.add_child(_status)
 
 	_hint_btn = UiFactory.make_button("Hint · 5 coins", UiFactory.VIOLET, 44)
-	_hint_btn.pressed.connect(func(): GameSession.buy_hint())
+	_hint_btn.pressed.connect(_on_hint_pressed)
 	_play_area.add_child(_hint_btn)
 
 	var start_lvl := SaveManager.get_game_last_level(game_id)
@@ -98,13 +98,26 @@ func _round_target_index() -> int:
 	return 0
 
 
+func status_suffix() -> String:
+	return ""
+
+
+func on_hint_revealed() -> void:
+	pass
+
+
+func _on_hint_pressed() -> void:
+	if GameSession.buy_hint():
+		on_hint_revealed()
+
+
 func _update_status() -> void:
-	_status.text = "Level %d · %.1fs · Round %d/%d" % [
+	_status.text = ("Level %d · %.1fs · Round %d/%d" % [
 		GameSession.level,
 		GameSession.elapsed_seconds(),
 		_round_index(),
 		_round_target_index(),
-	]
+	]) + status_suffix()
 
 
 func _on_session_changed() -> void:

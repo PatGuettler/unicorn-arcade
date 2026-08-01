@@ -13,6 +13,7 @@ var _targets: Node3D
 var _accent := Color("#a78bfa")
 var _mode := "idle"
 var _spawn_clock := 0.0
+var _fire_clock := 0.0
 var _level := 1
 var _companion: Node3D
 var _anim_time := 0.0
@@ -68,7 +69,10 @@ func start_space(level: int) -> void:
 	_mode = "space"
 	_level = level
 	_spawn_clock = 0.0
+	_fire_clock = 0.15
 	_clear_targets()
+	if _companion:
+		_companion.position.x = 0.0
 	for i in 3:
 		_spawn_enemy(-2.0 - i * 2.0)
 
@@ -76,6 +80,8 @@ func start_space(level: int) -> void:
 func stop_space() -> void:
 	if _mode == "space":
 		_mode = "idle"
+	if _companion:
+		_companion.position.x = -3.6
 	_clear_targets()
 
 
@@ -112,6 +118,10 @@ func _process(delta: float) -> void:
 		_companion.rotation_degrees.z = sin(_anim_time * 1.4) * 1.5
 	if _mode != "space":
 		return
+	_fire_clock -= delta
+	if _fire_clock <= 0.0:
+		_fire_clock = maxf(0.18, 0.48 - _level * 0.012)
+		_auto_fire()
 	_spawn_clock -= delta
 	if _spawn_clock <= 0.0 and _targets.get_child_count() < 6:
 		_spawn_enemy(-8.0)
@@ -228,6 +238,7 @@ func _spawn_enemy(z_pos: float) -> void:
 	root.position = Vector3(randf_range(-3.0, 3.0), randf_range(-0.4, 2.2), z_pos)
 	root.set_meta("enemy", true)
 	root.set_meta("speed", randf_range(1.7, 2.7) + _level * 0.08)
+	root.set_meta("hp", 2 if _level >= 6 and randf() < 0.35 else 1)
 
 	var mesh := MeshInstance3D.new()
 	var shape := SphereMesh.new()
@@ -265,8 +276,60 @@ func _on_gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
 		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
 			_pick(event.position)
+	elif event is InputEventMouseMotion and _mode == "space":
+		if Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+			_move_ship(event.position)
 	elif event is InputEventScreenTouch and event.pressed:
 		_pick(event.position)
+	elif event is InputEventScreenDrag and _mode == "space":
+		_move_ship(event.position)
+
+
+func _move_ship(local_pos: Vector2) -> void:
+	if _companion == null or size.x <= 0.0:
+		return
+	var normalized := clampf(local_pos.x / size.x, 0.0, 1.0)
+	_companion.position.x = lerpf(-3.5, 3.5, normalized)
+
+
+func _auto_fire() -> void:
+	if _companion == null:
+		return
+	var target: Node3D
+	var best_distance := INF
+	for enemy_variant in _targets.get_children():
+		var enemy := enemy_variant as Node3D
+		if enemy == null or not enemy.has_meta("enemy") or enemy.is_queued_for_deletion():
+			continue
+		var lane_distance := absf(enemy.position.x - _companion.position.x)
+		if lane_distance < 0.9 and lane_distance < best_distance:
+			best_distance = lane_distance
+			target = enemy
+	if target == null:
+		return
+
+	var projectile := MeshInstance3D.new()
+	var sphere := SphereMesh.new()
+	sphere.radius = 0.09
+	sphere.height = 0.28
+	projectile.mesh = sphere
+	projectile.material_override = World3DHelpers.toon_mat(UiFactory.CYAN)
+	projectile.position = _companion.position + Vector3(0, 1.2, -0.2)
+	_world.add_child(projectile)
+	var destination := target.position
+	var tween := create_tween()
+	tween.tween_property(projectile, "position", destination, 0.16)
+	tween.tween_callback(func():
+		projectile.queue_free()
+		if not is_instance_valid(target) or target.is_queued_for_deletion():
+			return
+		var hp := int(target.get_meta("hp", 1)) - 1
+		target.set_meta("hp", hp)
+		if hp <= 0:
+			_burst_at(target.position)
+			target.queue_free()
+			enemy_destroyed.emit()
+	)
 
 
 func _pick(local_pos: Vector2) -> void:
