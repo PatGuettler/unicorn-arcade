@@ -12,14 +12,19 @@ const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 const TEXT := Color("f7f1ff")
 const MUTED := Color("aab7e8")
+const DECOR_PAGE_SIZE := 18
 
 var root: VBoxContainer
 var content: VBoxContainer
+var catalog_scroll: ScrollContainer
 var coin_label: Label
 var message_label: Label
 var tab := "companions"
 var category := "all"
 var query := ""
+var visible_decor_count := DECOR_PAGE_SIZE
+var catalog_dragging := false
+var suppress_catalog_actions_until_ms := 0
 
 
 func _ready() -> void:
@@ -66,20 +71,26 @@ func _build_shell() -> void:
 	tabs.add_child(companions)
 	var decor := _button("DECOR", PANEL, 50)
 	decor.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	decor.pressed.connect(_show_decor)
+	decor.pressed.connect(_open_decor_tab)
 	tabs.add_child(decor)
 	message_label = Label.new()
 	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message_label.add_theme_color_override("font_color", YELLOW)
 	message_label.custom_minimum_size.y = 24
 	root.add_child(message_label)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(scroll)
+	catalog_scroll = ScrollContainer.new()
+	catalog_scroll.name = "MarketplaceScroll"
+	catalog_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	catalog_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	catalog_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	catalog_scroll.scroll_deadzone = 20
+	catalog_scroll.follow_focus = true
+	root.add_child(catalog_scroll)
 	content = VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.mouse_filter = Control.MOUSE_FILTER_PASS
 	content.add_theme_constant_override("separation", 10)
-	scroll.add_child(content)
+	catalog_scroll.add_child(content)
 	_update_coins()
 
 
@@ -154,7 +165,7 @@ func _show_decor() -> void:
 	search.add_theme_font_size_override("font_size", 19)
 	search.add_theme_constant_override("outline_size", 2)
 	StorybookUI.apply_line_edit(search)
-	search.text_submitted.connect(func(value: String) -> void: query = value; _show_decor())
+	search.text_submitted.connect(_apply_decor_search)
 	content.add_child(search)
 	var category_scroll := ScrollContainer.new()
 	category_scroll.name = "DecorCategoryScroll"
@@ -171,9 +182,11 @@ func _show_decor() -> void:
 		var chip := _button(str(item["label"]).to_upper(), PINK if category_id == category else PANEL, 56)
 		chip.name = "Category_%s" % category_id
 		chip.custom_minimum_size.x = maxf(94.0, float(str(item["label"]).length() * 12 + 34))
-		chip.pressed.connect(func() -> void: category = category_id; _show_decor())
+		chip.pressed.connect(_set_decor_category.bind(category_id))
 		category_row.add_child(chip)
-	for definition in Catalog.filtered_furniture(category, query):
+	var filtered := Catalog.filtered_furniture(category, query)
+	var shown_count := mini(visible_decor_count, filtered.size())
+	for definition in filtered.slice(0, shown_count):
 		var id := str(definition["id"])
 		var rarity := str(definition.get("rarity", "common"))
 		var card := PanelContainer.new()
@@ -237,19 +250,77 @@ func _show_decor() -> void:
 			sell.custom_minimum_size.x = 170
 			sell.pressed.connect(_sell_decor.bind(id))
 			actions.add_child(sell)
-	var alley := _button("VISIT UNICORN ALLEY", PINK, 56)
+	if shown_count < filtered.size():
+		var remaining := filtered.size() - shown_count
+		var load_more := _button("SHOW %d MORE   •   %d REMAINING" % [mini(DECOR_PAGE_SIZE, remaining), remaining], PANEL, 64)
+		load_more.name = "LoadMoreDecor"
+		load_more.pressed.connect(_load_more_decor)
+		content.add_child(load_more)
+	var alley := _button("VISIT UNICORN ALLEY", PINK, 60)
 	alley.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/unicorn_alley.tscn"))
 	content.add_child(alley)
 
 
+func _open_decor_tab() -> void:
+	visible_decor_count = DECOR_PAGE_SIZE
+	_show_decor()
+	catalog_scroll.set_deferred("scroll_vertical", 0)
+
+
+func _apply_decor_search(value: String) -> void:
+	query = value
+	visible_decor_count = DECOR_PAGE_SIZE
+	_show_decor()
+	catalog_scroll.set_deferred("scroll_vertical", 0)
+
+
+func _set_decor_category(category_id: String) -> void:
+	category = category_id
+	visible_decor_count = DECOR_PAGE_SIZE
+	_show_decor()
+	catalog_scroll.set_deferred("scroll_vertical", 0)
+
+
+func _load_more_decor() -> void:
+	var previous_scroll := catalog_scroll.scroll_vertical
+	visible_decor_count += DECOR_PAGE_SIZE
+	_show_decor()
+	catalog_scroll.set_deferred("scroll_vertical", previous_scroll)
+
+
+func _input(event: InputEvent) -> void:
+	if tab != "decor" or not is_instance_valid(catalog_scroll):
+		return
+	if event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if not catalog_scroll.get_global_rect().has_point(drag.position):
+			return
+		if absf(drag.relative.y) <= absf(drag.relative.x):
+			return
+		catalog_dragging = true
+		catalog_scroll.scroll_vertical -= roundi(drag.relative.y * 1.25)
+		get_viewport().set_input_as_handled()
+	elif event is InputEventScreenTouch and not (event as InputEventScreenTouch).pressed and catalog_dragging:
+		catalog_dragging = false
+		suppress_catalog_actions_until_ms = Time.get_ticks_msec() + 220
+
+
 func _buy_decor(item_id: String) -> void:
+	if Time.get_ticks_msec() < suppress_catalog_actions_until_ms:
+		return
+	var previous_scroll := catalog_scroll.scroll_vertical
 	message_label.text = "Purchased." if AppState.buy_furniture(item_id) else "Not enough coins."
-	_show_decor.call_deferred()
+	_show_decor()
+	catalog_scroll.set_deferred("scroll_vertical", previous_scroll)
 
 
 func _sell_decor(item_id: String) -> void:
+	if Time.get_ticks_msec() < suppress_catalog_actions_until_ms:
+		return
+	var previous_scroll := catalog_scroll.scroll_vertical
 	message_label.text = "Sold one unused item." if AppState.sell_furniture(item_id) else "Only unused bag items can be sold."
-	_show_decor.call_deferred()
+	_show_decor()
+	catalog_scroll.set_deferred("scroll_vertical", previous_scroll)
 
 
 func _update_coins() -> void:

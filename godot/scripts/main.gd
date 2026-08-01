@@ -14,6 +14,7 @@ const TITLE_SIGN = preload("res://assets/ui/title_sign_option3_v1.png")
 const HOME_TITLE_SIGN = preload("res://assets/ui/title_sign_option3_compact_v1.png")
 const ALLEY_STREET_SIGN = preload("res://assets/ui/unicorn_alley_street_sign_compact_v1.png")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const ArcadePictogramScene = preload("res://scripts/ui/arcade_pictogram.gd")
 
 var page: VBoxContainer
 var status_label: Label
@@ -209,9 +210,7 @@ func _show_dashboard() -> void:
 	]
 	for category in categories:
 		var games := GameRegistry.games_in_category(category["name"])
-		var text := "%s\n%s  •  %d/%d playable" % [str(category["name"]).to_upper(), category["desc"], GameRegistry.playable_count(category["name"]), games.size()]
-		var button := _make_button(text, category["color"], 104)
-		button.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		var button := _make_category_card(category, GameRegistry.playable_count(category["name"]), games.size())
 		button.pressed.connect(_show_category.bind(category["name"]))
 		page.add_child(button)
 
@@ -236,8 +235,7 @@ func _show_category(category: String) -> void:
 	for game in GameRegistry.games_in_category(category):
 		var playable := not str(game["scene"]).is_empty()
 		var level := AppState.current_level(game["id"])
-		var text := "%s\n%s" % [game["title"], "LEVEL %d" % level if playable else "COMING IN PORT"]
-		var button := _make_button(text, PANEL if playable else Color("111a35"), 102)
+		var button := _make_game_card(game, playable, level)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(_open_game.bind(game))
 		grid.add_child(button)
@@ -378,6 +376,104 @@ func _make_button(text: String, color: Color, height: float) -> Button:
 	button.add_theme_font_size_override("font_size", 18)
 	StorybookUI.apply_button(button, color, StorybookUI.uses_dark_ink(color))
 	return button
+
+
+func _make_category_card(definition: Dictionary, playable_count: int, game_count: int) -> Button:
+	var category_name := str(definition["name"])
+	var color: Color = definition["color"]
+	var button := _make_button(category_name, color, 126)
+	button.name = "CategoryCard_%s" % category_name
+	button.tooltip_text = "%s Games. %s. %d of %d playable." % [category_name, definition["desc"], playable_count, game_count]
+	_hide_native_button_text(button)
+	var margin := MarginContainer.new()
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 12)
+	margin.add_theme_constant_override("margin_bottom", 12)
+	button.add_child(margin)
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 16)
+	margin.add_child(row)
+	var icon := ArcadePictogramScene.new()
+	icon.name = "CategoryIcon"
+	icon.custom_minimum_size = Vector2(82, 82)
+	icon.setup(category_name.to_lower(), color)
+	row.add_child(icon)
+	var details := VBoxContainer.new()
+	details.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	details.alignment = BoxContainer.ALIGNMENT_CENTER
+	details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	details.add_theme_constant_override("separation", 4)
+	row.add_child(details)
+	details.add_child(_card_label("%s GAMES" % category_name.to_upper(), 23, StorybookUI.INK))
+	details.add_child(_card_label(str(definition["desc"]), 19, Color(StorybookUI.INK, 0.82)))
+	details.add_child(_card_label("%d / %d PLAYABLE" % [playable_count, game_count], 19, Color("254b54")))
+	return button
+
+
+func _make_game_card(game: Dictionary, playable: bool, level: int) -> Button:
+	var title_text := str(game["title"])
+	var game_id := str(game["id"])
+	var color := _category_color(str(game["category"]))
+	var status := "LEVEL %d" % level if playable else "COMING IN PORT"
+	var button := _make_button(title_text, PANEL if playable else Color("111a35"), 184)
+	button.name = "GameCard_%s" % game_id
+	button.tooltip_text = "%s. %s." % [title_text, status]
+	_hide_native_button_text(button)
+	var margin := MarginContainer.new()
+	margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	margin.add_theme_constant_override("margin_left", 8)
+	margin.add_theme_constant_override("margin_right", 8)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_bottom", 10)
+	button.add_child(margin)
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var stack := VBoxContainer.new()
+	stack.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 4)
+	margin.add_child(stack)
+	var icon := ArcadePictogramScene.new()
+	icon.name = "GameIcon"
+	icon.custom_minimum_size = Vector2(82, 82)
+	icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	icon.setup(game_id, color)
+	stack.add_child(icon)
+	var title := _card_label(title_text.to_upper(), 20, StorybookUI.CREAM, HORIZONTAL_ALIGNMENT_CENTER)
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	stack.add_child(title)
+	stack.add_child(_card_label(status, 19, color, HORIZONTAL_ALIGNMENT_CENTER))
+	return button
+
+
+func _hide_native_button_text(button: Button) -> void:
+	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_disabled_color", "font_outline_color"]:
+		button.add_theme_color_override(state, Color.TRANSPARENT)
+	button.add_theme_constant_override("outline_size", 0)
+
+
+func _card_label(value: String, font_size: int, color: Color, alignment: HorizontalAlignment = HORIZONTAL_ALIGNMENT_LEFT) -> Label:
+	var label := Label.new()
+	label.text = value
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	label.horizontal_alignment = alignment
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	label.add_theme_color_override("font_outline_color", Color(StorybookUI.PLUM, 0.72) if color.get_luminance() > 0.55 else Color(StorybookUI.CREAM, 0.46))
+	label.add_theme_constant_override("outline_size", 2)
+	return label
+
+
+func _category_color(category: String) -> Color:
+	return {
+		"Number": CYAN,
+		"Word": PINK,
+		"Mystery": Color("9b8cff"),
+		"Arcade": Color("62e6a7"),
+	}.get(category, YELLOW)
 
 
 func _make_art_button(accessible_text: String, texture: Texture2D, height: float) -> Button:

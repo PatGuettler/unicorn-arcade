@@ -145,17 +145,28 @@ func _run() -> void:
 	market.call("_show_decor")
 	await get_tree().process_frame
 	_check(_ui_is_accessible(market), "decor Marketplace meets readable text, contrast, and touch-target minimums")
-	_check(market.tab == "decor" and market.content.get_child_count() > 100, "Marketplace exposes the full decor catalog")
-	_check(market.find_children("CatalogModelPreview", "RoomItemPreview3D", true, false).size() == MetaCatalog.furniture().size(), "every marketplace decor record uses a modeled object preview")
-	_check(market.find_children("DecorCard_*", "PanelContainer", true, false).size() == MetaCatalog.furniture().size(), "decor catalog presents every object in a polished rarity-framed card")
+	_check(market.tab == "decor" and MetaCatalog.filtered_furniture("all", "").size() == 107, "Marketplace keeps the full 107-item decor catalog available")
+	_check(market.find_children("CatalogModelPreview", "RoomItemPreview3D", true, false).size() == market.DECOR_PAGE_SIZE, "Marketplace initially creates only one mobile-friendly page of live 3D previews")
+	_check(market.find_children("DecorCard_*", "PanelContainer", true, false).size() == market.DECOR_PAGE_SIZE and market.find_child("LoadMoreDecor", true, false) != null, "decor catalog pages its rarity-framed cards without hiding the remaining inventory")
 	_check(market.find_child("DecorCategoryChips", true, false) != null and market.find_child("DecorSearch", true, false) != null, "decor catalog restores quick category chips and search")
-	var model_previews := market.find_children("CatalogModelPreview", "RoomItemPreview3D", true, false)
+	market.call("_load_more_decor")
+	await get_tree().process_frame
+	_check(market.find_children("CatalogModelPreview", "RoomItemPreview3D", true, false).size() == market.DECOR_PAGE_SIZE * 2, "Load More reveals the next modeled decor page")
+	market.catalog_scroll.scroll_vertical = 200
+	var scroll_before: int = market.catalog_scroll.scroll_vertical
+	var market_drag := InputEventScreenDrag.new()
+	market_drag.position = market.catalog_scroll.get_global_rect().get_center()
+	market_drag.relative = Vector2(2, -120)
+	market.call("_input", market_drag)
+	_check(market.catalog_scroll.scroll_vertical > scroll_before, "decor Marketplace responds to vertical Android dragging anywhere across a catalog card")
 	var signature_nodes := {"bed_race": "RaceCarBody", "pet_fish": "FishBowl", "tv_retro": "RetroTelevision", "xmas_sock": "StockingLeg"}
 	var signatures_found := 0
-	for model_preview in model_previews:
-		var expected_signature := str(signature_nodes.get(model_preview.item_id, ""))
-		if not expected_signature.is_empty() and model_preview.find_child(expected_signature, true, false) != null:
+	for item_id in signature_nodes:
+		var signature_preview := RoomItemPreview3D.new()
+		signature_preview.setup(MetaCatalog.furniture_item(item_id))
+		if signature_preview.find_child(str(signature_nodes[item_id]), true, false) != null:
 			signatures_found += 1
+		signature_preview.free()
 	_check(signatures_found == signature_nodes.size(), "decor previews use item-specific production silhouettes across beds, pets, electronics, and seasonal art")
 	remove_child(market)
 	market.free()
@@ -240,6 +251,18 @@ func _run() -> void:
 	_check(is_instance_valid(centered_slot) and absf(actual_center - expected_center) <= 1.0, "navigation headers center titles on the physical screen independently of side controls (actual %.2f, expected %.2f)" % [actual_center, expected_center])
 	_check(is_instance_valid(home_sign) and home_sign.texture.resource_path.ends_with("title_sign_option3_compact_v1.png"), "home meadow uses the approved illustrated Unicorn Arcade sign")
 	_check(is_instance_valid(alley_sign_button) and alley_sign_button.has_node("StreetSignArt") and alley_sign_button.text == "UNICORN ALLEY", "home uses an accessible illustrated Unicorn Alley street-sign action")
+	shell.call("_show_dashboard")
+	await get_tree().process_frame
+	_check(shell.find_children("CategoryIcon", "ArcadePictogram", true, false).size() == 4, "all four game-category cards restore polished pictogram icons")
+	_check(_ui_is_accessible(shell), "icon category dashboard meets readable text, contrast, and touch-target minimums")
+	shell.call("_show_category", "Word")
+	await get_tree().process_frame
+	var word_icons := shell.find_children("GameIcon", "ArcadePictogram", true, false)
+	var word_icon_ids: Dictionary = {}
+	for word_icon in word_icons:
+		word_icon_ids[word_icon.icon_id] = true
+	_check(word_icons.size() == 10 and word_icon_ids.size() == 10, "every Word game card has its own distinct pictogram")
+	_check(_ui_is_accessible(shell), "icon game grid meets readable text, contrast, and touch-target minimums")
 	remove_child(shell)
 	shell.free()
 	AppState.selected_game_id = original_game
