@@ -123,6 +123,15 @@ That first Sparkle asset was the directional graybox. It was superseded by the s
 - Runtime checks verify the camera padding and that each stretched SubViewport keeps the same aspect ratio as its on-screen rectangle.
 - NVIDIA Compatibility-renderer phone captures live under `previews/unicorn_camera_fit_v1/`.
 
+## Checkpoint 09.7 meadow ensemble and profile presentation
+
+- The equipped companion moves lower and closer in the Home meadow as the clear foreground hero.
+- Every other owned companion appears at a smaller perspective scale across the distant meadow and uses the existing timed Walk behavior to mill around.
+- Home, rooms, and Marketplace now use an opposite-facing profile camera that reads the horse silhouette and leg spacing more clearly.
+- Room companion canvases expand from 210x150 to 252x180 while their orthographic camera widens proportionally, preserving apparent size with real horn and hoof clearance.
+- Softer warm key, lavender fill, and reduced ambient energy retain texture detail without the prior frontal washout.
+- Pixel-matched GPU review captures live under `previews/meadow_presentation_v1/`.
+
 ## Run
 
 ```powershell
@@ -139,14 +148,14 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\gu
 Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" res://tests/runtime_integration.tscn --quit-after 120
 ```
 
-Expected results: `GODOT_PARITY_TESTS_OK: 77 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 165 checks passed`.
+Expected results: `GODOT_PARITY_TESTS_OK: 77 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 167 checks passed`.
 
 ## Export the Android prototype
 
 The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.9.6-alpha-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.9.8-alpha-arm64.apk"
 ```
 
 Upgrade-compatible debug builds must use the established Godot user-profile keystore. Verify the APK signer before delivery: its SHA-256 certificate digest must be `97dcac80c34ab36c9b1e0da8cef5dc87c14911ffdb26d30aa0bc039f1e8be42b`. A portable Godot installation can silently create a different debug keystore; that APK is valid as a fresh install but Android will reject it as an update to 0.5 and earlier.

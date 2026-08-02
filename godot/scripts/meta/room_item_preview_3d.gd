@@ -11,12 +11,16 @@ const CHARACTER_SCENES := {
 }
 const CHARACTER_SCALES := {"sparkle": 1.28, "rainbow": 1.28, "star": 1.28, "cloud": 1.28, "dream": 1.28, "mystic": 1.12}
 const CHARACTER_SCALE_MULTIPLIER := 3.0
-const ANIMATED_CAMERA_SIZE := 5.35
+const ANIMATED_CAMERA_SIZE := 6.80
 const STATIC_CAMERA_SIZE := 6.80
-const HERO_CAMERA_SIZE := 6.80
-const ANIMATION_FRAME_LIFT := Vector3(0.0, 0.38, 0.0)
+const HERO_CAMERA_SIZE := 5.80
+const BACKGROUND_CAMERA_SIZE := 8.40
+const ANIMATION_FRAME_LIFT := Vector3(0.0, 1.10, 0.0)
 const STATIC_FRAME_LIFT := Vector3(0.0, 1.10, 0.0)
-const HERO_FRAME_LIFT := Vector3(0.0, 1.10, 0.0)
+const HERO_FRAME_LIFT := Vector3(0.0, 0.92, 0.0)
+const BACKGROUND_FRAME_LIFT := Vector3(0.0, 0.92, 0.0)
+const SIDE_CAMERA_POSITION := Vector3(-8.40, 3.18, 0.90)
+const SIDE_CAMERA_TARGET := Vector3(0.0, 1.72, -0.15)
 const UnicornIdleAnimatorScene = preload("res://scripts/meta/unicorn_idle_animator.gd")
 
 var item_id := ""
@@ -62,18 +66,21 @@ func _build_companion(stage: Node3D) -> void:
 		companion_id = "sparkle"
 	source_model_id = companion_id
 	var packed_scene: PackedScene = CHARACTER_SCENES[companion_id]
+	var travel_root := Node3D.new()
+	travel_root.name = "CompanionTravelRoot"
+	stage.add_child(travel_root)
 	var model: Node3D = packed_scene.instantiate() as Node3D
 	model.name = "LiveUnicornModel"
 	model.position.y = -0.25
 	model.scale = Vector3.ONE * float(CHARACTER_SCALES.get(companion_id, 1.28)) * CHARACTER_SCALE_MULTIPLIER
-	stage.add_child(model)
+	travel_root.add_child(model)
 	mesh_count = _count_meshes(model)
-	_add_companion_shadow(stage)
+	_add_companion_shadow(travel_root)
 	if animate_character:
 		var animator := UnicornIdleAnimatorScene.new()
 		animator.name = "IdleAnimator"
 		stage.add_child(animator)
-		animator.setup(model)
+		animator.setup(travel_root)
 	else:
 		_pose_companion(model)
 	var camera := Camera3D.new()
@@ -82,13 +89,20 @@ func _build_companion(stage: Node3D) -> void:
 		camera.size = STATIC_CAMERA_SIZE
 	elif presentation_context == "hero":
 		camera.size = HERO_CAMERA_SIZE
+	elif presentation_context == "meadow_background":
+		camera.size = BACKGROUND_CAMERA_SIZE
 	else:
 		camera.size = ANIMATED_CAMERA_SIZE
 	stage.add_child(camera)
 	var frame_lift := STATIC_FRAME_LIFT
 	if animate_character:
-		frame_lift = HERO_FRAME_LIFT if presentation_context == "hero" else ANIMATION_FRAME_LIFT
-	camera.look_at_from_position(Vector3(5.2, 3.25, 7.1) + frame_lift, Vector3(0.0, 1.72, -0.15) + frame_lift, Vector3.UP)
+		if presentation_context == "hero":
+			frame_lift = HERO_FRAME_LIFT
+		elif presentation_context == "meadow_background":
+			frame_lift = BACKGROUND_FRAME_LIFT
+		else:
+			frame_lift = ANIMATION_FRAME_LIFT
+	camera.look_at_from_position(SIDE_CAMERA_POSITION + frame_lift, SIDE_CAMERA_TARGET + frame_lift, Vector3.UP)
 	camera.current = true
 
 
@@ -193,22 +207,23 @@ func _build_furniture(stage: Node3D) -> void:
 
 func _build_lighting(stage: Node3D) -> void:
 	var key := DirectionalLight3D.new()
-	key.rotation_degrees = Vector3(-42, -32, -18)
-	key.light_energy = 0.82
+	key.rotation_degrees = Vector3(-48, 38, -22)
+	key.light_color = Color("ffe9d2")
+	key.light_energy = 0.68
 	key.shadow_enabled = true
 	stage.add_child(key)
 	var fill := DirectionalLight3D.new()
 	fill.rotation_degrees = Vector3(30, 140, 12)
-	fill.light_color = Color("8bdff0")
-	fill.light_energy = 0.32
+	fill.light_color = Color("b8a5ff")
+	fill.light_energy = 0.24
 	stage.add_child(fill)
 	var environment_node := WorldEnvironment.new()
 	var environment := Environment.new()
 	environment.background_mode = Environment.BG_COLOR
 	environment.background_color = Color(0, 0, 0, 0)
 	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("e6dcff")
-	environment.ambient_light_energy = 0.48
+	environment.ambient_light_color = Color("d8d1ed")
+	environment.ambient_light_energy = 0.38
 	environment_node.environment = environment
 	stage.add_child(environment_node)
 

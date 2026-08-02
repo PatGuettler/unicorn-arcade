@@ -206,7 +206,7 @@ func _run() -> void:
 	_check(_ui_is_accessible(room), "room editor meets readable text, contrast, and touch-target minimums")
 	_check(room.companion_id == "sparkle" and is_instance_valid(room.room_canvas), "Sparkle's room editor launches")
 	_check(room.grid_snap, "room editor starts with eight-percent grid snapping enabled")
-	_check(room.call("_item_base_size", "companion_sparkle") == Vector2(210, 150), "room companions use a larger animation-safe placement viewport")
+	_check(room.call("_item_base_size", "companion_sparkle") == Vector2(252, 180), "room companions use an expanded transparent canvas for horn and hoof clearance")
 	var companion_button: Button = room.item_buttons.get("room_companion_sparkle")
 	var companion_preview = companion_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(companion_button) else null
 	_check(is_instance_valid(companion_preview) and companion_preview.uses_character_model and companion_preview.source_model_id == "sparkle" and companion_preview.mesh_count >= 1, "rooms automatically present the updated companion-specific GLB")
@@ -214,8 +214,10 @@ func _run() -> void:
 	_check(is_instance_valid(live_unicorn_model) and is_equal_approx(live_unicorn_model.scale.x, 3.84), "room unicorn presentation applies the requested three-times display scale")
 	var companion_cameras: Array[Node] = companion_preview.find_children("*", "Camera3D", true, false) if is_instance_valid(companion_preview) else []
 	var companion_camera = companion_cameras[0] if not companion_cameras.is_empty() else null
-	_check(is_instance_valid(companion_camera) and companion_camera.size >= 5.3, "animated companion framing preserves horn and hoof clearance during Walk")
+	_check(is_instance_valid(companion_camera) and companion_camera.size >= 6.8 and companion_camera.position.x < -8.0 and absf(companion_camera.position.z) < 2.0, "animated room companions use padded opposite-facing side-view framing")
 	var idle_animator = companion_preview.find_child("IdleAnimator", true, false) if is_instance_valid(companion_preview) else null
+	var moving_shadow = companion_preview.find_child("MeadowContactShadow", true, false) if is_instance_valid(companion_preview) else null
+	_check(is_instance_valid(idle_animator) and is_instance_valid(moving_shadow) and moving_shadow.get_parent() == idle_animator.model, "the companion and its contact shadow share one travel root")
 	_check(is_instance_valid(idle_animator) and idle_animator.animation_names() == PackedStringArray(["walk"]), "live unicorn previews expose only the Walk animation")
 	_check(is_instance_valid(idle_animator) and is_instance_valid(idle_animator.timer) and not idle_animator.timer.is_stopped() and idle_animator.timer.wait_time >= 10.0 and idle_animator.timer.wait_time <= 30.0, "live unicorn previews schedule Walk at the requested random interval")
 	_check(is_instance_valid(idle_animator) and _skeletons_are_in_rest_pose(idle_animator.model), "unicorns use their neutral rig pose while standing instead of freezing a gait-contact frame")
@@ -279,6 +281,9 @@ func _run() -> void:
 	_check(AppState.sell_furniture("lamp") and AppState.coins() == 425, "unused decor sells for the floored fifty-percent refund")
 	AppState.data = original_data
 	SaveService.save_state(AppState.data)
+	var shell_state := AppState.data.duplicate(true)
+	AppState.data["owned_companions"] = ["sparkle", "rainbow", "star", "cloud", "dream", "mystic"]
+	AppState.data["player"]["equipped_companion"] = "mystic"
 	var shell = MAIN_SCENE.instantiate()
 	add_child(shell)
 	await get_tree().process_frame
@@ -287,14 +292,25 @@ func _run() -> void:
 	_check(shell.get_child_count() >= 2, "navigation shell builds its full-screen page")
 	_check(_ui_is_accessible(shell), "navigation shell meets readable text, contrast, and touch-target minimums")
 	var hero_previews := shell.find_children("*", "RoomItemPreview3D", true, false)
-	var hero_preview = hero_previews[0] if not hero_previews.is_empty() else null
+	var hero_preview: Node = null
+	var meadow_background_previews: Array[Node] = []
+	for candidate in hero_previews:
+		if candidate.presentation_context == "hero":
+			hero_preview = candidate
+		elif candidate.presentation_context == "meadow_background":
+			meadow_background_previews.append(candidate)
 	var hero_cameras: Array[Node] = hero_preview.find_children("*", "Camera3D", true, false) if is_instance_valid(hero_preview) else []
 	var hero_camera = hero_cameras[0] if not hero_cameras.is_empty() else null
 	var hero_viewports: Array[Node] = hero_preview.find_children("*", "SubViewport", true, false) if is_instance_valid(hero_preview) else []
 	var hero_viewport_matches_rect: bool = is_instance_valid(hero_preview) and not hero_viewports.is_empty() and hero_preview.size.y > 0.0 and absf(
 		float(hero_viewports[0].size.x) / float(hero_viewports[0].size.y) - hero_preview.size.x / hero_preview.size.y
 	) <= 0.02
-	_check(is_instance_valid(hero_preview) and hero_preview.presentation_context == "hero" and is_instance_valid(hero_camera) and hero_camera.size >= 6.8 and hero_viewport_matches_rect, "home companion uses full-head hero framing without non-uniform viewport stretching")
+	_check(is_instance_valid(hero_preview) and hero_preview.presentation_context == "hero" and is_instance_valid(hero_camera) and hero_camera.size <= 5.81 and hero_camera.position.x < -8.0 and absf(hero_camera.position.z) < 2.0 and hero_viewport_matches_rect, "home companion uses a closer opposite-facing side-view hero camera without viewport stretching (size=%s, position=%s, aspect_match=%s)" % [hero_camera.size if is_instance_valid(hero_camera) else -1.0, hero_camera.position if is_instance_valid(hero_camera) else Vector3.ZERO, hero_viewport_matches_rect])
+	var meadow_backgrounds_animate := true
+	for background_preview in meadow_background_previews:
+		if not is_instance_valid(background_preview.find_child("IdleAnimator", true, false)) or background_preview.anchor_top < 0.30:
+			meadow_backgrounds_animate = false
+	_check(meadow_background_previews.size() == 5 and meadow_backgrounds_animate, "all other owned companions mill around on the meadow grass")
 	var centered_slot := shell.find_child("TrueCenterHeaderSlot", true, false) as Control
 	var home_sign := shell.find_child("HomeTitleSign", true, false) as TextureRect
 	var alley_sign_button := shell.find_child("UnicornAlleyStreetSignButton", true, false) as Button
@@ -317,6 +333,7 @@ func _run() -> void:
 	_check(_ui_is_accessible(shell), "icon game grid meets readable text, contrast, and touch-target minimums")
 	remove_child(shell)
 	shell.free()
+	AppState.data = shell_state
 	AppState.selected_game_id = original_game
 	AppState.selected_category = original_category
 	if failures.is_empty():

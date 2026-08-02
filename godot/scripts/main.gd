@@ -151,7 +151,14 @@ func _show_home() -> void:
 	hero.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	hero.custom_minimum_size.y = 300
 	page.add_child(hero)
+	var meadow_companions := Control.new()
+	meadow_companions.name = "OwnedMeadowCompanions"
+	meadow_companions.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	hero.add_child(meadow_companions)
+	meadow_companions.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_build_meadow_companions(meadow_companions)
 	var preview := _build_sparkle_preview()
+	preview.name = "EquippedMeadowHero"
 	hero.add_child(preview)
 	preview.anchor_left = 0.0
 	preview.anchor_right = 1.0
@@ -159,8 +166,8 @@ func _show_home() -> void:
 	preview.anchor_bottom = 0.5
 	preview.offset_left = 0
 	preview.offset_right = 0
-	preview.offset_top = -150
-	preview.offset_bottom = 150
+	preview.offset_top = -70
+	preview.offset_bottom = 230
 	var play := _make_button("▶  PLAY", StorybookUI.NAVY, 82)
 	play.add_theme_font_size_override("font_size", 28)
 	play.pressed.connect(func() -> void: _show_dashboard())
@@ -506,8 +513,42 @@ func _make_art_button(accessible_text: String, texture: Texture2D, height: float
 
 
 func _build_sparkle_preview() -> SubViewportContainer:
+	return _build_companion_preview(AppState.equipped_companion(), "hero", 300.0)
+
+
+func _build_companion_preview(companion_id: String, presentation: String, minimum_height: float) -> SubViewportContainer:
 	var container := RoomItemPreviewScene.new()
-	container.custom_minimum_size = Vector2(0, 300)
+	container.custom_minimum_size = Vector2(0, minimum_height)
 	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	container.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "presentation": "hero"})
+	container.setup({"id": "companion_%s" % companion_id, "category": "companions", "presentation": presentation})
 	return container
+
+
+func _build_meadow_companions(layer: Control) -> void:
+	var equipped_id := AppState.equipped_companion()
+	var slots := [
+		{"x": 0.12, "y": 0.43, "w": 112.0, "h": 86.0},
+		{"x": 0.86, "y": 0.47, "w": 118.0, "h": 90.0},
+		{"x": 0.29, "y": 0.32, "w": 96.0, "h": 74.0},
+		{"x": 0.71, "y": 0.35, "w": 102.0, "h": 78.0},
+		{"x": 0.50, "y": 0.45, "w": 108.0, "h": 82.0},
+	]
+	var slot_index := 0
+	for owned_id in AppState.owned_companions():
+		var companion_id := str(owned_id)
+		if companion_id == equipped_id or slot_index >= slots.size():
+			continue
+		var slot: Dictionary = slots[slot_index]
+		var preview := _build_companion_preview(companion_id, "meadow_background", float(slot["h"]))
+		preview.name = "MeadowCompanion_%s" % companion_id.capitalize()
+		preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		layer.add_child(preview)
+		preview.anchor_left = float(slot["x"])
+		preview.anchor_right = float(slot["x"])
+		preview.anchor_top = float(slot["y"])
+		preview.anchor_bottom = float(slot["y"])
+		preview.offset_left = -float(slot["w"]) * 0.5
+		preview.offset_right = float(slot["w"]) * 0.5
+		preview.offset_top = -float(slot["h"]) * 0.5
+		preview.offset_bottom = float(slot["h"]) * 0.5
+		slot_index += 1

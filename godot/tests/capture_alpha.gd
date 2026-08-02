@@ -21,6 +21,8 @@ func _capture() -> void:
 	var ortho_size := 0.0
 	var animation_name := ""
 	var animation_progress := 0.5
+	var owned_all := false
+	var background_walk := false
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--mode="):
 			mode = argument.trim_prefix("--mode=")
@@ -43,12 +45,18 @@ func _capture() -> void:
 			animation_name = argument.trim_prefix("--animation=")
 		elif argument.begins_with("--animation-progress="):
 			animation_progress = clampf(float(argument.trim_prefix("--animation-progress=")), 0.0, 1.0)
+		elif argument == "--owned-all":
+			owned_all = true
+		elif argument == "--background-walk":
+			background_walk = true
 	if output.is_empty():
 		push_error("capture_alpha requires --output=<absolute png path>")
 		get_tree().quit(2)
 		return
 	AppState.data["player"]["name"] = "" if mode == "login" else "Playtester"
 	AppState.data["player"]["equipped_companion"] = companion_id
+	if owned_all:
+		AppState.data["owned_companions"] = ["sparkle", "rainbow", "star", "cloud", "dream", "mystic"]
 	if companion_id not in AppState.data["owned_companions"]:
 		AppState.data["owned_companions"].append(companion_id)
 	AppState.data["inventory"]["companion_%s" % companion_id] = maxi(1, int(AppState.data["inventory"].get("companion_%s" % companion_id, 0)))
@@ -90,6 +98,15 @@ func _capture() -> void:
 			AppState.selected_category = "Word"
 		captured = MAIN_SCENE.instantiate()
 	add_child(captured)
+	if background_walk:
+		var background_preview := captured.find_child("MeadowCompanion_*", true, false)
+		if is_instance_valid(background_preview):
+			var background_animator = background_preview.find_child("IdleAnimator", true, false)
+			if is_instance_valid(background_animator) and background_animator.play_animation_now("Walk"):
+				var background_clip: Animation = background_animator.animation_player.get_animation(background_animator.active_action)
+				background_animator.animation_player.seek(background_clip.length * animation_progress, true)
+				if background_animator.walk_tween != null:
+					background_animator.walk_tween.custom_step(1.32)
 	if not animation_name.is_empty():
 		var animator = captured.find_child("IdleAnimator", true, false)
 		if is_instance_valid(animator) and animator.play_animation_now(animation_name):

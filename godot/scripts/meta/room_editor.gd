@@ -563,7 +563,7 @@ func _item_definition(item_id: String) -> Dictionary:
 
 
 func _item_base_size(item_id: String) -> Vector2:
-	return Vector2(210, 150) if item_id.begins_with("companion_") else Vector2(104, 104)
+	return Vector2(252, 180) if item_id.begins_with("companion_") else Vector2(104, 104)
 
 
 func _ensure_companion_present() -> void:
