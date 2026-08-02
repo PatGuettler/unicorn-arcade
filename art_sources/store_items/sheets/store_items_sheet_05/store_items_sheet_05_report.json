@@ -56,7 +56,8 @@
         0.7750000953674316,
         0.5965589284896851,
         0.5747120380401611
-      ]
+      ],
+      "removed_components": []
     },
     {
       "catalog_id": "rug_persian",
@@ -85,7 +86,8 @@
         0.7749999761581421,
         0.5657991766929626,
         1.0420591831207275
-      ]
+      ],
+      "removed_components": []
     },
     {
       "catalog_id": "rug_bear",
@@ -114,7 +116,8 @@
         0.7750000357627869,
         0.5518569946289062,
         0.9656413197517395
-      ]
+      ],
+      "removed_components": []
     },
     {
       "catalog_id": "rug_magic",
@@ -143,7 +146,8 @@
         0.7361688017845154,
         0.7750000357627869,
         0.8936408758163452
-      ]
+      ],
+      "removed_components": []
     },
     {
       "catalog_id": "rug_puzzle",
@@ -172,14 +176,15 @@
         0.640209972858429,
         0.7750000357627869,
         0.12793056666851044
-      ]
+      ],
+      "removed_components": []
     },
     {
       "catalog_id": "pet_cat_blk",
       "cell": "bottom_right",
-      "source_vertices": 10404,
-      "source_polygons": 67005,
-      "optimized_vertices": 10404,
+      "source_vertices": 10373,
+      "source_polygons": 66446,
+      "optimized_vertices": 10373,
       "optimized_polygons": 17999,
       "source_origin": [
         0.34462597966194153,
@@ -193,14 +198,24 @@
       ],
       "normalization_scale": 1.6471383846104928,
       "final_bounds_min": [
-        -0.6244086623191833,
+        -0.21512117981910706,
         -0.7749999761581421,
         0.0
       ],
       "final_bounds_max": [
         0.6244087219238281,
-        0.7749999761581421,
+        -0.07633664458990097,
         1.10924232006073
+      ],
+      "removed_components": [
+        {
+          "vertices": 313,
+          "center": [
+            -0.5949388742446899,
+            0.7390580773353577,
+            0.912688136100769
+          ]
+        }
       ]
     }
   ],
@@ -250,5 +265,5 @@
       ]
     }
   ],
-  "optimized_glb_bytes": 8869968
+  "optimized_glb_bytes": 8868976
 }

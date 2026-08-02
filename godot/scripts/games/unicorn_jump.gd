@@ -1,6 +1,17 @@
 extends Control
 
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
+const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const STONE_CREAM = preload("res://assets/games/unicorn_jump/jump_stone_normal_cream_v1.png")
+const STONE_LILAC = preload("res://assets/games/unicorn_jump/jump_stone_normal_lilac_v1.png")
+const STONE_CURRENT = preload("res://assets/games/unicorn_jump/jump_stone_current_v1.png")
+const STONE_VISITED = preload("res://assets/games/unicorn_jump/jump_stone_visited_v1.png")
+const STONE_MOON = preload("res://assets/games/unicorn_jump/jump_stone_moon_v1.png")
+const STONE_FINISH = preload("res://assets/games/unicorn_jump/jump_stone_finish_v1.png")
+
+const PATH_WIDTH := 520.0
+const BASE_STONE_SIZE := Vector2(150.0, 101.0)
+const BASE_ROW_HEIGHT := 132.0
 
 var level := 1
 var level_data: Array[int] = []
@@ -8,12 +19,14 @@ var current_index := 0
 var visited: Array[int] = []
 var active := false
 var started_ms := 0
-var node_buttons: Array[Button] = []
+var node_buttons: Array[TextureButton] = []
+var connector_lines: Array[Line2D] = []
 var status_label: Label
 var jump_label: Label
 var path_box: VBoxContainer
 var scroller: ScrollContainer
 var action_button: Button
+var companion_preview: RoomItemPreview3D
 var zoom := 1.0
 
 
@@ -76,7 +89,7 @@ func _start_level(for_level: int) -> void:
 	started_ms = Time.get_ticks_msec()
 	active = true
 	action_button.hide()
-	status_label.text = "Tap the one exact landing spot. Drag the path to explore."
+	status_label.text = "Count the current number of stones, then tap that exact landing."
 	_rebuild_path()
 	_update_path()
 
@@ -87,7 +100,7 @@ func _choose_node(index: int) -> void:
 	var expected := current_index + level_data[current_index]
 	if index != expected:
 		active = false
-		status_label.text = "Wrong landing. You needed node %d." % expected
+		status_label.text = "Wrong landing. Follow the jump value to stone %d." % expected
 		action_button.text = "Retry"
 		action_button.show()
 		_set_nodes_enabled(false)
@@ -107,50 +120,128 @@ func _choose_node(index: int) -> void:
 
 
 func _rebuild_path() -> void:
+	companion_preview = null
 	for child in path_box.get_children():
 		child.queue_free()
 	node_buttons.clear()
-	# Reverse order keeps the finish visually above the start, like the climbing React trail.
+	connector_lines.clear()
+	var stone_size := BASE_STONE_SIZE * zoom
+	var row_height := BASE_ROW_HEIGHT * zoom
 	for index in range(level_data.size(), -1, -1):
-		var row := HBoxContainer.new()
-		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		var spacer := Control.new()
-		spacer.custom_minimum_size.x = 50.0 + sin(float(index) / maxf(1.0, level_data.size()) * PI * 3.0) * 45.0
-		row.add_child(spacer)
-		var button := Button.new()
-		button.text = "FINISH" if index == level_data.size() else str(index)
-		button.custom_minimum_size = Vector2(150, 62)
+		var row := Control.new()
+		row.name = "TrailRow%d" % index
+		row.custom_minimum_size = Vector2(PATH_WIDTH, row_height)
+		var center_x := _stone_center_x(index)
+		if index > 0:
+			var next_center_x := _stone_center_x(index - 1)
+			var connector := Line2D.new()
+			connector.name = "TrailConnector%d" % index
+			connector.width = 8.0 * zoom
+			connector.default_color = Color("9788d8")
+			connector.joint_mode = Line2D.LINE_JOINT_ROUND
+			connector.begin_cap_mode = Line2D.LINE_CAP_ROUND
+			connector.end_cap_mode = Line2D.LINE_CAP_ROUND
+			connector.points = PackedVector2Array([
+				Vector2(center_x, row_height * 0.56),
+				Vector2((center_x + next_center_x) * 0.5, row_height * 0.92),
+				Vector2(next_center_x, row_height * 1.36),
+			])
+			row.add_child(connector)
+			connector_lines.push_front(connector)
+		var button := TextureButton.new()
+		button.name = "JumpStone%d" % index
+		button.custom_minimum_size = stone_size
+		button.size = stone_size
+		button.position = Vector2(center_x - stone_size.x * 0.5, row_height * 0.22)
+		button.ignore_texture_size = true
+		button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		button.texture_normal = _normal_stone_texture(index)
+		button.tooltip_text = "Finish stone" if index == level_data.size() else "Stone %d: jump %s" % [index, _signed(level_data[index])]
+		button.add_theme_font_size_override("font_size", 18)
 		button.pressed.connect(_choose_node.bind(index))
+		var value_label := Label.new()
+		value_label.name = "JumpValue"
+		value_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		value_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		value_label.add_theme_font_size_override("font_size", int(23 * zoom))
+		value_label.add_theme_color_override("font_color", Color("382c60"))
+		value_label.add_theme_color_override("font_outline_color", Color("fff5e9"))
+		value_label.add_theme_constant_override("outline_size", 5)
+		value_label.position.y = -5.0 * zoom
+		button.add_child(value_label)
 		row.add_child(button)
 		path_box.add_child(row)
 		node_buttons.push_front(button)
 
 
 func _update_path() -> void:
-	jump_label.text = "LEVEL %d  |  NODE %d / %d  |  JUMP %s" % [level, current_index, level_data.size(), _signed(level_data[current_index]) if current_index < level_data.size() else "DONE"]
+	jump_label.text = "LEVEL %d  •  STONE %d / %d  •  JUMP %s" % [level, current_index, level_data.size(), _signed(level_data[current_index]) if current_index < level_data.size() else "DONE"]
 	for index in node_buttons.size():
 		var button := node_buttons[index]
+		var value_label := button.get_node("JumpValue") as Label
+		button.self_modulate = Color.WHITE
 		if index == current_index:
-			button.text = ("START" if index == 0 else str(index)) + "  [YOU]"
-			button.modulate = Color("ffdf67")
+			button.texture_normal = STONE_CURRENT
+			value_label.text = _signed(level_data[index]) if index < level_data.size() else "★"
+			value_label.add_theme_color_override("font_color", Color("173f68"))
+			_attach_active_companion(button)
 		elif index in visited:
-			button.text = str(index) + "  OK"
-			button.modulate = Color("75e6bb")
+			button.texture_normal = STONE_VISITED
+			value_label.text = "✓"
+			value_label.add_theme_color_override("font_color", Color("3a2868"))
+		elif index == level_data.size():
+			button.texture_normal = STONE_FINISH
+			value_label.text = "★"
+			value_label.add_theme_color_override("font_color", Color("50315d"))
 		else:
-			button.text = "FINISH" if index == level_data.size() else str(index)
-			button.modulate = Color.WHITE
+			button.texture_normal = _normal_stone_texture(index)
+			value_label.text = _signed(level_data[index])
+			value_label.add_theme_color_override("font_color", Color("382c60"))
+	for connector_index in connector_lines.size():
+		var connector := connector_lines[connector_index]
+		connector.default_color = Color("f2a5d4") if connector_index <= current_index else Color("9788d8")
 	await get_tree().process_frame
 	var reversed_index := level_data.size() - current_index
-	var desired := maxf(0.0, reversed_index * 70.0 - scroller.size.y * 0.45)
+	var desired := maxf(0.0, reversed_index * BASE_ROW_HEIGHT * zoom - scroller.size.y * 0.42)
 	scroller.scroll_vertical = int(desired)
 
 
+func _attach_active_companion(button: TextureButton) -> void:
+	if not is_instance_valid(companion_preview):
+		companion_preview = RoomItemPreviewScene.new()
+		companion_preview.name = "ActiveCompanionOnStone"
+		companion_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		companion_preview.setup({
+			"id": "companion_%s" % AppState.equipped_companion(),
+			"category": "companions",
+			"animate": false,
+			"presentation": "marketplace",
+		})
+	elif companion_preview.get_parent() != null:
+		companion_preview.get_parent().remove_child(companion_preview)
+	button.add_child(companion_preview)
+	companion_preview.set_anchors_preset(Control.PRESET_CENTER_TOP)
+	companion_preview.position = Vector2(-2.0 * zoom, -79.0 * zoom)
+	companion_preview.size = Vector2(158.0, 120.0) * zoom
+	companion_preview.move_to_front()
+	(button.get_node("JumpValue") as Label).move_to_front()
+
+
+func _normal_stone_texture(index: int) -> Texture2D:
+	return STONE_CREAM if index % 2 == 0 else STONE_LILAC
+
+
+func _stone_center_x(index: int) -> float:
+	var phase := float(index) / maxf(1.0, float(level_data.size())) * PI * 3.2
+	return PATH_WIDTH * 0.5 + sin(phase) * 118.0 * zoom
+
+
 func _change_zoom(amount: float) -> void:
-	zoom = clampf(zoom + amount, 0.7, 1.4)
-	for button in node_buttons:
-		button.custom_minimum_size = Vector2(150, 62) * zoom
-		button.add_theme_font_size_override("font_size", int(16 * zoom))
-	path_box.add_theme_constant_override("separation", int(8 * zoom))
+	zoom = clampf(zoom + amount, 0.8, 1.2)
+	_rebuild_path()
+	_update_path()
 
 
 func _build_ui() -> void:
@@ -167,44 +258,57 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.add_theme_font_size_override("font_size", 34)
 	title.add_theme_color_override("font_color", Color("f79cff"))
+	title.add_theme_color_override("font_outline_color", Color("30134d"))
+	title.add_theme_constant_override("outline_size", 6)
 	root.add_child(title)
 	jump_label = Label.new()
 	jump_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	jump_label.add_theme_font_size_override("font_size", 20)
+	jump_label.add_theme_color_override("font_outline_color", Color("120d32"))
+	jump_label.add_theme_constant_override("outline_size", 4)
 	root.add_child(jump_label)
 	scroller = ScrollContainer.new()
 	scroller.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	root.add_child(scroller)
 	path_box = VBoxContainer.new()
-	path_box.custom_minimum_size.x = 620
-	path_box.add_theme_constant_override("separation", 8)
+	path_box.custom_minimum_size.x = PATH_WIDTH
+	path_box.add_theme_constant_override("separation", 0)
 	scroller.add_child(path_box)
 	status_label = Label.new()
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status_label.add_theme_font_size_override("font_size", 20)
+	status_label.add_theme_color_override("font_outline_color", Color("120d32"))
+	status_label.add_theme_constant_override("outline_size", 4)
 	root.add_child(status_label)
 	var actions := HBoxContainer.new()
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
+	actions.add_theme_constant_override("separation", 8)
 	root.add_child(actions)
-	var zoom_out := Button.new()
-	zoom_out.text = "Zoom -"
+	var zoom_out := _action_button("Zoom −")
 	zoom_out.pressed.connect(_change_zoom.bind(-0.1))
 	actions.add_child(zoom_out)
-	var zoom_in := Button.new()
-	zoom_in.text = "Zoom +"
+	var zoom_in := _action_button("Zoom +")
 	zoom_in.pressed.connect(_change_zoom.bind(0.1))
 	actions.add_child(zoom_in)
-	action_button = Button.new()
+	action_button = _action_button("")
 	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Level" else level))
 	actions.add_child(action_button)
-	var back := Button.new()
-	back.text = "Number Games"
+	var back := _action_button("Number Games")
 	back.pressed.connect(func() -> void:
 		AppState.set_shell_destination("category", "Number")
 		get_tree().change_scene_to_file("res://scenes/main.tscn")
 	)
 	actions.add_child(back)
+
+
+func _action_button(label_text: String) -> Button:
+	var button := Button.new()
+	button.text = label_text
+	button.custom_minimum_size = Vector2(112, 60)
+	button.add_theme_font_size_override("font_size", 19)
+	return button
 
 
 func _set_nodes_enabled(enabled: bool) -> void:

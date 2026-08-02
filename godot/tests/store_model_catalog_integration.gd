@@ -22,8 +22,8 @@ func _run() -> void:
 		quit(1)
 		return
 	var items: Dictionary = parsed.get("items", {})
-	if items.size() != 101:
-		failures.append("Expected 101 authored store items, found %d" % items.size())
+	if items.size() != 107:
+		failures.append("Expected 107 authored store items, found %d" % items.size())
 	var scenes: Dictionary = {}
 	for item_id in items:
 		var definition: Dictionary = items[item_id]
@@ -65,7 +65,7 @@ func _run() -> void:
 			failures.append("%s should still use its procedural fallback" % item_id)
 		preview.free()
 	if failures.is_empty():
-		print("STORE_MODEL_CATALOG_PASS: 101 authored models loaded; 6 Halloween fallbacks retained")
+		print("STORE_MODEL_CATALOG_PASS: 107 authored models loaded; no procedural catalog fallbacks remain")
 		quit(0)
 	else:
 		for failure in failures:

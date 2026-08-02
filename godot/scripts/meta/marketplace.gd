@@ -17,6 +17,7 @@ const DECOR_PAGE_SIZE := 18
 var root: VBoxContainer
 var content: VBoxContainer
 var catalog_scroll: ScrollContainer
+var category_scroll: ScrollContainer
 var coin_label: Label
 var message_label: Label
 var tab := "companions"
@@ -24,6 +25,7 @@ var category := "all"
 var query := ""
 var visible_decor_count := DECOR_PAGE_SIZE
 var catalog_dragging := false
+var category_dragging := false
 var suppress_catalog_actions_until_ms := 0
 
 
@@ -167,11 +169,12 @@ func _show_decor() -> void:
 	StorybookUI.apply_line_edit(search)
 	search.text_submitted.connect(_apply_decor_search)
 	content.add_child(search)
-	var category_scroll := ScrollContainer.new()
+	category_scroll = ScrollContainer.new()
 	category_scroll.name = "DecorCategoryScroll"
 	category_scroll.custom_minimum_size.y = 66
 	category_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	category_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	category_scroll.scroll_deadzone = 20
 	content.add_child(category_scroll)
 	var category_row := HBoxContainer.new()
 	category_row.name = "DecorCategoryChips"
@@ -275,6 +278,8 @@ func _apply_decor_search(value: String) -> void:
 
 
 func _set_decor_category(category_id: String) -> void:
+	if Time.get_ticks_msec() < suppress_catalog_actions_until_ms:
+		return
 	category = category_id
 	visible_decor_count = DECOR_PAGE_SIZE
 	_show_decor()
@@ -293,6 +298,11 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
+		if is_instance_valid(category_scroll) and category_scroll.get_global_rect().has_point(drag.position) and absf(drag.relative.x) > absf(drag.relative.y):
+			category_dragging = true
+			category_scroll.scroll_horizontal -= roundi(drag.relative.x * 1.25)
+			get_viewport().set_input_as_handled()
+			return
 		if not catalog_scroll.get_global_rect().has_point(drag.position):
 			return
 		if absf(drag.relative.y) <= absf(drag.relative.x):
@@ -300,9 +310,11 @@ func _input(event: InputEvent) -> void:
 		catalog_dragging = true
 		catalog_scroll.scroll_vertical -= roundi(drag.relative.y * 1.25)
 		get_viewport().set_input_as_handled()
-	elif event is InputEventScreenTouch and not (event as InputEventScreenTouch).pressed and catalog_dragging:
-		catalog_dragging = false
-		suppress_catalog_actions_until_ms = Time.get_ticks_msec() + 220
+	elif event is InputEventScreenTouch and not (event as InputEventScreenTouch).pressed:
+		if catalog_dragging or category_dragging:
+			catalog_dragging = false
+			category_dragging = false
+			suppress_catalog_actions_until_ms = Time.get_ticks_msec() + 220
 
 
 func _buy_decor(item_id: String) -> void:

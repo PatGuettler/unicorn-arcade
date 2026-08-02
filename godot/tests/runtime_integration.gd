@@ -91,9 +91,16 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(_ui_is_accessible(jump), "Unicorn Jump meets readable text, contrast, and touch-target minimums")
 	_check(jump.active and jump.level_data.size() == 10, "Unicorn Jump launches its level-one ten-node trail")
+	_check(jump.node_buttons.size() == 11 and jump.node_buttons.all(func(button: TextureButton) -> bool: return button.texture_normal != null), "Unicorn Jump builds the full trail from authored stepping-stone art")
+	_check(jump.find_children("TrailConnector*", "Line2D", true, false).size() == 10, "Unicorn Jump restores the original connected winding path")
+	var trail_companion = jump.find_child("ActiveCompanionOnStone", true, false)
+	_check(is_instance_valid(trail_companion) and trail_companion.source_model_id == AppState.equipped_companion(), "the equipped 3D companion stands on the current stepping stone")
+	_check((jump.node_buttons[0].get_node("JumpValue") as Label).text == "+%d" % jump.level_data[0], "trail stones show jump values instead of placeholder node indices")
 	var landing: int = jump.level_data[0]
+	_check(jump.node_buttons[landing].self_modulate == Color.WHITE, "Unicorn Jump does not reveal the counted landing with a highlight")
 	jump.call("_choose_node", landing)
 	_check(jump.current_index == landing and jump.active, "Unicorn Jump accepts the exact indexed landing")
+	_check(trail_companion.get_parent() == jump.node_buttons[landing], "the active companion moves to the newly reached stone")
 	remove_child(jump)
 	jump.free()
 	var sliding = SLIDING_SCENE.instantiate()
@@ -167,6 +174,19 @@ func _run() -> void:
 	_check(market.find_children("CatalogModelPreview", "RoomItemPreview3D", true, false).size() == market.DECOR_PAGE_SIZE, "Marketplace initially creates only one mobile-friendly page of live 3D previews")
 	_check(market.find_children("DecorCard_*", "PanelContainer", true, false).size() == market.DECOR_PAGE_SIZE and market.find_child("LoadMoreDecor", true, false) != null, "decor catalog pages its rarity-framed cards without hiding the remaining inventory")
 	_check(market.find_child("DecorCategoryChips", true, false) != null and market.find_child("DecorSearch", true, false) != null, "decor catalog restores quick category chips and search")
+	market.category_scroll.scroll_horizontal = 80
+	var category_scroll_before: int = market.category_scroll.scroll_horizontal
+	var category_drag := InputEventScreenDrag.new()
+	category_drag.position = market.category_scroll.get_global_rect().get_center()
+	category_drag.relative = Vector2(-120, 2)
+	market.call("_input", category_drag)
+	_check(market.category_scroll.scroll_horizontal > category_scroll_before, "Marketplace category chips respond to horizontal Android dragging even when the gesture starts over a chip")
+	var category_release := InputEventScreenTouch.new()
+	category_release.pressed = false
+	category_release.position = category_drag.position
+	market.call("_input", category_release)
+	market.call("_set_decor_category", "beds")
+	_check(market.category == "all", "a horizontal category swipe does not accidentally activate the chip under the finger")
 	market.call("_load_more_decor")
 	await get_tree().process_frame
 	_check(market.find_children("CatalogModelPreview", "RoomItemPreview3D", true, false).size() == market.DECOR_PAGE_SIZE * 2, "Load More reveals the next modeled decor page")

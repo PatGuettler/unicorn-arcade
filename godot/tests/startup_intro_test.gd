@@ -18,6 +18,9 @@ func _run() -> void:
 	_check(startup.get_node("Video") is VideoStreamPlayer, "startup has video playback")
 	_check(startup.get_node("Video").stream != null, "startup video stream imports")
 	_check(startup.get_node("PlaybackGuard").one_shot, "startup timeout is one-shot")
+	_check(startup.get_node("SkipButton") is Button, "startup has an Android-reliable full-screen skip target")
+	_check(startup.get_node("SkipButton").button_down.is_connected(Callable(startup, "_finish_intro")), "skip reacts on press instead of waiting for release")
+	_check(startup.get_node("LoadingCover") is Control, "startup has an immediate visual handoff while the main scene finishes loading")
 	await create_timer(0.35).timeout
 	_check(startup.get_node("Video").stream_position > 0.0, "startup video decoder advances")
 	_check(not startup.get_node("Poster").visible, "poster yields after video playback begins")

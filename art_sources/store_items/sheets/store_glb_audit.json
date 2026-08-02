@@ -1,7 +1,7 @@
 {
   "status": "pass",
-  "expected_items": 95,
-  "validated_items": 95,
+  "expected_items": 101,
+  "validated_items": 101,
   "failures": [],
   "items": [
     {
@@ -894,6 +894,96 @@
       "catalog_id": "hall_pump",
       "mesh_count": 1,
       "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 12,
+      "catalog_id": "hall_ghost",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 12,
+      "catalog_id": "hall_skull",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 12,
+      "catalog_id": "hall_web",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 12,
+      "catalog_id": "hall_spider",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 12,
+      "catalog_id": "hall_bat",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 12,
+      "catalog_id": "hall_alien",
+      "mesh_count": 1,
+      "polygon_count": 12000,
       "materials": [
         "material"
       ],

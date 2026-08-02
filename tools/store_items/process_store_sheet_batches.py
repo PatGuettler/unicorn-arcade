@@ -288,6 +288,34 @@ def recenter_and_normalize(obj):
     return origin, dimensions, scale, final_min, final_max
 
 
+def remove_components_outside_bounds(obj, bounds):
+    """Remove explicitly identified cross-cell fragments after normalization."""
+    remove_indices = set()
+    removed = []
+    for component in find_components(obj.data):
+        center = sum((obj.data.vertices[index].co for index in component), Vector()) / len(component)
+        outside = (
+            ("min_x" in bounds and center.x < float(bounds["min_x"]))
+            or ("max_x" in bounds and center.x > float(bounds["max_x"]))
+            or ("min_y" in bounds and center.y < float(bounds["min_y"]))
+            or ("max_y" in bounds and center.y > float(bounds["max_y"]))
+            or ("min_z" in bounds and center.z < float(bounds["min_z"]))
+            or ("max_z" in bounds and center.z > float(bounds["max_z"]))
+        )
+        if outside:
+            remove_indices.update(component)
+            removed.append({"vertices": len(component), "center": list(map(float, center))})
+    if remove_indices:
+        bm = bmesh.new()
+        bm.from_mesh(obj.data)
+        bm.verts.ensure_lookup_table()
+        bmesh.ops.delete(bm, geom=[bm.verts[index] for index in remove_indices], context="VERTS")
+        bm.to_mesh(obj.data)
+        bm.free()
+        obj.data.update()
+    return removed
+
+
 def polygon_target(catalog_id):
     if catalog_id in RUG_IDS:
         return 7000
@@ -449,6 +477,13 @@ def process_batch(batch, input_dir, output_root):
         if len(mesh.vertices) == 0 or len(mesh.polygons) == 0:
             raise RuntimeError(f"{sheet_name} {catalog_id}: empty split")
         origin, dimensions, scale, final_min, final_max = recenter_and_normalize(obj)
+        removed_components = remove_components_outside_bounds(
+            obj,
+            batch.get("component_filters", {}).get(catalog_id, {}),
+        ) if catalog_id in batch.get("component_filters", {}) else []
+        if removed_components:
+            final_min, final_max = mesh_bounds(obj.data)
+            print(f"STORE_COMPONENT_FILTER item={catalog_id} removed={removed_components}", flush=True)
         source_polygons, optimized_polygons = decimate(obj, polygon_target(catalog_id))
         obj["catalog_id"] = catalog_id
         obj["source_sheet"] = f"{sheet_name}.png"
@@ -465,6 +500,7 @@ def process_batch(batch, input_dir, output_root):
             "normalization_scale": scale,
             "final_bounds_min": list(map(float, final_min)),
             "final_bounds_max": list(map(float, final_max)),
+            "removed_components": removed_components,
         })
         objects.append(obj)
     bpy.data.objects.remove(source, do_unlink=True)

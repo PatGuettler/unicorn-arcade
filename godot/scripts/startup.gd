@@ -8,19 +8,29 @@ const VIDEO_END_EARLY_SECONDS := 0.12
 @onready var poster: TextureRect = $Poster
 @onready var video: VideoStreamPlayer = $Video
 @onready var playback_guard: Timer = $PlaybackGuard
+@onready var loading_cover: Control = $LoadingCover
+@onready var skip_button: Button = $SkipButton
 
 var _is_finishing := false
 var _playback_started := false
+var _fallback_started := false
+var _threaded_load_requested := false
 
 
 func _ready() -> void:
 	video.finished.connect(_finish_intro)
 	playback_guard.timeout.connect(_finish_intro)
+	skip_button.button_down.connect(_finish_intro)
+	if "--startup-test" not in OS.get_cmdline_user_args():
+		_threaded_load_requested = ResourceLoader.load_threaded_request(MAIN_SCENE, "PackedScene", true) == OK
 	playback_guard.start(VIDEO_START_TIMEOUT_SECONDS)
 	video.play()
 
 
 func _process(_delta: float) -> void:
+	if _is_finishing:
+		_poll_main_scene_load()
+		return
 	# Keep the exact boot frame visible until the decoder has advanced. This
 	# prevents a black flash between Godot's static splash and video frame one.
 	var position := video.stream_position
@@ -72,6 +82,39 @@ func _finish_intro() -> void:
 	_is_finishing = true
 	playback_guard.stop()
 	video.stop()
-	set_process(false)
+	video.hide()
+	poster.hide()
+	loading_cover.show()
+	skip_button.disabled = true
+	skip_button.hide()
 	set_process_input(false)
+	_poll_main_scene_load()
+
+
+func _poll_main_scene_load() -> void:
+	if not _threaded_load_requested:
+		_start_fallback_transition()
+		return
+	var progress: Array = []
+	var status := ResourceLoader.load_threaded_get_status(MAIN_SCENE, progress)
+	if status == ResourceLoader.THREAD_LOAD_LOADED:
+		var packed := ResourceLoader.load_threaded_get(MAIN_SCENE) as PackedScene
+		if packed != null:
+			set_process(false)
+			get_tree().change_scene_to_packed(packed)
+			return
+	if status == ResourceLoader.THREAD_LOAD_FAILED or status == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
+		_start_fallback_transition()
+
+
+func _start_fallback_transition() -> void:
+	if _fallback_started:
+		return
+	_fallback_started = true
+	_fallback_transition.call_deferred()
+
+
+func _fallback_transition() -> void:
+	await get_tree().process_frame
+	set_process(false)
 	get_tree().change_scene_to_file(MAIN_SCENE)

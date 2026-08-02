@@ -1,15 +1,38 @@
 {
   "version": 1,
-  "authored_items": 101,
-  "missing_procedural_fallbacks": [
-    "hall_ghost",
-    "hall_skull",
-    "hall_web",
-    "hall_spider",
-    "hall_bat",
-    "hall_alien"
-  ],
+  "authored_items": 107,
+  "missing_procedural_fallbacks": [],
   "items": {
+    "hall_ghost": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_12_mobile.glb",
+      "node": "hall_ghost",
+      "scale": 1
+    },
+    "hall_skull": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_12_mobile.glb",
+      "node": "hall_skull",
+      "scale": 1
+    },
+    "hall_web": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_12_mobile.glb",
+      "node": "hall_web",
+      "scale": 1
+    },
+    "hall_spider": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_12_mobile.glb",
+      "node": "hall_spider",
+      "scale": 1
+    },
+    "hall_bat": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_12_mobile.glb",
+      "node": "hall_bat",
+      "scale": 1
+    },
+    "hall_alien": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_12_mobile.glb",
+      "node": "hall_alien",
+      "scale": 1
+    },
     "lamp": {
       "scene": "res://assets/models/store/store1_mobile.glb",
       "node": "lamp",
