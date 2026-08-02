@@ -48,5 +48,5 @@ expand_mode = 1
 stretch_mode = 6
 
 [node name="PlaybackGuard" type="Timer" parent="."]
-wait_time = 7.0
+wait_time = 2.5
 one_shot = true

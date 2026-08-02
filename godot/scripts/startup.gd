@@ -1,13 +1,16 @@
 extends Control
 
 const MAIN_SCENE := "res://scenes/main.tscn"
-const VIDEO_START_TIMEOUT_SECONDS := 7.0
+const VIDEO_START_TIMEOUT_SECONDS := 2.5
+const VIDEO_FINISH_GRACE_SECONDS := 0.35
+const VIDEO_END_EARLY_SECONDS := 0.12
 
 @onready var poster: TextureRect = $Poster
 @onready var video: VideoStreamPlayer = $Video
 @onready var playback_guard: Timer = $PlaybackGuard
 
 var _is_finishing := false
+var _playback_started := false
 
 
 func _ready() -> void:
@@ -20,8 +23,29 @@ func _ready() -> void:
 func _process(_delta: float) -> void:
 	# Keep the exact boot frame visible until the decoder has advanced. This
 	# prevents a black flash between Godot's static splash and video frame one.
-	if poster.visible and video.is_playing() and video.stream_position > 0.0:
+	var position := video.stream_position
+	var length := video.get_stream_length()
+	if not _playback_started and video.is_playing() and position > 0.0:
+		_playback_started = true
 		poster.hide()
+		# Once decoding starts, replace the startup timeout with a playback
+		# failsafe based on the real stream length.
+		playback_guard.start(maxf(length + VIDEO_FINISH_GRACE_SECONDS, 0.5))
+	if _is_playback_complete(position, length, video.is_playing(), _playback_started):
+		_finish_intro()
+
+
+func _is_playback_complete(
+	position: float,
+	length: float,
+	is_playing: bool,
+	has_started: bool
+) -> bool:
+	if not has_started:
+		return false
+	if not is_playing:
+		return true
+	return length > 0.0 and position >= maxf(0.0, length - VIDEO_END_EARLY_SECONDS)
 
 
 func _input(event: InputEvent) -> void:

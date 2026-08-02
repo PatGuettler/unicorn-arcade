@@ -21,6 +21,22 @@ func _run() -> void:
 	await create_timer(0.35).timeout
 	_check(startup.get_node("Video").stream_position > 0.0, "startup video decoder advances")
 	_check(not startup.get_node("Poster").visible, "poster yields after video playback begins")
+	_check(
+		not startup._is_playback_complete(5.0, 5.04, false, false),
+		"stopped decoder does not finish before playback starts"
+	)
+	_check(
+		not startup._is_playback_complete(4.5, 5.04, true, true),
+		"active video does not finish too early"
+	)
+	_check(
+		startup._is_playback_complete(4.95, 5.04, true, true),
+		"active video finishes at its visual endpoint"
+	)
+	_check(
+		startup._is_playback_complete(4.5, 5.04, false, true),
+		"stopped video finishes immediately after playback began"
+	)
 
 	var touch := InputEventScreenTouch.new()
 	touch.pressed = true
