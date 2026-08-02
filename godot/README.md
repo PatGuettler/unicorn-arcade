@@ -115,6 +115,14 @@ That first Sparkle asset was the directional graybox. It was superseded by the s
 - Expands and lifts the static Marketplace camera so enlarged horns, hooves, tails, and wings remain visible.
 - Retains real-render phone captures for the enlarged room and six-card Marketplace presentations.
 
+## Checkpoint 09.6 neutral presentation and safe framing
+
+- Home now uses its own padded orthographic camera instead of inheriting the tighter animated room framing.
+- Home and Marketplace hold each rig's authored neutral rest pose rather than freezing Walk frame 1, removing the asymmetric gait stance that made the front legs look distorted.
+- Static and hero cameras retain visible clearance around horns, ears, hooves, tails, and Mystic's wings while preserving the uniform 3x model scale.
+- Runtime checks verify the camera padding and that each stretched SubViewport keeps the same aspect ratio as its on-screen rectangle.
+- NVIDIA Compatibility-renderer phone captures live under `previews/unicorn_camera_fit_v1/`.
+
 ## Run
 
 ```powershell
@@ -131,14 +139,14 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\gu
 Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" res://tests/runtime_integration.tscn --quit-after 120
 ```
 
-Expected results: `GODOT_PARITY_TESTS_OK: 77 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 163 checks passed`.
+Expected results: `GODOT_PARITY_TESTS_OK: 77 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 165 checks passed`.
 
 ## Export the Android prototype
 
 The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.9.5-alpha-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.9.6-alpha-arm64.apk"
 ```
 
 Upgrade-compatible debug builds must use the established Godot user-profile keystore. Verify the APK signer before delivery: its SHA-256 certificate digest must be `97dcac80c34ab36c9b1e0da8cef5dc87c14911ffdb26d30aa0bc039f1e8be42b`. A portable Godot installation can silently create a different debug keystore; that APK is valid as a fresh install but Android will reject it as an update to 0.5 and earlier.

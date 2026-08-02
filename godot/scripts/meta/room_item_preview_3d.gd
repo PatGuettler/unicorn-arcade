@@ -12,9 +12,11 @@ const CHARACTER_SCENES := {
 const CHARACTER_SCALES := {"sparkle": 1.28, "rainbow": 1.28, "star": 1.28, "cloud": 1.28, "dream": 1.28, "mystic": 1.12}
 const CHARACTER_SCALE_MULTIPLIER := 3.0
 const ANIMATED_CAMERA_SIZE := 5.35
-const STATIC_CAMERA_SIZE := 6.30
+const STATIC_CAMERA_SIZE := 6.80
+const HERO_CAMERA_SIZE := 6.80
 const ANIMATION_FRAME_LIFT := Vector3(0.0, 0.38, 0.0)
 const STATIC_FRAME_LIFT := Vector3(0.0, 1.10, 0.0)
+const HERO_FRAME_LIFT := Vector3(0.0, 1.10, 0.0)
 const UnicornIdleAnimatorScene = preload("res://scripts/meta/unicorn_idle_animator.gd")
 
 var item_id := ""
@@ -23,6 +25,7 @@ var mesh_count := 0
 var uses_character_model := false
 var source_model_id := ""
 var animate_character := true
+var presentation_context := "room"
 
 
 func setup(definition: Dictionary) -> void:
@@ -30,6 +33,7 @@ func setup(definition: Dictionary) -> void:
 	category = str(definition.get("category", "cozy"))
 	uses_character_model = item_id.begins_with("companion_") or category == "companions"
 	animate_character = bool(definition.get("animate", true))
+	presentation_context = str(definition.get("presentation", "room" if animate_character else "marketplace"))
 	stretch = true
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_build_viewport()
@@ -74,9 +78,16 @@ func _build_companion(stage: Node3D) -> void:
 		_pose_companion(model)
 	var camera := Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
-	camera.size = ANIMATED_CAMERA_SIZE if animate_character else STATIC_CAMERA_SIZE
+	if not animate_character:
+		camera.size = STATIC_CAMERA_SIZE
+	elif presentation_context == "hero":
+		camera.size = HERO_CAMERA_SIZE
+	else:
+		camera.size = ANIMATED_CAMERA_SIZE
 	stage.add_child(camera)
-	var frame_lift := ANIMATION_FRAME_LIFT if animate_character else STATIC_FRAME_LIFT
+	var frame_lift := STATIC_FRAME_LIFT
+	if animate_character:
+		frame_lift = HERO_FRAME_LIFT if presentation_context == "hero" else ANIMATION_FRAME_LIFT
 	camera.look_at_from_position(Vector3(5.2, 3.25, 7.1) + frame_lift, Vector3(0.0, 1.72, -0.15) + frame_lift, Vector3.UP)
 	camera.current = true
 
@@ -94,11 +105,13 @@ func _pose_companion(model: Node) -> void:
 			animation_player.play(animation_name)
 			animation_player.seek(0.0, true)
 			animation_player.pause()
+			_reset_skeleton_poses(model)
 			return
 	if fallback != &"":
 		animation_player.play(fallback)
 		animation_player.seek(0.0, true)
 		animation_player.pause()
+	_reset_skeleton_poses(model)
 
 
 func _find_animation_player(node: Node) -> AnimationPlayer:
@@ -109,6 +122,13 @@ func _find_animation_player(node: Node) -> AnimationPlayer:
 		if found != null:
 			return found
 	return null
+
+
+func _reset_skeleton_poses(node: Node) -> void:
+	if node is Skeleton3D:
+		(node as Skeleton3D).reset_bone_poses()
+	for child in node.get_children():
+		_reset_skeleton_poses(child)
 
 
 func _add_companion_shadow(stage: Node3D) -> void:

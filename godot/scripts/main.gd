@@ -509,5 +509,5 @@ func _build_sparkle_preview() -> SubViewportContainer:
 	var container := RoomItemPreviewScene.new()
 	container.custom_minimum_size = Vector2(0, 300)
 	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	container.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions"})
+	container.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "presentation": "hero"})
 	return container

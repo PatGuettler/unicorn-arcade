@@ -127,6 +127,7 @@ func _pose_standing() -> void:
 	animation_player.play(walk_animation)
 	animation_player.seek(0.0, true)
 	animation_player.pause()
+	_reset_skeleton_poses(model)
 
 
 func _schedule_next() -> void:
@@ -159,3 +160,10 @@ func _find_animation_player(node: Node) -> AnimationPlayer:
 		if found != null:
 			return found
 	return null
+
+
+func _reset_skeleton_poses(node: Node) -> void:
+	if node is Skeleton3D:
+		(node as Skeleton3D).reset_bone_poses()
+	for child in node.get_children():
+		_reset_skeleton_poses(child)

@@ -151,11 +151,15 @@ func _run() -> void:
 		if not is_instance_valid(preview_animator) and not live_preview.animate_character:
 			static_marketplace_models += 1
 		var preview_cameras: Array[Node] = live_preview.find_children("*", "Camera3D", true, false)
-		if preview_cameras.is_empty() or preview_cameras[0].size < 6.3:
+		var preview_viewports: Array[Node] = live_preview.find_children("*", "SubViewport", true, false)
+		var viewport_matches_card: bool = not preview_viewports.is_empty() and live_preview.size.y > 0.0 and absf(
+			float(preview_viewports[0].size.x) / float(preview_viewports[0].size.y) - live_preview.size.x / live_preview.size.y
+		) <= 0.02
+		if preview_cameras.is_empty() or preview_cameras[0].size < 6.8 or not viewport_matches_card:
 			static_marketplace_framing_safe = false
 	_check(companion_previews.size() == 6 and source_model_ids.size() == 6, "Marketplace companion cards use six distinct authored GLB models")
 	_check(static_marketplace_models == 6, "Marketplace companion models remain in a static authored pose")
-	_check(static_marketplace_framing_safe, "Marketplace camera preserves horn and hoof clearance for the enlarged unicorns")
+	_check(static_marketplace_framing_safe, "Marketplace camera preserves horn and hoof clearance without stretching the enlarged unicorns")
 	market.call("_show_decor")
 	await get_tree().process_frame
 	_check(_ui_is_accessible(market), "decor Marketplace meets readable text, contrast, and touch-target minimums")
@@ -214,6 +218,7 @@ func _run() -> void:
 	var idle_animator = companion_preview.find_child("IdleAnimator", true, false) if is_instance_valid(companion_preview) else null
 	_check(is_instance_valid(idle_animator) and idle_animator.animation_names() == PackedStringArray(["walk"]), "live unicorn previews expose only the Walk animation")
 	_check(is_instance_valid(idle_animator) and is_instance_valid(idle_animator.timer) and not idle_animator.timer.is_stopped() and idle_animator.timer.wait_time >= 10.0 and idle_animator.timer.wait_time <= 30.0, "live unicorn previews schedule Walk at the requested random interval")
+	_check(is_instance_valid(idle_animator) and _skeletons_are_in_rest_pose(idle_animator.model), "unicorns use their neutral rig pose while standing instead of freezing a gait-contact frame")
 	if is_instance_valid(idle_animator):
 		idle_animator.play_random_animation_now()
 	_check(is_instance_valid(idle_animator) and idle_animator.last_animation_name == "walk", "Sparkle can immediately exercise its embedded Walk animation")
@@ -277,8 +282,19 @@ func _run() -> void:
 	var shell = MAIN_SCENE.instantiate()
 	add_child(shell)
 	await get_tree().process_frame
+	shell.call("_show_home")
+	await get_tree().process_frame
 	_check(shell.get_child_count() >= 2, "navigation shell builds its full-screen page")
 	_check(_ui_is_accessible(shell), "navigation shell meets readable text, contrast, and touch-target minimums")
+	var hero_previews := shell.find_children("*", "RoomItemPreview3D", true, false)
+	var hero_preview = hero_previews[0] if not hero_previews.is_empty() else null
+	var hero_cameras: Array[Node] = hero_preview.find_children("*", "Camera3D", true, false) if is_instance_valid(hero_preview) else []
+	var hero_camera = hero_cameras[0] if not hero_cameras.is_empty() else null
+	var hero_viewports: Array[Node] = hero_preview.find_children("*", "SubViewport", true, false) if is_instance_valid(hero_preview) else []
+	var hero_viewport_matches_rect: bool = is_instance_valid(hero_preview) and not hero_viewports.is_empty() and hero_preview.size.y > 0.0 and absf(
+		float(hero_viewports[0].size.x) / float(hero_viewports[0].size.y) - hero_preview.size.x / hero_preview.size.y
+	) <= 0.02
+	_check(is_instance_valid(hero_preview) and hero_preview.presentation_context == "hero" and is_instance_valid(hero_camera) and hero_camera.size >= 6.8 and hero_viewport_matches_rect, "home companion uses full-head hero framing without non-uniform viewport stretching")
 	var centered_slot := shell.find_child("TrueCenterHeaderSlot", true, false) as Control
 	var home_sign := shell.find_child("HomeTitleSign", true, false) as TextureRect
 	var alley_sign_button := shell.find_child("UnicornAlleyStreetSignButton", true, false) as Button
@@ -369,6 +385,20 @@ func _find_wrong_choice(game_id: String, game: Node, answer: String) -> String:
 			if str(item["label"]) != answer:
 				return str(item["label"])
 	return "__wrong__"
+
+
+func _skeletons_are_in_rest_pose(node: Node) -> bool:
+	var skeletons: Array[Node] = node.find_children("*", "Skeleton3D", true, false)
+	if node is Skeleton3D:
+		skeletons.push_front(node)
+	if skeletons.is_empty():
+		return false
+	for skeleton_node in skeletons:
+		var skeleton := skeleton_node as Skeleton3D
+		for bone_index in skeleton.get_bone_count():
+			if not skeleton.get_bone_pose(bone_index).is_equal_approx(skeleton.get_bone_rest(bone_index)):
+				return false
+	return true
 
 
 func _check(condition: bool, message: String) -> void:
