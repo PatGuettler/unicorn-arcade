@@ -10,6 +10,23 @@ const CHARACTER_SCENES := {
 	"mystic": preload("res://assets/characters/unicorns/unicorn_mystic_v1.glb"),
 }
 const CHARACTER_SCALES := {"sparkle": 1.28, "rainbow": 1.28, "star": 1.28, "cloud": 1.28, "dream": 1.28, "mystic": 1.12}
+const STORE1_FURNITURE_SCENE: PackedScene = preload("res://assets/models/store/store1_mobile.glb")
+const STORE1_FURNITURE_NODES := {
+	"lamp": "lamp",
+	"rug": "rug",
+	"plant": "plant",
+	"chair": "chair",
+	"arcade": "arcade",
+	"trophy": "trophy",
+}
+const STORE1_FURNITURE_SCALES := {
+	"lamp": 2.00,
+	"rug": 1.90,
+	"plant": 2.10,
+	"chair": 2.10,
+	"arcade": 2.05,
+	"trophy": 1.65,
+}
 const CHARACTER_SCALE_MULTIPLIER := 3.0
 const ANIMATED_CAMERA_SIZE := 6.80
 const STATIC_CAMERA_SIZE := 6.80
@@ -30,6 +47,8 @@ var uses_character_model := false
 var source_model_id := ""
 var animate_character := true
 var presentation_context := "room"
+var uses_authored_furniture_model := false
+var source_furniture_model_id := ""
 
 
 func setup(definition: Dictionary) -> void:
@@ -166,7 +185,10 @@ func _build_furniture(stage: Node3D) -> void:
 	stage.add_child(model)
 	var palette := _palette()
 	_add_shadow(model)
-	if item_id == "lamp":
+	uses_authored_furniture_model = _build_authored_furniture(model)
+	if uses_authored_furniture_model:
+		pass
+	elif item_id == "lamp":
 		_build_lava_lamp(model, palette)
 	elif category == "rugs" or item_id == "rug":
 		_build_rug(model, palette)
@@ -203,6 +225,29 @@ func _build_furniture(stage: Node3D) -> void:
 	stage.add_child(camera)
 	camera.look_at_from_position(Vector3(3.7, 2.75, 4.8), Vector3(0.0, 0.62, 0.0), Vector3.UP)
 	camera.current = true
+
+
+func _build_authored_furniture(parent: Node3D) -> bool:
+	if not STORE1_FURNITURE_NODES.has(item_id):
+		return false
+	var source_root := STORE1_FURNITURE_SCENE.instantiate() as Node3D
+	if source_root == null:
+		return false
+	var source_node := source_root.find_child(str(STORE1_FURNITURE_NODES[item_id]), true, false) as Node3D
+	if source_node == null:
+		source_root.free()
+		return false
+	var source_parent := source_node.get_parent()
+	if source_parent != null:
+		source_parent.remove_child(source_node)
+	source_node.owner = null
+	parent.add_child(source_node)
+	source_node.name = "AuthoredFurniture_%s" % item_id
+	source_node.transform = Transform3D.IDENTITY
+	source_node.scale = Vector3.ONE * float(STORE1_FURNITURE_SCALES[item_id])
+	source_root.free()
+	source_furniture_model_id = "store1:%s" % item_id
+	return true
 
 
 func _build_lighting(stage: Node3D) -> void:

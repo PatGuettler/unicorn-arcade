@@ -1,0 +1,169 @@
+{
+  "source": "C:\\Users\\Tak\\Downloads\\store1.glb",
+  "objects": [
+    {
+      "catalog_id": "lamp",
+      "catalog_name": "Lava Lamp",
+      "vertices": 29551,
+      "polygons": 57822,
+      "loose_components": 8,
+      "grid_location": [
+        -0.800792,
+        -0.021136,
+        -0.005351
+      ],
+      "local_bounds_min": [
+        -0.146915,
+        -0.146152,
+        0.0
+      ],
+      "local_bounds_max": [
+        0.146915,
+        0.146152,
+        0.708104
+      ],
+      "dimensions": [
+        0.293831,
+        0.292305,
+        0.708104
+      ]
+    },
+    {
+      "catalog_id": "rug",
+      "catalog_name": "Fluffy Rug",
+      "vertices": 37005,
+      "polygons": 72334,
+      "loose_components": 12,
+      "grid_location": [
+        -0.071947,
+        0.180728,
+        0.079953
+      ],
+      "local_bounds_min": [
+        -0.428006,
+        -0.349451,
+        0.0
+      ],
+      "local_bounds_max": [
+        0.428006,
+        0.349451,
+        0.298378
+      ],
+      "dimensions": [
+        0.856012,
+        0.698902,
+        0.298378
+      ]
+    },
+    {
+      "catalog_id": "plant",
+      "catalog_name": "Magic Plant",
+      "vertices": 72099,
+      "polygons": 135815,
+      "loose_components": 69,
+      "grid_location": [
+        0.689391,
+        0.201922,
+        0.033483
+      ],
+      "local_bounds_min": [
+        -0.259341,
+        -0.220976,
+        0.0
+      ],
+      "local_bounds_max": [
+        0.259341,
+        0.220976,
+        0.626128
+      ],
+      "dimensions": [
+        0.518682,
+        0.441952,
+        0.626128
+      ]
+    },
+    {
+      "catalog_id": "chair",
+      "catalog_name": "Gaming Chair",
+      "vertices": 52254,
+      "polygons": 97604,
+      "loose_components": 63,
+      "grid_location": [
+        -0.732432,
+        -0.296062,
+        -0.702641
+      ],
+      "local_bounds_min": [
+        -0.218634,
+        -0.232562,
+        0.0
+      ],
+      "local_bounds_max": [
+        0.218634,
+        0.232562,
+        0.686308
+      ],
+      "dimensions": [
+        0.437268,
+        0.465124,
+        0.686308
+      ]
+    },
+    {
+      "catalog_id": "arcade",
+      "catalog_name": "Mini Arcade",
+      "vertices": 63602,
+      "polygons": 124176,
+      "loose_components": 22,
+      "grid_location": [
+        -0.053258,
+        -0.154875,
+        -0.677141
+      ],
+      "local_bounds_min": [
+        -0.247266,
+        -0.279087,
+        0.0
+      ],
+      "local_bounds_max": [
+        0.247266,
+        0.279086,
+        0.682941
+      ],
+      "dimensions": [
+        0.494531,
+        0.558173,
+        0.682941
+      ]
+    },
+    {
+      "catalog_id": "trophy",
+      "catalog_name": "Gold Trophy",
+      "vertices": 32857,
+      "polygons": 62510,
+      "loose_components": 23,
+      "grid_location": [
+        0.659218,
+        -0.131026,
+        -0.68689
+      ],
+      "local_bounds_min": [
+        -0.183176,
+        -0.161104,
+        0.0
+      ],
+      "local_bounds_max": [
+        0.183177,
+        0.161104,
+        0.717202
+      ],
+      "dimensions": [
+        0.366353,
+        0.322208,
+        0.717202
+      ]
+    }
+  ],
+  "total_vertices": 287368,
+  "total_polygons": 550261
+}
