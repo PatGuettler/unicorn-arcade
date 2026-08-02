@@ -8,12 +8,12 @@ const GameplayRules = preload("res://scripts/games/gameplay_rules.gd")
 const MetaCatalog = preload("res://scripts/meta_catalog.gd")
 const RoomRules = preload("res://scripts/room_rules.gd")
 const UNICORN_IMPORTS := {
-	"sparkle": {"path": "res://assets/characters/unicorns/unicorn_sparkle_v1.glb", "signature": "sparkle_skip"},
-	"rainbow": {"path": "res://assets/characters/unicorns/unicorn_rainbow_v1.glb", "signature": "prism"},
-	"star": {"path": "res://assets/characters/unicorns/unicorn_star_v1.glb", "signature": "shooting_star"},
-	"cloud": {"path": "res://assets/characters/unicorns/unicorn_cloud_v1.glb", "signature": "thunder_puff"},
-	"dream": {"path": "res://assets/characters/unicorns/unicorn_dreamer_v1.glb", "signature": "living_dream"},
-	"mystic": {"path": "res://assets/characters/unicorns/unicorn_mystic_v1.glb", "signature": "crystal_ascension"},
+	"sparkle": {"path": "res://assets/characters/unicorns/unicorn_sparkle_v1.glb"},
+	"rainbow": {"path": "res://assets/characters/unicorns/unicorn_rainbow_v1.glb"},
+	"star": {"path": "res://assets/characters/unicorns/unicorn_star_v1.glb"},
+	"cloud": {"path": "res://assets/characters/unicorns/unicorn_cloud_v1.glb"},
+	"dream": {"path": "res://assets/characters/unicorns/unicorn_dreamer_v1.glb"},
+	"mystic": {"path": "res://assets/characters/unicorns/unicorn_mystic_v1.glb"},
 }
 
 var failures: Array[String] = []
@@ -73,7 +73,7 @@ func _init() -> void:
 	_check(defaults["owned_companions"] == ["sparkle"], "new players own Sparkle")
 	_check(defaults["inventory"].get("companion_sparkle", 0) == 1, "Sparkle includes one placeable room gift")
 	_check(defaults["settings"]["reduced_motion"] == false, "reduced motion defaults off")
-	_check(_validate_unicorn_imports(), "all six textured unicorn GLBs expose a 14-bone rig and their four authored animations")
+	_check(_validate_unicorn_imports(), "all six updated textured unicorn GLBs expose their production rig and only the Walk animation")
 	_check(WordRules.target_for_level(1) == 4, "word target formula starts at four rounds")
 	_check(WordRules.target_for_level(5) == 9, "word target formula scales at level five")
 	_check(WordRules.target_for_level(20) == 12, "word target formula caps at twelve")
@@ -135,15 +135,18 @@ func _validate_unicorn_imports() -> bool:
 		var instance: Node = scene.instantiate()
 		var skeleton := _find_skeleton(instance)
 		var animation_player := _find_animation_player(instance)
-		if skeleton == null or skeleton.get_bone_count() < 14 or animation_player == null:
+		if skeleton == null or skeleton.get_bone_count() < 38 or animation_player == null:
 			print("UNICORN_IMPORT_FAIL id=%s skeleton=%s bones=%d player=%s" % [companion_id, skeleton != null, skeleton.get_bone_count() if skeleton != null else 0, animation_player != null])
 			instance.free()
 			valid = false
 			continue
 		var animation_names := PackedStringArray()
+		var animation_keys := {}
 		for animation_name in animation_player.get_animation_list():
-			animation_names.append(String(animation_name).get_file().get_basename().to_lower())
-		var expected := ["idle", "walk", "rear_up", str(definition["signature"])]
+			var normalized_name := String(animation_name).get_file().get_basename().to_lower()
+			animation_names.append(normalized_name)
+			animation_keys[normalized_name] = animation_name
+		var expected := ["walk"]
 		var mesh_count := _count_meshes(instance)
 		var textured_surfaces := _count_textured_surfaces(instance)
 		print("UNICORN_IMPORT id=%s bones=%d meshes=%d textured=%d clips=%s" % [companion_id, skeleton.get_bone_count(), mesh_count, textured_surfaces, ",".join(animation_names)])
@@ -152,12 +155,15 @@ func _validate_unicorn_imports() -> bool:
 				print("UNICORN_IMPORT_FAIL id=%s missing_clip=%s" % [companion_id, expected_name])
 				valid = false
 				continue
-			animation_player.play(expected_name)
+			animation_player.play(animation_keys[expected_name])
 			animation_player.advance(0.1)
 			if String(animation_player.current_animation).get_file().get_basename().to_lower() != expected_name:
 				print("UNICORN_IMPORT_FAIL id=%s unplayable_clip=%s" % [companion_id, expected_name])
 				valid = false
-		if mesh_count < 5 or textured_surfaces < 5:
+		if animation_names.size() != 1:
+			print("UNICORN_IMPORT_FAIL id=%s expected_walk_only clips=%s" % [companion_id, ",".join(animation_names)])
+			valid = false
+		if mesh_count < 1 or textured_surfaces < 1:
 			valid = false
 		instance.free()
 	return valid

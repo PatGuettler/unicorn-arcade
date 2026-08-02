@@ -100,6 +100,14 @@ That first Sparkle asset was the directional graybox. It was superseded by the s
 - Room companion placement viewports are larger so the safer camera does not make the in-room unicorn feel undersized.
 - Rear-up QA samples cover all six home companions plus the smaller room presentation.
 
+## Checkpoint 09.4 updated walk-only companions
+
+- Replaces all six companion GLBs with the supplied higher-detail textured Sparkle, Rainbow, Star, Cloud, Dream, and Mystic models.
+- Retargets the verified 24 fps four-beat Walk to each model's own 38- to 45-bone anatomical chains.
+- Each runtime GLB deliberately contains only `Walk`; idle, rear-up, and signature clips are deferred to a later animation pass.
+- Home and room companions hold the first Walk pose between journeys, then walk out and back every 10 to 30 seconds.
+- Matched three-quarter and exact side review sheets cover frames 1, 7, 13, and 19 for every variant, including tail-to-hind-leg clearance.
+
 ## Run
 
 ```powershell
@@ -116,14 +124,14 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\gu
 Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" res://tests/runtime_integration.tscn --quit-after 120
 ```
 
-Expected results: `GODOT_PARITY_TESTS_OK: 77 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 159 checks passed`.
+Expected results: `GODOT_PARITY_TESTS_OK: 77 checks passed` and `GODOT_RUNTIME_INTEGRATION_OK: 160 checks passed`.
 
 ## Export the Android prototype
 
 The checked-in `Android Alpha` preset produces a debug-signed, arm64-only APK:
 
 ```powershell
-Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.9.3-alpha-arm64.apk"
+Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\guettler\unicorn\godot" --export-debug "Android Alpha" "build/android/UnicornArcade-0.9.4-alpha-arm64.apk"
 ```
 
 Upgrade-compatible debug builds must use the established Godot user-profile keystore. Verify the APK signer before delivery: its SHA-256 certificate digest must be `97dcac80c34ab36c9b1e0da8cef5dc87c14911ffdb26d30aa0bc039f1e8be42b`. A portable Godot installation can silently create a different debug keystore; that APK is valid as a fresh install but Android will reject it as an update to 0.5 and earlier.

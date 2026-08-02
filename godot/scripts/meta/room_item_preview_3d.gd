@@ -83,12 +83,20 @@ func _pose_companion(model: Node) -> void:
 	var animation_player := _find_animation_player(model)
 	if animation_player == null:
 		return
+	var fallback := StringName()
 	for animation_name in animation_player.get_animation_list():
-		if String(animation_name).get_file().get_basename().to_lower() == "idle":
+		var simple_name := String(animation_name).get_file().get_basename().to_lower()
+		if simple_name == "walk":
+			fallback = animation_name
+		if simple_name == "idle":
 			animation_player.play(animation_name)
 			animation_player.seek(0.0, true)
 			animation_player.pause()
 			return
+	if fallback != &"":
+		animation_player.play(fallback)
+		animation_player.seek(0.0, true)
+		animation_player.pause()
 
 
 func _find_animation_player(node: Node) -> AnimationPlayer:

@@ -11,6 +11,7 @@ var model: Node3D
 var animation_player: AnimationPlayer
 var timer: Timer
 var available_animations: Array[StringName] = []
+var walk_animation := StringName()
 var idle_animation := StringName()
 var active_action := StringName()
 var last_animation_name := ""
@@ -28,21 +29,22 @@ func setup(target: Node3D) -> void:
 	rng.randomize()
 	animation_player = _find_animation_player(model)
 	timer = Timer.new()
-	timer.name = "RandomAnimationTimer"
+	timer.name = "WalkTimer"
 	timer.one_shot = true
-	timer.timeout.connect(_play_random_animation)
+	timer.timeout.connect(_start_walk)
 	add_child(timer)
 	if not is_instance_valid(animation_player):
 		push_warning("Unicorn model %s has no AnimationPlayer." % model.name)
 		return
-	animation_player.animation_finished.connect(_on_animation_finished)
 	_collect_animations()
-	idle_animation = _resolve_animation("idle")
-	if idle_animation == &"":
-		push_warning("Unicorn model %s has no idle animation." % model.name)
+	walk_animation = _resolve_animation("walk")
+	if walk_animation == &"":
+		push_warning("Unicorn model %s has no Walk animation." % model.name)
 		return
-	_configure_loop_modes()
-	_begin_idle()
+	var animation := animation_player.get_animation(walk_animation)
+	if animation != null:
+		animation.loop_mode = Animation.LOOP_LINEAR
+	_pose_standing()
 	_schedule_next()
 
 
@@ -56,58 +58,33 @@ func animation_names() -> PackedStringArray:
 func play_random_animation_now() -> void:
 	if is_instance_valid(timer):
 		timer.stop()
-	_play_random_animation()
+	_start_walk()
 
 
 func play_animation_now(requested: String) -> bool:
-	var resolved := _resolve_animation(requested)
-	if resolved == &"" or resolved == idle_animation:
+	if requested.to_lower() != "walk" or walk_animation == &"":
 		return false
 	if is_instance_valid(timer):
 		timer.stop()
-	_start_action(resolved)
+	_start_walk()
 	return true
 
 
 func _collect_animations() -> void:
 	available_animations.clear()
 	for animation_name in animation_player.get_animation_list():
-		if _simple_name(animation_name).to_lower() == "reset":
-			continue
-		available_animations.append(animation_name)
+		if _simple_name(animation_name) != "reset":
+			available_animations.append(animation_name)
 
 
-func _configure_loop_modes() -> void:
-	for animation_name in available_animations:
-		var animation := animation_player.get_animation(animation_name)
-		if animation != null:
-			var simple_name := _simple_name(animation_name)
-			animation.loop_mode = Animation.LOOP_LINEAR if animation_name == idle_animation or simple_name == "walk" else Animation.LOOP_NONE
-
-
-func _play_random_animation() -> void:
-	if not is_instance_valid(animation_player):
+func _start_walk() -> void:
+	if not is_instance_valid(animation_player) or walk_animation == &"":
 		return
-	var choices: Array[StringName] = []
-	for animation_name in available_animations:
-		if animation_name != idle_animation and _simple_name(animation_name).to_lower() != "reset":
-			choices.append(animation_name)
-	if choices.is_empty():
-		_schedule_next()
-		return
-	var selected := choices[rng.randi_range(0, choices.size() - 1)]
-	if choices.size() > 1 and _simple_name(selected) == last_animation_name:
-		selected = choices[(choices.find(selected) + 1) % choices.size()]
-	_start_action(selected)
-
-
-func _start_action(selected: StringName) -> void:
 	_cancel_walk_journey()
-	active_action = selected
-	last_animation_name = _simple_name(selected)
-	animation_player.play(selected, 0.18)
-	if last_animation_name == "walk":
-		_start_walk_journey()
+	active_action = walk_animation
+	last_animation_name = "walk"
+	animation_player.play(walk_animation, 0.18)
+	_start_walk_journey()
 
 
 func _start_walk_journey() -> void:
@@ -131,7 +108,7 @@ func _finish_walk_journey() -> void:
 		model.rotation.y = home_rotation_y
 	walk_tween = null
 	active_action = &""
-	_begin_idle()
+	_pose_standing()
 	_schedule_next()
 
 
@@ -144,19 +121,12 @@ func _cancel_walk_journey() -> void:
 		model.rotation.y = home_rotation_y
 
 
-func _on_animation_finished(animation_name: StringName) -> void:
-	if active_action == &"" or animation_name != active_action:
+func _pose_standing() -> void:
+	if not is_instance_valid(animation_player) or walk_animation == &"":
 		return
-	if _simple_name(active_action) == "walk":
-		return
-	active_action = &""
-	_begin_idle()
-	_schedule_next()
-
-
-func _begin_idle() -> void:
-	if is_instance_valid(animation_player) and idle_animation != &"":
-		animation_player.play(idle_animation, 0.18)
+	animation_player.play(walk_animation)
+	animation_player.seek(0.0, true)
+	animation_player.pause()
 
 
 func _schedule_next() -> void:
@@ -172,7 +142,7 @@ func _schedule_next() -> void:
 
 func _resolve_animation(requested: String) -> StringName:
 	for animation_name in available_animations:
-		if _simple_name(animation_name).to_lower() == requested.to_lower():
+		if _simple_name(animation_name) == requested.to_lower():
 			return animation_name
 	return &""
 
