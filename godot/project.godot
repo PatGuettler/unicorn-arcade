@@ -3,9 +3,13 @@ config_version=5
 [application]
 
 config/name="Unicorn Arcade"
-run/main_scene="res://scenes/main.tscn"
+run/main_scene="res://scenes/startup.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 config/icon="res://icon.png"
+boot_splash/image="res://assets/startup/unicorn_alley_opening_frame_v1.png"
+boot_splash/bg_color=Color(0.025, 0.039, 0.09, 1)
+boot_splash/fullsize=true
+boot_splash/use_filter=true
 
 [autoload]
 
