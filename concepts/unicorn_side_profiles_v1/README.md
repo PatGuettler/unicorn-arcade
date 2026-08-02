@@ -1,6 +1,16 @@
 # Unicorn Side-Profile Concepts v1
 
-These six sheets are modeling references for the Unicorn Arcade cast. The supplied monochrome unicorn image is the shared proportion and silhouette anchor.
+These six sheets are modeling references for the Unicorn Arcade cast. `shared_shape_reference.jpg` is the user-supplied canonical proportion and silhouette anchor; preserve that image unchanged.
+
+## Reference inventory
+
+- `shared_shape_reference.jpg`: canonical shared body shape supplied by the project owner.
+- `sparkle_side_v1.png`
+- `rainbow_side_v1.png`
+- `star_side_v1.png`
+- `cloud_side_v1.png`
+- `dreamer_side_v1.png`
+- `mystic_side_v1.png`
 
 ## Shared construction rules
 
