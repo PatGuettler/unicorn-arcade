@@ -1,0 +1,254 @@
+{
+  "sheet": 10,
+  "source": "C:\\Users\\Tak\\Downloads\\Meshy_AI_Whimsical_Holiday_Toy_0802212424_texture.glb",
+  "source_bytes": 21925204,
+  "source_sha256": "cec08dc3ee85218e1377f7ef6672574fe229ce6fb756b32c9c4f99aea78b3b91",
+  "grid_bounds_min": [
+    -0.5997300148010254,
+    -0.2921009957790375,
+    -0.9503160119056702
+  ],
+  "grid_bounds_max": [
+    0.5976250171661377,
+    0.2938080132007599,
+    0.9488229751586914
+  ],
+  "grid_thresholds": {
+    "row_x": [
+      -0.03857949934899807,
+      -0.0018164999783039093,
+      -0.040586501359939575
+    ],
+    "left_z": [
+      -0.29443949460983276,
+      0.31851649284362793
+    ],
+    "right_z": [
+      -0.31943149864673615,
+      0.3608585000038147
+    ]
+  },
+  "items": [
+    {
+      "catalog_id": "radio",
+      "cell": "top_left",
+      "source_vertices": 7098,
+      "source_polygons": 48956,
+      "optimized_vertices": 7098,
+      "optimized_polygons": 12000,
+      "source_origin": [
+        -0.35461050271987915,
+        0.0742189958691597,
+        0.437514990568161
+      ],
+      "source_dimensions": [
+        0.4902390241622925,
+        0.4069499969482422,
+        0.511307954788208
+      ],
+      "normalization_scale": 3.0314411999360247,
+      "final_bounds_min": [
+        -0.7430654168128967,
+        -0.6168224811553955,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7430654168128967,
+        0.6168224811553955,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "phone_retro",
+      "cell": "top_right",
+      "source_vertices": 9143,
+      "source_polygons": 104072,
+      "optimized_vertices": 9143,
+      "optimized_polygons": 12000,
+      "source_origin": [
+        0.3149785101413727,
+        0.04527550935745239,
+        0.39109599590301514
+      ],
+      "source_dimensions": [
+        0.56529301404953,
+        0.497065007686615,
+        0.465831995010376
+      ],
+      "normalization_scale": 2.7419408368350924,
+      "final_bounds_min": [
+        -0.7749999761581421,
+        -0.6814613938331604,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7749999761581421,
+        0.6814613938331604,
+        1.2772836685180664
+      ]
+    },
+    {
+      "catalog_id": "camera",
+      "cell": "middle_left",
+      "source_vertices": 6850,
+      "source_polygons": 46484,
+      "optimized_vertices": 6850,
+      "optimized_polygons": 11999,
+      "source_origin": [
+        -0.3345564901828766,
+        0.022785499691963196,
+        -0.2534869909286499
+      ],
+      "source_dimensions": [
+        0.49890297651290894,
+        0.41367700695991516,
+        0.45300498604774475
+      ],
+      "normalization_scale": 3.106816501344113,
+      "final_bounds_min": [
+        -0.7750000357627869,
+        -0.6426092982292175,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7750000357627869,
+        0.6426092982292175,
+        1.4074033498764038
+      ]
+    },
+    {
+      "catalog_id": "xmas_tree",
+      "cell": "middle_right",
+      "source_vertices": 7666,
+      "source_polygons": 72182,
+      "optimized_vertices": 7666,
+      "optimized_polygons": 11999,
+      "source_origin": [
+        0.2904464900493622,
+        -0.044377006590366364,
+        -0.2681039869785309
+      ],
+      "source_dimensions": [
+        0.41794899106025696,
+        0.4236360192298889,
+        0.5987249612808228
+      ],
+      "normalization_scale": 2.58883477429129,
+      "final_bounds_min": [
+        -0.5410004258155823,
+        -0.5483618378639221,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.541000485420227,
+        0.5483618378639221,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "xmas_santa",
+      "cell": "bottom_left",
+      "source_vertices": 7969,
+      "source_polygons": 84860,
+      "optimized_vertices": 7969,
+      "optimized_polygons": 12000,
+      "source_origin": [
+        -0.36026450991630554,
+        -0.060584500432014465,
+        -0.9285650253295898
+      ],
+      "source_dimensions": [
+        0.4738209843635559,
+        0.463032990694046,
+        0.5931730270385742
+      ],
+      "normalization_scale": 2.613065546386018,
+      "final_bounds_min": [
+        -0.619062602519989,
+        -0.6049677729606628,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6190626621246338,
+        0.6049677729606628,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "xmas_sock",
+      "cell": "bottom_right",
+      "source_vertices": 6816,
+      "source_polygons": 42488,
+      "optimized_vertices": 6816,
+      "optimized_polygons": 11998,
+      "source_origin": [
+        0.2704555094242096,
+        -0.05974249914288521,
+        -0.9503160119056702
+      ],
+      "source_dimensions": [
+        0.4565489888191223,
+        0.2741070091724396,
+        0.5795570015907288
+      ],
+      "normalization_scale": 2.674456517211707,
+      "final_bounds_min": [
+        -0.6105102896690369,
+        -0.36654365062713623,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6105102300643921,
+        0.36654365062713623,
+        1.5500000715255737
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "name": "base_color",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "emissive",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "metallic_roughness",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "normal",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    }
+  ],
+  "optimized_glb_bytes": 7434448
+}

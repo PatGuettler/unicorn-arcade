@@ -1,0 +1,519 @@
+{
+  "version": 1,
+  "authored_items": 101,
+  "missing_procedural_fallbacks": [
+    "hall_ghost",
+    "hall_skull",
+    "hall_web",
+    "hall_spider",
+    "hall_bat",
+    "hall_alien"
+  ],
+  "items": {
+    "lamp": {
+      "scene": "res://assets/models/store/store1_mobile.glb",
+      "node": "lamp",
+      "scale": 2
+    },
+    "rug": {
+      "scene": "res://assets/models/store/store1_mobile.glb",
+      "node": "rug",
+      "scale": 1.9
+    },
+    "plant": {
+      "scene": "res://assets/models/store/store1_mobile.glb",
+      "node": "plant",
+      "scale": 2.1
+    },
+    "chair": {
+      "scene": "res://assets/models/store/store1_mobile.glb",
+      "node": "chair",
+      "scale": 2.1
+    },
+    "arcade": {
+      "scene": "res://assets/models/store/store1_mobile.glb",
+      "node": "arcade",
+      "scale": 2.05
+    },
+    "trophy": {
+      "scene": "res://assets/models/store/store1_mobile.glb",
+      "node": "trophy",
+      "scale": 1.65
+    },
+    "radio": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_10_mobile.glb",
+      "node": "radio",
+      "scale": 1
+    },
+    "phone_retro": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_10_mobile.glb",
+      "node": "phone_retro",
+      "scale": 1
+    },
+    "camera": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_10_mobile.glb",
+      "node": "camera",
+      "scale": 1
+    },
+    "xmas_tree": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_10_mobile.glb",
+      "node": "xmas_tree",
+      "scale": 1
+    },
+    "xmas_santa": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_10_mobile.glb",
+      "node": "xmas_santa",
+      "scale": 1
+    },
+    "xmas_sock": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_10_mobile.glb",
+      "node": "xmas_sock",
+      "scale": 1
+    },
+    "xmas_gift": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_11_mobile.glb",
+      "node": "xmas_gift",
+      "scale": 1
+    },
+    "xmas_bell": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_11_mobile.glb",
+      "node": "xmas_bell",
+      "scale": 1
+    },
+    "xmas_deer": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_11_mobile.glb",
+      "node": "xmas_deer",
+      "scale": 1
+    },
+    "xmas_snow": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_11_mobile.glb",
+      "node": "xmas_snow",
+      "scale": 1
+    },
+    "xmas_flake": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_11_mobile.glb",
+      "node": "xmas_flake",
+      "scale": 1
+    },
+    "hall_pump": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_11_mobile.glb",
+      "node": "hall_pump",
+      "scale": 1
+    },
+    "hall_mask": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_13_mobile.glb",
+      "node": "hall_mask",
+      "scale": 1
+    },
+    "mush_stool": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_13_mobile.glb",
+      "node": "mush_stool",
+      "scale": 1
+    },
+    "mom_tea": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_13_mobile.glb",
+      "node": "mom_tea",
+      "scale": 1
+    },
+    "fruit_basket": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_13_mobile.glb",
+      "node": "fruit_basket",
+      "scale": 1
+    },
+    "bamboo_speaker": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_13_mobile.glb",
+      "node": "bamboo_speaker",
+      "scale": 1
+    },
+    "butterfly_model": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_13_mobile.glb",
+      "node": "butterfly_model",
+      "scale": 1
+    },
+    "star_lamp": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_14_mobile.glb",
+      "node": "star_lamp",
+      "scale": 1
+    },
+    "moon_chair": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_14_mobile.glb",
+      "node": "moon_chair",
+      "scale": 1
+    },
+    "moss_ball": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_14_mobile.glb",
+      "node": "moss_ball",
+      "scale": 1
+    },
+    "espresso_maker": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_14_mobile.glb",
+      "node": "espresso_maker",
+      "scale": 1
+    },
+    "ironwood_counter": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_14_mobile.glb",
+      "node": "ironwood_counter",
+      "scale": 1
+    },
+    "fairy_lights": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_14_mobile.glb",
+      "node": "fairy_lights",
+      "scale": 1
+    },
+    "skylight_poster": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_15_mobile.glb",
+      "node": "skylight_poster",
+      "scale": 1
+    },
+    "peach_wall": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_15_mobile.glb",
+      "node": "peach_wall",
+      "scale": 1
+    },
+    "crown_display": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_15_mobile.glb",
+      "node": "crown_display",
+      "scale": 1
+    },
+    "golden_toilet": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_15_mobile.glb",
+      "node": "golden_toilet",
+      "scale": 1
+    },
+    "studio_spot": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_15_mobile.glb",
+      "node": "studio_spot",
+      "scale": 1
+    },
+    "book_stack": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_15_mobile.glb",
+      "node": "book_stack",
+      "scale": 1
+    },
+    "record_player": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_16_mobile.glb",
+      "node": "record_player",
+      "scale": 1
+    },
+    "bubble_machine": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_16_mobile.glb",
+      "node": "bubble_machine",
+      "scale": 1
+    },
+    "zen_garden": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_16_mobile.glb",
+      "node": "zen_garden",
+      "scale": 1
+    },
+    "terrarium": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_16_mobile.glb",
+      "node": "terrarium",
+      "scale": 1
+    },
+    "uni_fountain": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_16_mobile.glb",
+      "node": "uni_fountain",
+      "scale": 1
+    },
+    "crystal_ball": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_16_mobile.glb",
+      "node": "crystal_ball",
+      "scale": 1
+    },
+    "hammock": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_17_mobile.glb",
+      "node": "hammock",
+      "scale": 1
+    },
+    "brick_oven": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_17_mobile.glb",
+      "node": "brick_oven",
+      "scale": 1
+    },
+    "ac_fish_tank": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_17_mobile.glb",
+      "node": "ac_fish_tank",
+      "scale": 1
+    },
+    "ac_anthurium": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_17_mobile.glb",
+      "node": "ac_anthurium",
+      "scale": 1
+    },
+    "ac_typewriter": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_17_mobile.glb",
+      "node": "ac_typewriter",
+      "scale": 1
+    },
+    "ac_cello": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_17_mobile.glb",
+      "node": "ac_cello",
+      "scale": 1
+    },
+    "ac_menu_board": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_18_mobile.glb",
+      "node": "ac_menu_board",
+      "scale": 1
+    },
+    "uni_rainbow_shelf": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_18_mobile.glb",
+      "node": "uni_rainbow_shelf",
+      "scale": 1
+    },
+    "uni_glitter_rug": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_18_mobile.glb",
+      "node": "uni_glitter_rug",
+      "scale": 1
+    },
+    "uni_cloud_lamp": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_18_mobile.glb",
+      "node": "uni_cloud_lamp",
+      "scale": 1
+    },
+    "uni_horn_planter": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_18_mobile.glb",
+      "node": "uni_horn_planter",
+      "scale": 1
+    },
+    "bed_single": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_02_mobile.glb",
+      "node": "bed_single",
+      "scale": 1
+    },
+    "bed_king": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_02_mobile.glb",
+      "node": "bed_king",
+      "scale": 1
+    },
+    "bed_race": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_02_mobile.glb",
+      "node": "bed_race",
+      "scale": 1
+    },
+    "bed_cloud": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_02_mobile.glb",
+      "node": "bed_cloud",
+      "scale": 1
+    },
+    "bed_bunk": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_02_mobile.glb",
+      "node": "bed_bunk",
+      "scale": 1
+    },
+    "bed_coffin": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_02_mobile.glb",
+      "node": "bed_coffin",
+      "scale": 1
+    },
+    "table_coffee": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_03_mobile.glb",
+      "node": "table_coffee",
+      "scale": 1
+    },
+    "table_dining": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_03_mobile.glb",
+      "node": "table_dining",
+      "scale": 1
+    },
+    "desk_office": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_03_mobile.glb",
+      "node": "desk_office",
+      "scale": 1
+    },
+    "table_night": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_03_mobile.glb",
+      "node": "table_night",
+      "scale": 1
+    },
+    "table_pool": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_03_mobile.glb",
+      "node": "table_pool",
+      "scale": 1
+    },
+    "lamp_floor": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_03_mobile.glb",
+      "node": "lamp_floor",
+      "scale": 1
+    },
+    "lamp_desk": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_04_mobile.glb",
+      "node": "lamp_desk",
+      "scale": 1
+    },
+    "chandelier": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_04_mobile.glb",
+      "node": "chandelier",
+      "scale": 1
+    },
+    "candle": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_04_mobile.glb",
+      "node": "candle",
+      "scale": 1
+    },
+    "lantern": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_04_mobile.glb",
+      "node": "lantern",
+      "scale": 1
+    },
+    "disco": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_04_mobile.glb",
+      "node": "disco",
+      "scale": 1
+    },
+    "flashlight": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_04_mobile.glb",
+      "node": "flashlight",
+      "scale": 1
+    },
+    "rug_welcome": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_05_mobile.glb",
+      "node": "rug_welcome",
+      "scale": 1
+    },
+    "rug_persian": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_05_mobile.glb",
+      "node": "rug_persian",
+      "scale": 1
+    },
+    "rug_bear": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_05_mobile.glb",
+      "node": "rug_bear",
+      "scale": 1
+    },
+    "rug_magic": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_05_mobile.glb",
+      "node": "rug_magic",
+      "scale": 1
+    },
+    "rug_puzzle": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_05_mobile.glb",
+      "node": "rug_puzzle",
+      "scale": 1
+    },
+    "pet_cat_blk": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_05_mobile.glb",
+      "node": "pet_cat_blk",
+      "scale": 1
+    },
+    "pet_cat_org": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_06_mobile.glb",
+      "node": "pet_cat_org",
+      "scale": 1
+    },
+    "pet_dog_dog": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_06_mobile.glb",
+      "node": "pet_dog_dog",
+      "scale": 1
+    },
+    "pet_dog_pud": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_06_mobile.glb",
+      "node": "pet_dog_pud",
+      "scale": 1
+    },
+    "pet_dog_ser": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_06_mobile.glb",
+      "node": "pet_dog_ser",
+      "scale": 1
+    },
+    "pet_paw": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_06_mobile.glb",
+      "node": "pet_paw",
+      "scale": 1
+    },
+    "pet_fish": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_06_mobile.glb",
+      "node": "pet_fish",
+      "scale": 1
+    },
+    "pet_hamster": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_07_mobile.glb",
+      "node": "pet_hamster",
+      "scale": 1
+    },
+    "pet_mouse": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_07_mobile.glb",
+      "node": "pet_mouse",
+      "scale": 1
+    },
+    "pet_chick": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_07_mobile.glb",
+      "node": "pet_chick",
+      "scale": 1
+    },
+    "pet_frog": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_07_mobile.glb",
+      "node": "pet_frog",
+      "scale": 1
+    },
+    "pet_turtle": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_07_mobile.glb",
+      "node": "pet_turtle",
+      "scale": 1
+    },
+    "pet_dragon": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_07_mobile.glb",
+      "node": "pet_dragon",
+      "scale": 1
+    },
+    "toy_bear": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_08_mobile.glb",
+      "node": "toy_bear",
+      "scale": 1
+    },
+    "toy_robot": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_08_mobile.glb",
+      "node": "toy_robot",
+      "scale": 1
+    },
+    "toy_doll": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_08_mobile.glb",
+      "node": "toy_doll",
+      "scale": 1
+    },
+    "toy_kite": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_08_mobile.glb",
+      "node": "toy_kite",
+      "scale": 1
+    },
+    "toy_yoyo": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_08_mobile.glb",
+      "node": "toy_yoyo",
+      "scale": 1
+    },
+    "toy_train": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_08_mobile.glb",
+      "node": "toy_train",
+      "scale": 1
+    },
+    "toy_blocks": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_09_mobile.glb",
+      "node": "toy_blocks",
+      "scale": 1
+    },
+    "toy_ball": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_09_mobile.glb",
+      "node": "toy_ball",
+      "scale": 1
+    },
+    "tv_retro": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_09_mobile.glb",
+      "node": "tv_retro",
+      "scale": 1
+    },
+    "tv_flat": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_09_mobile.glb",
+      "node": "tv_flat",
+      "scale": 1
+    },
+    "pc_gamer": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_09_mobile.glb",
+      "node": "pc_gamer",
+      "scale": 1
+    },
+    "console": {
+      "scene": "res://assets/models/store/sheets/store_items_sheet_09_mobile.glb",
+      "node": "console",
+      "scale": 1
+    }
+  }
+}

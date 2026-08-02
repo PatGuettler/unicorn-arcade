@@ -10,23 +10,7 @@ const CHARACTER_SCENES := {
 	"mystic": preload("res://assets/characters/unicorns/unicorn_mystic_v1.glb"),
 }
 const CHARACTER_SCALES := {"sparkle": 1.28, "rainbow": 1.28, "star": 1.28, "cloud": 1.28, "dream": 1.28, "mystic": 1.12}
-const STORE1_FURNITURE_SCENE: PackedScene = preload("res://assets/models/store/store1_mobile.glb")
-const STORE1_FURNITURE_NODES := {
-	"lamp": "lamp",
-	"rug": "rug",
-	"plant": "plant",
-	"chair": "chair",
-	"arcade": "arcade",
-	"trophy": "trophy",
-}
-const STORE1_FURNITURE_SCALES := {
-	"lamp": 2.00,
-	"rug": 1.90,
-	"plant": 2.10,
-	"chair": 2.10,
-	"arcade": 2.05,
-	"trophy": 1.65,
-}
+const STORE_MODEL_CATALOG_PATH := "res://data/store_model_catalog.json"
 const CHARACTER_SCALE_MULTIPLIER := 3.0
 const ANIMATED_CAMERA_SIZE := 6.80
 const STATIC_CAMERA_SIZE := 6.80
@@ -39,6 +23,9 @@ const BACKGROUND_FRAME_LIFT := Vector3(0.0, 0.92, 0.0)
 const SIDE_CAMERA_POSITION := Vector3(-8.40, 3.18, 0.90)
 const SIDE_CAMERA_TARGET := Vector3(0.0, 1.72, -0.15)
 const UnicornIdleAnimatorScene = preload("res://scripts/meta/unicorn_idle_animator.gd")
+
+static var _store_model_catalog: Dictionary = {}
+static var _store_scene_cache: Dictionary = {}
 
 var item_id := ""
 var category := "cozy"
@@ -228,12 +215,18 @@ func _build_furniture(stage: Node3D) -> void:
 
 
 func _build_authored_furniture(parent: Node3D) -> bool:
-	if not STORE1_FURNITURE_NODES.has(item_id):
+	var definition: Dictionary = _store_catalog_items().get(item_id, {})
+	if definition.is_empty():
 		return false
-	var source_root := STORE1_FURNITURE_SCENE.instantiate() as Node3D
+	var scene_path := str(definition.get("scene", ""))
+	var node_name := str(definition.get("node", item_id))
+	var packed_scene := _load_store_scene(scene_path)
+	if packed_scene == null:
+		return false
+	var source_root := packed_scene.instantiate() as Node3D
 	if source_root == null:
 		return false
-	var source_node := source_root.find_child(str(STORE1_FURNITURE_NODES[item_id]), true, false) as Node3D
+	var source_node := source_root.find_child(node_name, true, false) as Node3D
 	if source_node == null:
 		source_root.free()
 		return false
@@ -244,10 +237,34 @@ func _build_authored_furniture(parent: Node3D) -> bool:
 	parent.add_child(source_node)
 	source_node.name = "AuthoredFurniture_%s" % item_id
 	source_node.transform = Transform3D.IDENTITY
-	source_node.scale = Vector3.ONE * float(STORE1_FURNITURE_SCALES[item_id])
+	source_node.scale = Vector3.ONE * float(definition.get("scale", 1.0))
 	source_root.free()
-	source_furniture_model_id = "store1:%s" % item_id
+	var source_name := scene_path.get_file().get_basename().trim_suffix("_mobile")
+	source_furniture_model_id = "%s:%s" % [source_name, item_id]
 	return true
+
+
+static func _store_catalog_items() -> Dictionary:
+	if not _store_model_catalog.is_empty():
+		return _store_model_catalog
+	var file := FileAccess.open(STORE_MODEL_CATALOG_PATH, FileAccess.READ)
+	if file == null:
+		return {}
+	var parsed = JSON.parse_string(file.get_as_text())
+	if typeof(parsed) == TYPE_DICTIONARY:
+		_store_model_catalog = parsed.get("items", {})
+	return _store_model_catalog
+
+
+static func _load_store_scene(scene_path: String) -> PackedScene:
+	if scene_path.is_empty():
+		return null
+	if _store_scene_cache.has(scene_path):
+		return _store_scene_cache[scene_path] as PackedScene
+	var packed_scene := load(scene_path) as PackedScene
+	if packed_scene != null:
+		_store_scene_cache[scene_path] = packed_scene
+	return packed_scene
 
 
 func _build_lighting(stage: Node3D) -> void:

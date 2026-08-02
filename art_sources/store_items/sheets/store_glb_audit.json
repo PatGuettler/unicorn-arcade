@@ -1,0 +1,1433 @@
+{
+  "status": "pass",
+  "expected_items": 95,
+  "validated_items": 95,
+  "failures": [],
+  "items": [
+    {
+      "sheet": 2,
+      "catalog_id": "bed_single",
+      "mesh_count": 1,
+      "polygon_count": 14999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 2,
+      "catalog_id": "bed_king",
+      "mesh_count": 1,
+      "polygon_count": 15000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 2,
+      "catalog_id": "bed_race",
+      "mesh_count": 1,
+      "polygon_count": 14999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 2,
+      "catalog_id": "bed_cloud",
+      "mesh_count": 1,
+      "polygon_count": 15000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 2,
+      "catalog_id": "bed_bunk",
+      "mesh_count": 1,
+      "polygon_count": 14999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 2,
+      "catalog_id": "bed_coffin",
+      "mesh_count": 1,
+      "polygon_count": 15000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 3,
+      "catalog_id": "table_coffee",
+      "mesh_count": 1,
+      "polygon_count": 15000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 3,
+      "catalog_id": "table_dining",
+      "mesh_count": 1,
+      "polygon_count": 14999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 3,
+      "catalog_id": "desk_office",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 3,
+      "catalog_id": "table_night",
+      "mesh_count": 1,
+      "polygon_count": 14999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 3,
+      "catalog_id": "table_pool",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 3,
+      "catalog_id": "lamp_floor",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 4,
+      "catalog_id": "lamp_desk",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 4,
+      "catalog_id": "chandelier",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 4,
+      "catalog_id": "candle",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 4,
+      "catalog_id": "lantern",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 4,
+      "catalog_id": "disco",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 4,
+      "catalog_id": "flashlight",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 5,
+      "catalog_id": "rug_welcome",
+      "mesh_count": 1,
+      "polygon_count": 7000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 5,
+      "catalog_id": "rug_persian",
+      "mesh_count": 1,
+      "polygon_count": 7000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 5,
+      "catalog_id": "rug_bear",
+      "mesh_count": 1,
+      "polygon_count": 6999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 5,
+      "catalog_id": "rug_magic",
+      "mesh_count": 1,
+      "polygon_count": 7000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 5,
+      "catalog_id": "rug_puzzle",
+      "mesh_count": 1,
+      "polygon_count": 7000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 5,
+      "catalog_id": "pet_cat_blk",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 6,
+      "catalog_id": "pet_cat_org",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 6,
+      "catalog_id": "pet_dog_dog",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 6,
+      "catalog_id": "pet_dog_pud",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 6,
+      "catalog_id": "pet_dog_ser",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 6,
+      "catalog_id": "pet_paw",
+      "mesh_count": 1,
+      "polygon_count": 6999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 6,
+      "catalog_id": "pet_fish",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 7,
+      "catalog_id": "pet_hamster",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 7,
+      "catalog_id": "pet_mouse",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 7,
+      "catalog_id": "pet_chick",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 7,
+      "catalog_id": "pet_frog",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 7,
+      "catalog_id": "pet_turtle",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 7,
+      "catalog_id": "pet_dragon",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 8,
+      "catalog_id": "toy_bear",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 8,
+      "catalog_id": "toy_robot",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 8,
+      "catalog_id": "toy_doll",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 8,
+      "catalog_id": "toy_kite",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 8,
+      "catalog_id": "toy_yoyo",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 8,
+      "catalog_id": "toy_train",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 9,
+      "catalog_id": "toy_blocks",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 9,
+      "catalog_id": "toy_ball",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 9,
+      "catalog_id": "tv_retro",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 9,
+      "catalog_id": "tv_flat",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 9,
+      "catalog_id": "pc_gamer",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 9,
+      "catalog_id": "console",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 10,
+      "catalog_id": "radio",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 10,
+      "catalog_id": "phone_retro",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 10,
+      "catalog_id": "camera",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 10,
+      "catalog_id": "xmas_tree",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 10,
+      "catalog_id": "xmas_santa",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 10,
+      "catalog_id": "xmas_sock",
+      "mesh_count": 1,
+      "polygon_count": 11998,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 11,
+      "catalog_id": "xmas_gift",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 11,
+      "catalog_id": "xmas_bell",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 11,
+      "catalog_id": "xmas_deer",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 11,
+      "catalog_id": "xmas_snow",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 11,
+      "catalog_id": "xmas_flake",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 11,
+      "catalog_id": "hall_pump",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 13,
+      "catalog_id": "hall_mask",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 13,
+      "catalog_id": "mush_stool",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 13,
+      "catalog_id": "mom_tea",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 13,
+      "catalog_id": "fruit_basket",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 13,
+      "catalog_id": "bamboo_speaker",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 13,
+      "catalog_id": "butterfly_model",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 14,
+      "catalog_id": "star_lamp",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 14,
+      "catalog_id": "moon_chair",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 14,
+      "catalog_id": "moss_ball",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 14,
+      "catalog_id": "espresso_maker",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 14,
+      "catalog_id": "ironwood_counter",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 14,
+      "catalog_id": "fairy_lights",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 15,
+      "catalog_id": "skylight_poster",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 15,
+      "catalog_id": "peach_wall",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 15,
+      "catalog_id": "crown_display",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 15,
+      "catalog_id": "golden_toilet",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 15,
+      "catalog_id": "studio_spot",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 15,
+      "catalog_id": "book_stack",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 16,
+      "catalog_id": "record_player",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 16,
+      "catalog_id": "bubble_machine",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 16,
+      "catalog_id": "zen_garden",
+      "mesh_count": 1,
+      "polygon_count": 12000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 16,
+      "catalog_id": "terrarium",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 16,
+      "catalog_id": "uni_fountain",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 16,
+      "catalog_id": "crystal_ball",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 17,
+      "catalog_id": "hammock",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 17,
+      "catalog_id": "brick_oven",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 17,
+      "catalog_id": "ac_fish_tank",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 17,
+      "catalog_id": "ac_anthurium",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 17,
+      "catalog_id": "ac_typewriter",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 17,
+      "catalog_id": "ac_cello",
+      "mesh_count": 1,
+      "polygon_count": 18000,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 18,
+      "catalog_id": "ac_menu_board",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 18,
+      "catalog_id": "uni_rainbow_shelf",
+      "mesh_count": 1,
+      "polygon_count": 11999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 18,
+      "catalog_id": "uni_glitter_rug",
+      "mesh_count": 1,
+      "polygon_count": 6999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 18,
+      "catalog_id": "uni_cloud_lamp",
+      "mesh_count": 1,
+      "polygon_count": 12926,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    },
+    {
+      "sheet": 18,
+      "catalog_id": "uni_horn_planter",
+      "mesh_count": 1,
+      "polygon_count": 17999,
+      "materials": [
+        "material"
+      ],
+      "images": [
+        "base_color",
+        "emissive",
+        "metallic_roughness",
+        "normal"
+      ]
+    }
+  ]
+}

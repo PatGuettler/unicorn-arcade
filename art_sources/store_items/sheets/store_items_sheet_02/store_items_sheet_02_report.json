@@ -1,0 +1,254 @@
+{
+  "sheet": 2,
+  "source": "C:\\Users\\Tak\\Downloads\\Meshy_AI_Whimsical_Sleepover_B_0802212323_texture.glb",
+  "source_bytes": 31414516,
+  "source_sha256": "6b9151bf175478706d588b5c4837b7fc5d551a4d7dd8d39b8fe0e1a7c03abf44",
+  "grid_bounds_min": [
+    -0.6342170238494873,
+    -0.5191829800605774,
+    -0.9507719874382019
+  ],
+  "grid_bounds_max": [
+    0.6264950037002563,
+    0.5192800164222717,
+    0.9483489990234375
+  ],
+  "grid_thresholds": {
+    "row_x": [
+      -0.13106400007382035,
+      -0.05616150237619877,
+      0.004611499607563019
+    ],
+    "left_z": [
+      -0.3200550079345703,
+      0.26997149735689163
+    ],
+    "right_z": [
+      -0.30619150400161743,
+      0.3659209907054901
+    ]
+  },
+  "items": [
+    {
+      "catalog_id": "bed_single",
+      "cell": "top_left",
+      "source_vertices": 9447,
+      "source_polygons": 74398,
+      "optimized_vertices": 9447,
+      "optimized_polygons": 14999,
+      "source_origin": [
+        -0.44175952672958374,
+        0.11878299713134766,
+        0.429751992225647
+      ],
+      "source_dimensions": [
+        0.3849150240421295,
+        0.5063639879226685,
+        0.41599100828170776
+      ],
+      "normalization_scale": 3.0610391674155055,
+      "final_bounds_min": [
+        -0.5891199707984924,
+        -0.7750000357627869,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.5891200304031372,
+        0.7750000357627869,
+        1.273364782333374
+      ]
+    },
+    {
+      "catalog_id": "bed_king",
+      "cell": "top_right",
+      "source_vertices": 10813,
+      "source_polygons": 100038,
+      "optimized_vertices": 10813,
+      "optimized_polygons": 15000,
+      "source_origin": [
+        0.24504999816417694,
+        0.201883003115654,
+        0.46886399388313293
+      ],
+      "source_dimensions": [
+        0.5157520174980164,
+        0.6347939968109131,
+        0.47948500514030457
+      ],
+      "normalization_scale": 2.441737016712369,
+      "final_bounds_min": [
+        -0.6296653747558594,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6296653151512146,
+        0.7749999761581421,
+        1.1707762479782104
+      ]
+    },
+    {
+      "catalog_id": "bed_race",
+      "cell": "middle_left",
+      "source_vertices": 10327,
+      "source_polygons": 142020,
+      "optimized_vertices": 10327,
+      "optimized_polygons": 14999,
+      "source_origin": [
+        -0.354825496673584,
+        -0.10670448839664459,
+        -0.20267200469970703
+      ],
+      "source_dimensions": [
+        0.45093095302581787,
+        0.824957013130188,
+        0.31286299228668213
+      ],
+      "normalization_scale": 1.8788857786889215,
+      "final_bounds_min": [
+        -0.42362385988235474,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.4236238896846771,
+        0.7749999761581421,
+        0.587833821773529
+      ]
+    },
+    {
+      "catalog_id": "bed_cloud",
+      "cell": "middle_right",
+      "source_vertices": 10355,
+      "source_polygons": 93624,
+      "optimized_vertices": 10355,
+      "optimized_polygons": 15000,
+      "source_origin": [
+        0.3103974759578705,
+        -0.009769991040229797,
+        -0.15326499938964844
+      ],
+      "source_dimensions": [
+        0.5867210030555725,
+        0.7236219644546509,
+        0.4162429869174957
+      ],
+      "normalization_scale": 2.1420024213446025,
+      "final_bounds_min": [
+        -0.6283788084983826,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6283788681030273,
+        0.7749999761581421,
+        0.8915934562683105
+      ]
+    },
+    {
+      "catalog_id": "bed_bunk",
+      "cell": "bottom_left",
+      "source_vertices": 11303,
+      "source_polygons": 108978,
+      "optimized_vertices": 11303,
+      "optimized_polygons": 14999,
+      "source_origin": [
+        -0.29157498478889465,
+        -0.33891749382019043,
+        -0.9507719874382019
+      ],
+      "source_dimensions": [
+        0.5383840203285217,
+        0.35273098945617676,
+        0.5133339762687683
+      ],
+      "normalization_scale": 2.8789858938498782,
+      "final_bounds_min": [
+        -0.7749999761581421,
+        -0.5077537894248962,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7749999165534973,
+        0.5077537894248962,
+        1.4778813123703003
+      ]
+    },
+    {
+      "catalog_id": "bed_coffin",
+      "cell": "bottom_right",
+      "source_vertices": 10261,
+      "source_polygons": 94038,
+      "optimized_vertices": 10261,
+      "optimized_polygons": 15000,
+      "source_origin": [
+        0.3290505111217499,
+        0.007861502468585968,
+        -0.9493089914321899
+      ],
+      "source_dimensions": [
+        0.5948889851570129,
+        0.5014550089836121,
+        0.4901909828186035
+      ],
+      "normalization_scale": 2.605528155124436,
+      "final_bounds_min": [
+        -0.7750000953674316,
+        -0.653277575969696,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7749999761581421,
+        0.653277575969696,
+        1.2772064208984375
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "name": "base_color",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "emissive",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "metallic_roughness",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "normal",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    }
+  ],
+  "optimized_glb_bytes": 8778052
+}

@@ -1,0 +1,22 @@
+{
+  "batches": [
+    {"sheet": 2, "input": "Meshy_AI_Whimsical_Sleepover_B_0802212323_texture.glb", "items": ["bed_single", "bed_king", "bed_race", "bed_cloud", "bed_bunk", "bed_coffin"]},
+    {"sheet": 3, "input": "Meshy_AI_Pastel_Toy_Furniture__0802212400_texture.glb", "items": ["table_coffee", "table_dining", "desk_office", "table_night", "table_pool", "lamp_floor"]},
+    {"sheet": 4, "input": "Meshy_AI_Pastel_Glamour_Collec_0802212451_texture.glb", "items": ["lamp_desk", "chandelier", "candle", "lantern", "disco", "flashlight"]},
+    {"sheet": 5, "input": "Meshy_AI_Pastel_Whimsy_Toy_Col_0802212503_texture.glb", "items": ["rug_welcome", "rug_persian", "rug_bear", "rug_magic", "rug_puzzle", "pet_cat_blk"], "thresholds": {"row_x": [-0.07568, -0.05726, 0.02622], "left_z": [-0.62421, 0.24476], "right_z": [-0.35, 0.25463]}, "cluster_cells": [3, 5]},
+    {"sheet": 6, "input": "Meshy_AI_Pet_Parade_0802212309_texture.glb", "items": ["pet_cat_org", "pet_dog_dog", "pet_dog_pud", "pet_dog_ser", "pet_paw", "pet_fish"], "cluster_cells": [0, 2]},
+    {"sheet": 7, "input": "Meshy_AI_Playful_Critter_Parad_0802212413_texture.glb", "items": ["pet_hamster", "pet_mouse", "pet_chick", "pet_frog", "pet_turtle", "pet_dragon"]},
+    {"sheet": 8, "input": "Meshy_AI_Pastel_Toy_Collection_0802212339_texture.glb", "items": ["toy_bear", "toy_robot", "toy_doll", "toy_kite", "toy_yoyo", "toy_train"], "cluster_cells": [3, 4, 5]},
+    {"sheet": 9, "input": "Meshy_AI_Pastel_Toy_Tech_Colle_0802212351_texture.glb", "items": ["toy_blocks", "toy_ball", "tv_retro", "tv_flat", "pc_gamer", "console"]},
+    {"sheet": 10, "input": "Meshy_AI_Whimsical_Holiday_Toy_0802212424_texture.glb", "items": ["radio", "phone_retro", "camera", "xmas_tree", "xmas_santa", "xmas_sock"]},
+    {"sheet": 11, "input": "Meshy_AI_Pastel_Holiday_Collec_0802212437_texture.glb", "items": ["xmas_gift", "xmas_bell", "xmas_deer", "xmas_snow", "xmas_flake", "hall_pump"]},
+    {"sheet": 13, "input": "Meshy_AI_Pastel_Whimsy_Collect_0802212624_texture.glb", "items": ["hall_mask", "mush_stool", "mom_tea", "fruit_basket", "bamboo_speaker", "butterfly_model"], "layout": "3x2", "thresholds": {"x": [-0.30, 0.30], "z": 0.0}, "cluster_cells": [3, 4]},
+    {"sheet": 14, "input": "Meshy_AI_Celestial_Cozy_Collec_0802212537_texture.glb", "items": ["star_lamp", "moon_chair", "moss_ball", "espresso_maker", "ironwood_counter", "fairy_lights"]},
+    {"sheet": 15, "input": "Meshy_AI_Whimsical_Royal_Colle_0802212946_texture.glb", "items": ["skylight_poster", "peach_wall", "crown_display", "golden_toilet", "studio_spot", "book_stack"]},
+    {"sheet": 16, "input": "Meshy_AI_Pastel_Enchanted_Mini_0802212933_texture.glb", "items": ["record_player", "bubble_machine", "zen_garden", "terrarium", "uni_fountain", "crystal_ball"]},
+    {"sheet": 17, "input": "Meshy_AI_Pastel_Curio_Collecti_0802212521_texture.glb", "items": ["hammock", "brick_oven", "ac_fish_tank", "ac_anthurium", "ac_typewriter", "ac_cello"]},
+    {"sheet": 18, "input": "Meshy_AI_Pastel_Unicorn_Corner_0802212637_texture.glb", "items": ["ac_menu_board", "uni_rainbow_shelf", "uni_glitter_rug", "uni_cloud_lamp", "uni_horn_planter"]}
+  ],
+  "missing_sheet": 12,
+  "missing_items": ["hall_ghost", "hall_skull", "hall_web", "hall_spider", "hall_bat", "hall_alien"]
+}

@@ -177,15 +177,15 @@ func _run() -> void:
 	market_drag.relative = Vector2(2, -120)
 	market.call("_input", market_drag)
 	_check(market.catalog_scroll.scroll_vertical > scroll_before, "decor Marketplace responds to vertical Android dragging anywhere across a catalog card")
-	var signature_nodes := {"bed_race": "RaceCarBody", "pet_fish": "FishBowl", "tv_retro": "RetroTelevision", "xmas_sock": "StockingLeg"}
+	var signature_nodes := ["bed_race", "pet_fish", "tv_retro", "xmas_sock"]
 	var signatures_found := 0
 	for item_id in signature_nodes:
 		var signature_preview := RoomItemPreview3D.new()
 		signature_preview.setup(MetaCatalog.furniture_item(item_id))
-		if signature_preview.find_child(str(signature_nodes[item_id]), true, false) != null:
+		if signature_preview.uses_authored_furniture_model and signature_preview.find_child("AuthoredFurniture_%s" % item_id, true, false) != null and signature_preview.source_furniture_model_id.ends_with(":%s" % item_id):
 			signatures_found += 1
 		signature_preview.free()
-	_check(signatures_found == signature_nodes.size(), "decor previews use item-specific production silhouettes across beds, pets, electronics, and seasonal art")
+	_check(signatures_found == signature_nodes.size(), "decor previews load item-specific authored models across beds, pets, electronics, and seasonal art")
 	remove_child(market)
 	market.free()
 	var alley = ALLEY_SCENE.instantiate()

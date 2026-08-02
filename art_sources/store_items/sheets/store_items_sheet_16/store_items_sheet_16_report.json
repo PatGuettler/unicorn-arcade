@@ -1,0 +1,254 @@
+{
+  "sheet": 16,
+  "source": "C:\\Users\\Tak\\Downloads\\Meshy_AI_Pastel_Enchanted_Mini_0802212933_texture.glb",
+  "source_bytes": 34796388,
+  "source_sha256": "eb1d8faf509db702d172f6d44a979e5d6420158f46cc028b580b188320b5e412",
+  "grid_bounds_min": [
+    -0.6211000084877014,
+    -0.49835601449012756,
+    -0.9508079886436462
+  ],
+  "grid_bounds_max": [
+    0.6203230023384094,
+    0.49918898940086365,
+    0.9488779902458191
+  ],
+  "grid_thresholds": {
+    "row_x": [
+      0.04834449989721179,
+      0.046497001545503736,
+      0.03695650026202202
+    ],
+    "left_z": [
+      -0.08550349995493889,
+      0.2543259970843792
+    ],
+    "right_z": [
+      -0.3093695044517517,
+      0.3319544941186905
+    ]
+  },
+  "items": [
+    {
+      "catalog_id": "record_player",
+      "cell": "top_left",
+      "source_vertices": 11340,
+      "source_polygons": 137824,
+      "optimized_vertices": 11340,
+      "optimized_polygons": 18000,
+      "source_origin": [
+        -0.2938539981842041,
+        0.17186300456523895,
+        0.4069499969482422
+      ],
+      "source_dimensions": [
+        0.562675952911377,
+        0.6005899906158447,
+        0.5419279932975769
+      ],
+      "normalization_scale": 2.5807955913661345,
+      "final_bounds_min": [
+        -0.7260757684707642,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7260758876800537,
+        0.7749999761581421,
+        1.3986053466796875
+      ]
+    },
+    {
+      "catalog_id": "bubble_machine",
+      "cell": "top_right",
+      "source_vertices": 11539,
+      "source_polygons": 108014,
+      "optimized_vertices": 11539,
+      "optimized_polygons": 18000,
+      "source_origin": [
+        0.364764004945755,
+        0.2301899939775467,
+        0.36681199073791504
+      ],
+      "source_dimensions": [
+        0.5111179947853088,
+        0.5379979610443115,
+        0.5818049907684326
+      ],
+      "normalization_scale": 2.664122901305472,
+      "final_bounds_min": [
+        -0.6808405518531799,
+        -0.7166463136672974,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6808405518531799,
+        0.7166463136672974,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "zen_garden",
+      "cell": "middle_left",
+      "source_vertices": 7940,
+      "source_polygons": 98280,
+      "optimized_vertices": 7940,
+      "optimized_polygons": 12000,
+      "source_origin": [
+        -0.3070805072784424,
+        -0.02758699655532837,
+        -0.06504099816083908
+      ],
+      "source_dimensions": [
+        0.6280390024185181,
+        0.7878879904747009,
+        0.16674299538135529
+      ],
+      "normalization_scale": 1.967284713993582,
+      "final_bounds_min": [
+        -0.6177657246589661,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6177657246589661,
+        0.7749999761581421,
+        0.32803094387054443
+      ]
+    },
+    {
+      "catalog_id": "terrarium",
+      "cell": "middle_right",
+      "source_vertices": 12466,
+      "source_polygons": 109530,
+      "optimized_vertices": 12466,
+      "optimized_polygons": 18000,
+      "source_origin": [
+        0.3327054977416992,
+        0.11910999566316605,
+        -0.3057210147380829
+      ],
+      "source_dimensions": [
+        0.49330100417137146,
+        0.5118420124053955,
+        0.6028180122375488
+      ],
+      "normalization_scale": 2.5712569441093622,
+      "final_bounds_min": [
+        -0.6342017650604248,
+        -0.6580386757850647,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6342018246650696,
+        0.6580386757850647,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "uni_fountain",
+      "cell": "bottom_left",
+      "source_vertices": 12400,
+      "source_polygons": 167750,
+      "optimized_vertices": 12400,
+      "optimized_polygons": 17999,
+      "source_origin": [
+        -0.2924635112285614,
+        -0.2595265209674835,
+        -0.9500250220298767
+      ],
+      "source_dimensions": [
+        0.5085850358009338,
+        0.4776590168476105,
+        0.8440589904785156
+      ],
+      "normalization_scale": 1.8363645402571578,
+      "final_bounds_min": [
+        -0.46697375178337097,
+        -0.4385780096054077,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.46697375178337097,
+        0.4385780692100525,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "crystal_ball",
+      "cell": "bottom_right",
+      "source_vertices": 10573,
+      "source_polygons": 90440,
+      "optimized_vertices": 10573,
+      "optimized_polygons": 17999,
+      "source_origin": [
+        0.33721548318862915,
+        -0.24642550945281982,
+        -0.9508079886436462
+      ],
+      "source_dimensions": [
+        0.45026299357414246,
+        0.40825098752975464,
+        0.6377899646759033
+      ],
+      "normalization_scale": 2.430267150389614,
+      "final_bounds_min": [
+        -0.5471296310424805,
+        -0.4960794746875763,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.5471296906471252,
+        0.4960795044898987,
+        1.5499999523162842
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "name": "base_color",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "emissive",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "metallic_roughness",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "normal",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    }
+  ],
+  "optimized_glb_bytes": 8853532
+}

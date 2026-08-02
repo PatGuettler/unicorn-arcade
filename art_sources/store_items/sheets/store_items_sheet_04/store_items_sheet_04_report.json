@@ -1,0 +1,254 @@
+{
+  "sheet": 4,
+  "source": "C:\\Users\\Tak\\Downloads\\Meshy_AI_Pastel_Glamour_Collec_0802212451_texture.glb",
+  "source_bytes": 29364712,
+  "source_sha256": "0b5449e02b6e9102b7a91c4011f6bf5e0e3dbda7d30514d13757273143bce57c",
+  "grid_bounds_min": [
+    -0.5788379907608032,
+    -0.2739950120449066,
+    -0.9491220116615295
+  ],
+  "grid_bounds_max": [
+    0.5754079818725586,
+    0.2782190144062042,
+    0.948852002620697
+  ],
+  "grid_thresholds": {
+    "row_x": [
+      -0.04486500285565853,
+      -0.0295414999127388,
+      -0.09912800253368914
+    ],
+    "left_z": [
+      -0.31062349677085876,
+      0.2966869920492172
+    ],
+    "right_z": [
+      -0.48791101574897766,
+      0.325857013463974
+    ]
+  },
+  "items": [
+    {
+      "catalog_id": "lamp_desk",
+      "cell": "top_left",
+      "source_vertices": 8291,
+      "source_polygons": 68698,
+      "optimized_vertices": 8291,
+      "optimized_polygons": 12000,
+      "source_origin": [
+        -0.34088999032974243,
+        -0.034285999834537506,
+        0.35916298627853394
+      ],
+      "source_dimensions": [
+        0.39406800270080566,
+        0.32009798288345337,
+        0.5138350129127502
+      ],
+      "normalization_scale": 3.016532468687944,
+      "final_bounds_min": [
+        -0.5943594574928284,
+        -0.4827929735183716,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.5943593978881836,
+        0.4827929735183716,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "chandelier",
+      "cell": "top_right",
+      "source_vertices": 12376,
+      "source_polygons": 113854,
+      "optimized_vertices": 12376,
+      "optimized_polygons": 17999,
+      "source_origin": [
+        0.3118650019168854,
+        -0.0007789880037307739,
+        0.34652501344680786
+      ],
+      "source_dimensions": [
+        0.5154779553413391,
+        0.5079339742660522,
+        0.6023269891738892
+      ],
+      "normalization_scale": 2.573353058819222,
+      "final_bounds_min": [
+        -0.6632534861564636,
+        -0.6535467505455017,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6632533669471741,
+        0.6535467505455017,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "candle",
+      "cell": "middle_left",
+      "source_vertices": 7475,
+      "source_polygons": 54782,
+      "optimized_vertices": 7475,
+      "optimized_polygons": 11999,
+      "source_origin": [
+        -0.3725399971008301,
+        0.02852250635623932,
+        -0.24157699942588806
+      ],
+      "source_dimensions": [
+        0.3876579999923706,
+        0.37778300046920776,
+        0.4757879972457886
+      ],
+      "normalization_scale": 3.257753472076937,
+      "final_bounds_min": [
+        -0.6314470767974854,
+        -0.6153619289398193,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6314470767974854,
+        0.6153619289398193,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "lantern",
+      "cell": "middle_right",
+      "source_vertices": 7358,
+      "source_polygons": 102786,
+      "optimized_vertices": 7358,
+      "optimized_polygons": 12000,
+      "source_origin": [
+        0.29571500420570374,
+        -0.005535505712032318,
+        -0.35422301292419434
+      ],
+      "source_dimensions": [
+        0.35217398405075073,
+        0.3720589876174927,
+        0.6594120264053345
+      ],
+      "normalization_scale": 2.3505789065594467,
+      "final_bounds_min": [
+        -0.41390642523765564,
+        -0.43727701902389526,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.41390639543533325,
+        0.43727701902389526,
+        1.5500000715255737
+      ]
+    },
+    {
+      "catalog_id": "disco",
+      "cell": "bottom_left",
+      "source_vertices": 7169,
+      "source_polygons": 119344,
+      "optimized_vertices": 7169,
+      "optimized_polygons": 11999,
+      "source_origin": [
+        -0.3908329904079437,
+        0.01430550217628479,
+        -0.9491220116615295
+      ],
+      "source_dimensions": [
+        0.376010000705719,
+        0.3676289916038513,
+        0.5694520473480225
+      ],
+      "normalization_scale": 2.7219148780278464,
+      "final_bounds_min": [
+        -0.5117335915565491,
+        -0.5003274083137512,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.5117335319519043,
+        0.5003274083137512,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "flashlight",
+      "cell": "bottom_right",
+      "source_vertices": 7080,
+      "source_polygons": 84700,
+      "optimized_vertices": 7080,
+      "optimized_polygons": 11999,
+      "source_origin": [
+        0.28998997807502747,
+        0.0021120011806488037,
+        -0.900858998298645
+      ],
+      "source_dimensions": [
+        0.5708360075950623,
+        0.5522140264511108,
+        0.27925997972488403
+      ],
+      "normalization_scale": 2.715315746338717,
+      "final_bounds_min": [
+        -0.7749999165534973,
+        -0.7497177124023438,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7750000357627869,
+        0.7497177124023438,
+        0.758279025554657
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "name": "base_color",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "emissive",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "metallic_roughness",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "normal",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    }
+  ],
+  "optimized_glb_bytes": 8714388
+}

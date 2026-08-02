@@ -1,0 +1,254 @@
+{
+  "sheet": 8,
+  "source": "C:\\Users\\Tak\\Downloads\\Meshy_AI_Pastel_Toy_Collection_0802212339_texture.glb",
+  "source_bytes": 38575004,
+  "source_sha256": "af0bf31f3fede9fe21664c2c5a14886faf10b0c0655faa86121bdb9f71762d76",
+  "grid_bounds_min": [
+    -0.7114750146865845,
+    -0.45162099599838257,
+    -0.950747013092041
+  ],
+  "grid_bounds_max": [
+    0.707921028137207,
+    0.4535309970378876,
+    0.9488080143928528
+  ],
+  "grid_thresholds": {
+    "row_x": [
+      -0.051861001178622246,
+      -0.0430774986743927,
+      -0.1739959940314293
+    ],
+    "left_z": [
+      -0.47622451186180115,
+      0.2608434930443764
+    ],
+    "right_z": [
+      -0.2906485050916672,
+      0.2856209874153137
+    ]
+  },
+  "items": [
+    {
+      "catalog_id": "toy_bear",
+      "cell": "top_left",
+      "source_vertices": 7328,
+      "source_polygons": 64810,
+      "optimized_vertices": 7328,
+      "optimized_polygons": 11999,
+      "source_origin": [
+        -0.41388851404190063,
+        0.2466064989566803,
+        0.3014029860496521
+      ],
+      "source_dimensions": [
+        0.5134789943695068,
+        0.3736810088157654,
+        0.5969899892807007
+      ],
+      "normalization_scale": 2.5963584445822265,
+      "final_bounds_min": [
+        -0.666587769985199,
+        -0.4851049482822418,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.666587769985199,
+        0.4851049482822418,
+        1.5500000715255737
+      ]
+    },
+    {
+      "catalog_id": "toy_robot",
+      "cell": "top_right",
+      "source_vertices": 7736,
+      "source_polygons": 88342,
+      "optimized_vertices": 7736,
+      "optimized_polygons": 11999,
+      "source_origin": [
+        0.29834797978401184,
+        0.2816835045814514,
+        0.2989409863948822
+      ],
+      "source_dimensions": [
+        0.4898419678211212,
+        0.2780969738960266,
+        0.649867057800293
+      ],
+      "normalization_scale": 2.385103201332482,
+      "final_bounds_min": [
+        -0.5841618180274963,
+        -0.33164504170417786,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.5841618776321411,
+        0.3316449820995331,
+        1.5500000715255737
+      ]
+    },
+    {
+      "catalog_id": "toy_doll",
+      "cell": "middle_left",
+      "source_vertices": 8797,
+      "source_polygons": 225916,
+      "optimized_vertices": 8797,
+      "optimized_polygons": 12000,
+      "source_origin": [
+        -0.42664802074432373,
+        0.0971900001168251,
+        -0.42592400312423706
+      ],
+      "source_dimensions": [
+        0.5696539878845215,
+        0.4551820158958435,
+        0.6462079882621765
+      ],
+      "normalization_scale": 2.3986085411422384,
+      "final_bounds_min": [
+        -0.6831884384155273,
+        -0.5459017157554626,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6831884980201721,
+        0.5459017157554626,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "toy_kite",
+      "cell": "middle_right",
+      "source_vertices": 8370,
+      "source_polygons": 79090,
+      "optimized_vertices": 8370,
+      "optimized_polygons": 11999,
+      "source_origin": [
+        0.32617247104644775,
+        0.14229999482631683,
+        -0.4639570116996765
+      ],
+      "source_dimensions": [
+        0.5410130023956299,
+        0.23002198338508606,
+        0.7362580299377441
+      ],
+      "normalization_scale": 2.105240197014983,
+      "final_bounds_min": [
+        -0.5694810748100281,
+        -0.2421257495880127,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.5694811344146729,
+        0.2421257495880127,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "toy_yoyo",
+      "cell": "bottom_left",
+      "source_vertices": 7023,
+      "source_polygons": 75712,
+      "optimized_vertices": 7023,
+      "optimized_polygons": 11999,
+      "source_origin": [
+        -0.316801518201828,
+        -0.17429900169372559,
+        -0.9498249888420105
+      ],
+      "source_dimensions": [
+        0.5896829962730408,
+        0.554643988609314,
+        0.42329996824264526
+      ],
+      "normalization_scale": 2.6285309391595613,
+      "final_bounds_min": [
+        -0.7750000357627869,
+        -0.7289494276046753,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7750000953674316,
+        0.7289494276046753,
+        1.112657070159912
+      ]
+    },
+    {
+      "catalog_id": "toy_train",
+      "cell": "bottom_right",
+      "source_vertices": 13555,
+      "source_polygons": 278096,
+      "optimized_vertices": 13555,
+      "optimized_polygons": 18000,
+      "source_origin": [
+        0.3415885269641876,
+        0.06453999876976013,
+        -0.950747013092041
+      ],
+      "source_dimensions": [
+        0.7326650023460388,
+        0.7779819965362549,
+        0.4983160197734833
+      ],
+      "normalization_scale": 1.992334021739497,
+      "final_bounds_min": [
+        -0.7298567891120911,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7298567295074463,
+        0.7749999761581421,
+        0.9928119778633118
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "name": "base_color",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "emissive",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "metallic_roughness",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "normal",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    }
+  ],
+  "optimized_glb_bytes": 8467956
+}
