@@ -144,13 +144,18 @@ func _run() -> void:
 	var companion_previews := market.find_children("CompanionModelPreview", "RoomItemPreview3D", true, false)
 	var source_model_ids: Dictionary = {}
 	var static_marketplace_models := 0
+	var static_marketplace_framing_safe := true
 	for live_preview in companion_previews:
 		source_model_ids[live_preview.source_model_id] = true
 		var preview_animator = live_preview.find_child("IdleAnimator", true, false)
 		if not is_instance_valid(preview_animator) and not live_preview.animate_character:
 			static_marketplace_models += 1
+		var preview_cameras: Array[Node] = live_preview.find_children("*", "Camera3D", true, false)
+		if preview_cameras.is_empty() or preview_cameras[0].size < 6.3:
+			static_marketplace_framing_safe = false
 	_check(companion_previews.size() == 6 and source_model_ids.size() == 6, "Marketplace companion cards use six distinct authored GLB models")
 	_check(static_marketplace_models == 6, "Marketplace companion models remain in a static authored pose")
+	_check(static_marketplace_framing_safe, "Marketplace camera preserves horn and hoof clearance for the enlarged unicorns")
 	market.call("_show_decor")
 	await get_tree().process_frame
 	_check(_ui_is_accessible(market), "decor Marketplace meets readable text, contrast, and touch-target minimums")
@@ -201,6 +206,8 @@ func _run() -> void:
 	var companion_button: Button = room.item_buttons.get("room_companion_sparkle")
 	var companion_preview = companion_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(companion_button) else null
 	_check(is_instance_valid(companion_preview) and companion_preview.uses_character_model and companion_preview.source_model_id == "sparkle" and companion_preview.mesh_count >= 1, "rooms automatically present the updated companion-specific GLB")
+	var live_unicorn_model = companion_preview.find_child("LiveUnicornModel", true, false) if is_instance_valid(companion_preview) else null
+	_check(is_instance_valid(live_unicorn_model) and is_equal_approx(live_unicorn_model.scale.x, 3.84), "room unicorn presentation applies the requested three-times display scale")
 	var companion_cameras: Array[Node] = companion_preview.find_children("*", "Camera3D", true, false) if is_instance_valid(companion_preview) else []
 	var companion_camera = companion_cameras[0] if not companion_cameras.is_empty() else null
 	_check(is_instance_valid(companion_camera) and companion_camera.size >= 5.3, "animated companion framing preserves horn and hoof clearance during Walk")
@@ -216,6 +223,9 @@ func _run() -> void:
 		_check(idle_animator.play_animation_now("walk"), "authored walk clip can be selected deterministically")
 		idle_animator.walk_tween.custom_step(1.5)
 		_check(idle_animator.model.position.distance_to(walk_home_position) > 0.1 and not is_equal_approx(idle_animator.model.rotation.y, walk_home_rotation), "walking unicorn travels and pivots instead of walking in place")
+		var walk_displacement: Vector3 = idle_animator.model.position - walk_home_position
+		var visual_forward: Vector3 = (idle_animator.model.basis * Vector3.BACK).normalized()
+		_check(visual_forward.dot(walk_displacement.normalized()) > 0.9, "walking unicorn faces its direction of travel instead of moving backward")
 		idle_animator.walk_tween.custom_step(10.0)
 		_check(idle_animator.model.position.is_equal_approx(walk_home_position) and is_equal_approx(idle_animator.model.rotation.y, walk_home_rotation), "walking unicorn returns to its exact display position and facing")
 		_check(idle_animator.animation_player.assigned_animation == idle_animator.walk_animation and not idle_animator.timer.is_stopped(), "walking route returns to its standing Walk pose and schedules the next route")

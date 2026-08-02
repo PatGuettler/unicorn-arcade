@@ -94,9 +94,9 @@ func _start_walk_journey() -> void:
 	model.rotation.y = home_rotation_y
 	walk_tween = create_tween()
 	walk_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	walk_tween.tween_property(model, "rotation:y", home_rotation_y - PI / 2.0, WALK_TURN_SECONDS)
-	walk_tween.tween_property(model, "position", home_position + Vector3(WALK_DISTANCE, 0.0, 0.0), WALK_LEG_SECONDS)
 	walk_tween.tween_property(model, "rotation:y", home_rotation_y + PI / 2.0, WALK_TURN_SECONDS)
+	walk_tween.tween_property(model, "position", home_position + Vector3(WALK_DISTANCE, 0.0, 0.0), WALK_LEG_SECONDS)
+	walk_tween.tween_property(model, "rotation:y", home_rotation_y - PI / 2.0, WALK_TURN_SECONDS)
 	walk_tween.tween_property(model, "position", home_position, WALK_LEG_SECONDS)
 	walk_tween.tween_property(model, "rotation:y", home_rotation_y, WALK_TURN_SECONDS)
 	walk_tween.tween_callback(_finish_walk_journey)
