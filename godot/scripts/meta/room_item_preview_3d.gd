@@ -36,6 +36,8 @@ var animate_character := true
 var presentation_context := "room"
 var uses_authored_furniture_model := false
 var source_furniture_model_id := ""
+var display_rotation_root: Node3D
+var display_yaw_degrees := 0.0
 
 
 func setup(definition: Dictionary) -> void:
@@ -59,11 +61,21 @@ func _build_viewport() -> void:
 	var stage := Node3D.new()
 	stage.name = "PreviewStage"
 	viewport.add_child(stage)
+	display_rotation_root = Node3D.new()
+	display_rotation_root.name = "DisplayRotationRoot"
+	display_rotation_root.rotation_degrees.y = display_yaw_degrees
+	stage.add_child(display_rotation_root)
 	if uses_character_model:
 		_build_companion(stage)
 	else:
 		_build_furniture(stage)
 	_build_lighting(stage)
+
+
+func set_display_yaw(degrees: float) -> void:
+	display_yaw_degrees = fposmod(degrees, 360.0)
+	if is_instance_valid(display_rotation_root):
+		display_rotation_root.rotation_degrees.y = display_yaw_degrees
 
 
 func _build_companion(stage: Node3D) -> void:
@@ -74,7 +86,7 @@ func _build_companion(stage: Node3D) -> void:
 	var packed_scene: PackedScene = CHARACTER_SCENES[companion_id]
 	var travel_root := Node3D.new()
 	travel_root.name = "CompanionTravelRoot"
-	stage.add_child(travel_root)
+	display_rotation_root.add_child(travel_root)
 	var model: Node3D = packed_scene.instantiate() as Node3D
 	model.name = "LiveUnicornModel"
 	model.position.y = -0.25
@@ -169,7 +181,7 @@ func _build_furniture(stage: Node3D) -> void:
 	var model := Node3D.new()
 	model.name = "FurnitureModel"
 	model.rotation_degrees.y = -18.0
-	stage.add_child(model)
+	display_rotation_root.add_child(model)
 	var palette := _palette()
 	_add_shadow(model)
 	uses_authored_furniture_model = _build_authored_furniture(model)

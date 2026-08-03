@@ -289,6 +289,16 @@ func _run() -> void:
 	var moved_items := AppState.room_items("rainbow")
 	var moved_lamp := moved_items.filter(func(item: Dictionary) -> bool: return str(item.get("instance_id", "")) == "test_lamp")
 	_check(moved_lamp.size() == 1 and is_equal_approx(float(moved_lamp[0]["x"]), 80.0) and is_equal_approx(float(moved_lamp[0]["y"]), 64.0), "room decor follows and commits an Android drag outside its button")
+	touch_room.call("_selection_action", "ROTATE")
+	var lamp_display_root := lamp_preview.find_child("DisplayRotationRoot", true, false) as Node3D
+	_check(is_zero_approx(lamp_button.rotation_degrees) and is_instance_valid(lamp_display_root) and is_equal_approx(lamp_display_root.rotation_degrees.y, 45.0), "room rotate turns the 3D model around world up without tilting its upright interaction target")
+	var blank_room_press := InputEventScreenTouch.new()
+	blank_room_press.pressed = true
+	touch_room.call("_room_canvas_input", blank_room_press)
+	var unselected_normal := lamp_button.get_theme_stylebox("normal") as StyleBoxFlat
+	var unselected_hover := lamp_button.get_theme_stylebox("hover") as StyleBoxFlat
+	_check(touch_room.selected_id.is_empty() and not is_instance_valid(touch_room.selection_toolbar), "tapping empty room space deselects the model and closes its manipulation controls")
+	_check(is_instance_valid(unselected_normal) and is_zero_approx(unselected_normal.bg_color.a) and unselected_normal.border_width_left == 0 and is_instance_valid(unselected_hover) and is_zero_approx(unselected_hover.bg_color.a) and unselected_hover.border_width_left == 0, "unselected room items have no transparent or hover interaction boxes")
 	touch_room.call("_show_bag")
 	await get_tree().process_frame
 	var empty_bag_message := touch_room.bag_grid.find_child("EmptyBagMessage", true, false) as Label

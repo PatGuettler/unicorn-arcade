@@ -121,6 +121,8 @@ func _build_editor() -> void:
 	root.add_child(room_stage)
 	room_canvas = Control.new()
 	room_canvas.clip_contents = true
+	room_canvas.mouse_filter = Control.MOUSE_FILTER_STOP
+	room_canvas.gui_input.connect(_room_canvas_input)
 	room_stage.add_child(room_canvas)
 	var room_texture: Texture2D = ROOM_BACKGROUNDS.get(companion_id, ROOM_BACKGROUNDS["sparkle"])
 	var room_bg := TextureRect.new()
@@ -170,17 +172,17 @@ func _create_item_button(item: Dictionary) -> void:
 	button.text = ""
 	button.tooltip_text = str(definition.get("name", item_id))
 	button.custom_minimum_size = _item_base_size(item_id) * float(item.get("scale", 1.0))
-	button.rotation_degrees = int(item.get("rotation", 0))
+	button.rotation_degrees = 0.0
 	button.z_index = int(item.get("z_index", 0))
 	button.mouse_default_cursor_shape = Control.CURSOR_DRAG
-	button.add_theme_stylebox_override("normal", _item_style(str(definition.get("category", "cozy")), str(item.get("instance_id", "")) == selected_id))
-	button.add_theme_stylebox_override("hover", _item_style(str(definition.get("category", "cozy")), true))
+	_apply_item_button_style(button, str(definition.get("category", "cozy")), str(item.get("instance_id", "")) == selected_id)
 	button.gui_input.connect(_item_input.bind(str(item.get("instance_id", "")), button))
 	room_canvas.add_child(button)
 	var art := RoomItemPreviewScene.new()
 	art.name = "RoomItemPreview3D"
 	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	art.setup(definition.merged({"id": item_id}, true))
+	art.set_display_yaw(float(item.get("rotation", 0)))
 	button.add_child(art)
 	item_buttons[str(item.get("instance_id", ""))] = button
 
@@ -197,9 +199,10 @@ func _position_items() -> void:
 	_position_selection_toolbar.call_deferred()
 
 
-func _item_input(event: InputEvent, instance_id: String, _button: Button) -> void:
+func _item_input(event: InputEvent, instance_id: String, button: Button) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
+			button.accept_event()
 			selected_id = instance_id
 			dragging_id = instance_id
 			_mark_selected()
@@ -207,11 +210,35 @@ func _item_input(event: InputEvent, instance_id: String, _button: Button) -> voi
 			_commit_drag(instance_id)
 	elif event is InputEventScreenTouch:
 		if event.pressed:
+			button.accept_event()
 			selected_id = instance_id
 			dragging_id = instance_id
 			_mark_selected()
 		else:
 			_commit_drag(instance_id)
+
+
+func _room_canvas_input(event: InputEvent) -> void:
+	var pressed_blank: bool = event is InputEventScreenTouch and event.pressed
+	pressed_blank = pressed_blank or (event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed)
+	if not pressed_blank:
+		return
+	_clear_selection()
+	room_canvas.accept_event()
+
+
+func _clear_selection() -> void:
+	selected_id = ""
+	dragging_id = ""
+	if is_instance_valid(selection_toolbar):
+		selection_toolbar.queue_free()
+	selection_toolbar = null
+	for instance_id in item_buttons:
+		var item := _local_item(instance_id)
+		var definition := _item_definition(str(item.get("item_id", "")))
+		_apply_item_button_style(item_buttons[instance_id], str(definition.get("category", "cozy")), false)
+	if is_instance_valid(status_label):
+		status_label.text = "%d decorations placed. Tap an item for controls." % local_items.size()
 
 
 func _move_dragged(instance_id: String, local_position: Vector2, button: Button) -> void:
@@ -243,7 +270,7 @@ func _mark_selected() -> void:
 	for instance_id in item_buttons:
 		var source := _local_item(instance_id)
 		var source_def := _item_definition(str(source.get("item_id", "")))
-		item_buttons[instance_id].add_theme_stylebox_override("normal", _item_style(str(source_def.get("category", "cozy")), instance_id == selected_id))
+		_apply_item_button_style(item_buttons[instance_id], str(source_def.get("category", "cozy")), instance_id == selected_id)
 	_show_selection_toolbar()
 
 
@@ -329,7 +356,10 @@ func _refresh_room_items() -> void:
 			continue
 		button.custom_minimum_size = _item_base_size(str(item.get("item_id", ""))) * float(item.get("scale", 1.0))
 		button.size = button.custom_minimum_size
-		button.rotation_degrees = int(item.get("rotation", 0))
+		button.rotation_degrees = 0.0
+		var preview := button.get_node_or_null("RoomItemPreview3D") as RoomItemPreview3D
+		if is_instance_valid(preview):
+			preview.set_display_yaw(float(item.get("rotation", 0)))
 		button.z_index = int(item.get("z_index", 0))
 	_position_items()
 	_mark_selected()
@@ -587,9 +617,15 @@ func _ensure_companion_present() -> void:
 func _item_style(category: String, selected: bool) -> StyleBoxFlat:
 	var colors := {"companions": PINK, "nature": Color("62e6a7"), "lighting": YELLOW, "luxury": Color("d5a4ff"), "pets": Color("ff9f7c"), "electronics": CYAN, "seasonal": Color("f59c5b"), "rugs": Color("c99cff"), "beds": Color("89a9ff"), "tables": Color("d49b6a"), "kitchen": Color("ffb66e"), "toys": Color("ff91bd"), "wall": Color("91c9ff"), "unicorn": Color("f68bd8"), "cozy": Color("9da9d9")}
 	var color: Color = colors.get(category, Color("9da9d9"))
-	var background := Color("00000012") if not selected else Color(color, 0.12)
+	var background := Color.TRANSPARENT if not selected else Color(color, 0.12)
 	var style := _rounded_style(background, Color.WHITE if selected else Color("00000000"), 4 if selected else 0, 16)
 	return style
+
+
+func _apply_item_button_style(button: Button, category: String, selected: bool) -> void:
+	var style := _item_style(category, selected)
+	for state in ["normal", "hover", "pressed", "hover_pressed", "focus", "disabled"]:
+		button.add_theme_stylebox_override(state, style)
 
 
 func _rounded_style(fill: Color, border: Color, width: int, radius: int) -> StyleBoxFlat:
