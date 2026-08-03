@@ -6,7 +6,6 @@ const STONE_CREAM = preload("res://assets/games/unicorn_jump/jump_stone_normal_c
 const STONE_LILAC = preload("res://assets/games/unicorn_jump/jump_stone_normal_lilac_v1.png")
 const STONE_CURRENT = preload("res://assets/games/unicorn_jump/jump_stone_current_v1.png")
 const STONE_VISITED = preload("res://assets/games/unicorn_jump/jump_stone_visited_v1.png")
-const STONE_MOON = preload("res://assets/games/unicorn_jump/jump_stone_moon_v1.png")
 const STONE_FINISH = preload("res://assets/games/unicorn_jump/jump_stone_finish_v1.png")
 
 const PATH_WIDTH := 520.0
@@ -156,7 +155,7 @@ func _rebuild_path() -> void:
 		button.ignore_texture_size = true
 		button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 		button.texture_normal = _normal_stone_texture(index)
-		button.tooltip_text = "Finish stone" if index == level_data.size() else "Stone %d: jump %s" % [index, _signed(level_data[index])]
+		button.tooltip_text = "Goal stone" if index == level_data.size() else "Landing stone %d" % (index + 1)
 		button.add_theme_font_size_override("font_size", 18)
 		button.pressed.connect(_choose_node.bind(index))
 		var value_label := Label.new()
@@ -177,15 +176,16 @@ func _rebuild_path() -> void:
 
 
 func _update_path() -> void:
-	jump_label.text = "LEVEL %d  •  STONE %d / %d  •  JUMP %s" % [level, current_index, level_data.size(), _signed(level_data[current_index]) if current_index < level_data.size() else "DONE"]
+	jump_label.text = "LEVEL %d  •  %s" % [level, _jump_instruction(level_data[current_index]) if current_index < level_data.size() else "TRAIL COMPLETE"]
 	for index in node_buttons.size():
 		var button := node_buttons[index]
 		var value_label := button.get_node("JumpValue") as Label
 		button.self_modulate = Color.WHITE
 		if index == current_index:
 			button.texture_normal = STONE_CURRENT
-			value_label.text = _signed(level_data[index]) if index < level_data.size() else "★"
+			value_label.text = ""
 			value_label.add_theme_color_override("font_color", Color("173f68"))
+			button.tooltip_text = "Current stone. %s" % _jump_instruction(level_data[index]) if index < level_data.size() else "Goal reached"
 			_attach_active_companion(button)
 		elif index in visited:
 			button.texture_normal = STONE_VISITED
@@ -197,7 +197,7 @@ func _update_path() -> void:
 			value_label.add_theme_color_override("font_color", Color("50315d"))
 		else:
 			button.texture_normal = _normal_stone_texture(index)
-			value_label.text = _signed(level_data[index])
+			value_label.text = ""
 			value_label.add_theme_color_override("font_color", Color("382c60"))
 	for connector_index in connector_lines.size():
 		var connector := connector_lines[connector_index]
@@ -318,3 +318,7 @@ func _set_nodes_enabled(enabled: bool) -> void:
 
 func _signed(value: int) -> String:
 	return "+%d" % value if value > 0 else str(value)
+
+
+func _jump_instruction(value: int) -> String:
+	return "JUMP FORWARD %d" % value if value >= 0 else "JUMP BACK %d" % absi(value)

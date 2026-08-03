@@ -95,7 +95,8 @@ func _run() -> void:
 	_check(jump.find_children("TrailConnector*", "Line2D", true, false).size() == 10, "Unicorn Jump restores the original connected winding path")
 	var trail_companion = jump.find_child("ActiveCompanionOnStone", true, false)
 	_check(is_instance_valid(trail_companion) and trail_companion.source_model_id == AppState.equipped_companion(), "the equipped 3D companion stands on the current stepping stone")
-	_check((jump.node_buttons[0].get_node("JumpValue") as Label).text == "+%d" % jump.level_data[0], "trail stones show jump values instead of placeholder node indices")
+	_check((jump.node_buttons[0].get_node("JumpValue") as Label).text.is_empty() and jump.jump_label.text.contains(str(absi(jump.level_data[0]))), "jump distance appears in the HUD while all countable landing stones remain unlabeled")
+	_check(jump.node_buttons.size() == jump.level_data.size() + 1, "every intermediate wrong landing remains visible between the current stone and later correct destinations")
 	var landing: int = jump.level_data[0]
 	_check(jump.node_buttons[landing].self_modulate == Color.WHITE, "Unicorn Jump does not reveal the counted landing with a highlight")
 	jump.call("_choose_node", landing)
