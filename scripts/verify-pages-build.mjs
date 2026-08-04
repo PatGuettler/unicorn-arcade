@@ -31,4 +31,9 @@ if (!existsSync("dist/privacy-policy.html")) {
   process.exit(1);
 }
 
+if (!existsSync("dist/app-ads.txt")) {
+  console.error("dist/app-ads.txt missing — add public/app-ads.txt");
+  process.exit(1);
+}
+
 console.log("Pages build OK:", indexPath);
