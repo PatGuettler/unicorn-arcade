@@ -46,7 +46,7 @@ cp godot/config/admob.example.json godot/config/admob.json
 | **B1** AdMob app + banner unit | **Done** | App ID + `Unicorn_Banner_Bottom` created |
 | **B1b** Account / app review | **In progress** | Reactivated after inactivity; **account verifying** (~24h); app **Requires review** / **Limited ad serving** |
 | **B1c** Link Play store in AdMob | **Done** | **`com.grapegames.wlarcade`** — mobile **Unicorn Arcade** (not Windows PC row) |
-| **B1d** `app-ads.txt` verification | **To do** | See [B1d](#b1d-app-adstxt-verification) below |
+| **B1d** `app-ads.txt` verification | **Pushed — enable Pages** | Content on `PatGuettler/patguettler.github.io` `main`; click **Save** on repo **Settings → Pages** (branch **main**, `/root`), then verify URL |
 | **B2** Child-directed + Families self-certified ads | **Confirm in UI** | App settings — must match Play (ages 5–8) |
 | **C** Godot AdMob plugin + wire `AdBarService` | **Not started** | **Do this next** in repo; test banner on device |
 | **C** Placeholder ad bar in app | Done | `godot/autoload/ad_bar_service.gd`, `godot/scripts/main.gd` |
@@ -65,10 +65,10 @@ When Godot replaces Capacitor on Play, either keep one package ID across both co
 
 ### Next actions (in order)
 
-1. **AdMob (finish Part B)** — **Add store** on the Unicorn Arcade app row; confirm **child-directed** + **Families self-certified ads** in app settings; wait for **account verification** + app **Requires review** to clear.
-2. **Local config** — `godot/config/admob.json`: paste App ID (`…~3696195593`); keep **test** banner ID + `ads_enabled: false` until plugin works.
-3. **Godot** — [Part C2](#c2-native-plugin-android): integrate AdMob plugin; wire `AdBarService`; device test with **test** banner.
-4. **Play** — first AdMob release: **Advertising ID → Yes**; then switch `android_banner_unit_id` to `…/2606475202` for production QA.
+1. **GitHub Pages (you, ~2 min)** — repo **`patguettler.github.io`** → **Settings → Pages** → Source: **Deploy from branch** → **main** → **/ (root)** → **Save**. Wait 1–5 min, open `https://patguettler.github.io/app-ads.txt` (must show the `google.com, pub-2846735043546429…` line).
+2. **AdMob** → **Verify app** → **Check for updates** (after step 1). Confirm **child-directed** + **Families self-certified ads** in app settings.
+3. **Godot (engineering)** — [Part C2](#c2-native-plugin-android): AdMob plugin + wire `AdBarService`; local `godot/config/admob.json` already has your App ID + **test** banner (`ads_enabled: false` until device test).
+4. **Play** — first APK with Mobile Ads: **Advertising ID → Yes**; then production banner unit `…/2606475202`.
 
 ---
 
@@ -201,9 +201,11 @@ This repo’s GitHub Pages deploys to **`/unicorn-arcade/`**, so `public/app-ads
 1. **`patguettler.github.io` user site repo** — add `app-ads.txt` at the repo root, enable Pages, confirm `https://patguettler.github.io/app-ads.txt` in a browser, **or**
 2. Change Play **Website** to a domain you control at root (advanced).
 
-**Steps:** publish file → AdMob **Verify app** → **Check for updates** (can take up to 24 hours).
+**Steps:** enable Pages on **`patguettler.github.io`** (see [Next actions](#next-actions-in-order)) → confirm URL → AdMob **Check for updates** (can take up to 24 hours).
 
-Source copy in repo: `public/app-ads.txt` (mirror the same one line to the user-site root).
+**Repo:** `https://github.com/PatGuettler/patguettler.github.io` — file at repo root: `app-ads.txt`.
+
+Source copy in game repo (subpath only): `public/app-ads.txt` on **`unicorn-arcade` `main`**.
 
 ### B2. Child-directed / Families (critical)
 
