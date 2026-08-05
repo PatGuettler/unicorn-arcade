@@ -161,3 +161,11 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path "E:\AI Projects\games\gu
 Upgrade-compatible debug builds must use the established Godot user-profile keystore. Verify the APK signer before delivery: its SHA-256 certificate digest must be `97dcac80c34ab36c9b1e0da8cef5dc87c14911ffdb26d30aa0bc039f1e8be42b`. A portable Godot installation can silently create a different debug keystore; that APK is valid as a fresh install but Android will reject it as an update to 0.5 and earlier.
 
 This checkpoint exposes the complete 22-game registry plus the companion/decor marketplace, Unicorn Alley, and room editor. Production audio, wider physical-device QA, release signing/store packaging, final character refinement, and bespoke furniture sprites remain upcoming work.
+
+## Kid-safe ad bar (AdMob)
+
+- **Poing AdMob plugin** (`addons/admob`, enable in Project → Plugins). Android export requires **Use Gradle Build** (see `export_presets.cfg`).
+- Manifest App ID: **Project → Project Settings → AdMob → Android App ID** (matches `android_app_id` in config).
+- Runtime: autoload `AdBarService` + `scripts/main.gd` (no ads on login). Copy `config/admob.example.json` → `config/admob.json`, set `ads_enabled: true` and banner unit ID for device testing (test ID first).
+- Production banner unit: `ca-app-pub-2846735043546429/2606475202` after QA. Play package: `com.grapegames.wlarcade`.
+

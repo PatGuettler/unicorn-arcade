@@ -26,11 +26,17 @@ func _ready() -> void:
 		_show_login()
 	else:
 		_show_view(AppState.shell_view)
+	_sync_ad_bar()
+
+
+func _sync_ad_bar() -> void:
+	AdBarService.attach_to(self, AppState.player_name())
 
 
 func _show_view(view: String) -> void:
 	if AppState.player_name().is_empty():
 		_show_login()
+		_sync_ad_bar()
 		return
 	AppState.shell_view = view
 	match view:
@@ -38,6 +44,7 @@ func _show_view(view: String) -> void:
 		"category": _show_category(AppState.selected_category)
 		"profile": _show_profile()
 		_: _show_home()
+	_sync_ad_bar()
 
 
 func _reset_page(use_meadow: bool = false) -> VBoxContainer:
@@ -66,7 +73,13 @@ func _reset_page(use_meadow: bool = false) -> VBoxContainer:
 	margin.add_theme_constant_override("margin_left", 24)
 	margin.add_theme_constant_override("margin_right", 24)
 	margin.add_theme_constant_override("margin_top", 24)
-	margin.add_theme_constant_override("margin_bottom", 20)
+	var ad_reserve := 20.0
+	if (
+		AdBarService.should_show_for_player_logged_in(AppState.player_name())
+		and AdBarService.ads_enabled()
+	):
+		ad_reserve = maxf(20.0, AdBarService.banner_height() + 8.0)
+	margin.add_theme_constant_override("margin_bottom", int(ad_reserve))
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(margin)
 	page = VBoxContainer.new()
@@ -124,6 +137,7 @@ func _show_login() -> void:
 	bottom.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page.add_child(bottom)
 	name_input.grab_focus()
+	_sync_ad_bar()
 
 
 func _show_home() -> void:

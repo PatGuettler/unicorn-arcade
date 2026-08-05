@@ -191,6 +191,8 @@ godot/.godot/
 godot/.import/
 godot/export/
 godot/builds/
+godot/android/
+godot/config/admob.json
 
 # Blender disposable state
 *.blend1

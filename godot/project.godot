@@ -19,6 +19,12 @@ GameRegistry="*res://autoload/game_registry.gd"
 AppState="*res://autoload/app_state.gd"
 SafeArea="*res://autoload/safe_area.gd"
 AccessibleUI="*res://autoload/accessible_ui.gd"
+AdBarService="*res://autoload/ad_bar_service.gd"
+
+[admob/general/android]
+
+enabled=true
+app_id="ca-app-pub-2846735043546429~3696195593"
 
 [display]
 
@@ -39,3 +45,7 @@ renderer/rendering_method.mobile="gl_compatibility"
 textures/default_filters/use_nearest_mipmap_filter=false
 textures/vram_compression/import_etc2_astc=true
 environment/defaults/default_clear_color=Color(0.025, 0.039, 0.09, 1)
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/admob/plugin.cfg")
