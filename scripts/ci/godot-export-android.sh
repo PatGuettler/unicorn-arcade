@@ -103,7 +103,7 @@ export_android() {
 	godot --headless --path "$PROJECT" --import
 
 	echo "Installing Android build template..."
-	godot --headless --path "$PROJECT" --install-android-build-template 2>&1 | grep -v "cannot connect to daemon" || true
+	godot --headless --path "$PROJECT" --install-android-build-template
 
 	echo "Exporting release AAB..."
 	godot --headless --path "$PROJECT" --verbose \
