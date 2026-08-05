@@ -99,14 +99,16 @@ export_android() {
 	configure_godot_android_paths
 	start_adb_server
 
-	echo "Importing project assets (this can take several minutes on first run)..."
-	godot --headless --path "$PROJECT" --import
+	echo "Importing project assets (skipped on cache hit if fast)..."
+	if [[ ! -d "$PROJECT/.godot/imported" ]] || [[ "${FORCE_GODOT_IMPORT:-0}" == "1" ]]; then
+		godot --headless --path "$PROJECT" --import
+	else
+		echo "Found existing .godot/imported cache; run with FORCE_GODOT_IMPORT=1 to re-import."
+	fi
 
-	echo "Installing Android build template..."
-	godot --headless --path "$PROJECT" --install-android-build-template
-
-	echo "Exporting release AAB..."
+	echo "Exporting release AAB (installs Android build template as part of export)..."
 	godot --headless --path "$PROJECT" --verbose \
+		--install-android-build-template \
 		--export-release "$EXPORT_PRESET" "$PROJECT/build/android/UnicornArcade.aab"
 
 	echo "Exporting debug APK (install artifact)..."

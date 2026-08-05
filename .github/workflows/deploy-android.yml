@@ -14,7 +14,7 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 180
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
@@ -30,6 +30,16 @@ jobs:
           key: godot-import-${{ runner.os }}-${{ hashFiles('godot/**/*.import', 'godot/project.godot', 'godot/export_presets.cfg') }}
           restore-keys: |
             godot-import-${{ runner.os }}-
+
+      - name: Cache Gradle (Android export)
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('godot/android/build/**/*.gradle*', 'godot/export_presets.cfg') }}
+          restore-keys: |
+            gradle-${{ runner.os }}-
 
       - name: Setup Java
         uses: actions/setup-java@v4
