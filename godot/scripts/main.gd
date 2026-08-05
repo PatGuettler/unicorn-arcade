@@ -130,10 +130,13 @@ func _show_home() -> void:
 	_reset_page(true)
 	_add_header("", false, false)
 	var welcome := Label.new()
+	welcome.name = "HomeWelcomeText"
 	welcome.text = "WELCOME, %s" % AppState.player_name().to_upper()
 	welcome.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	welcome.add_theme_font_size_override("font_size", 18)
-	welcome.add_theme_color_override("font_color", MUTED)
+	welcome.add_theme_font_size_override("font_size", 22)
+	welcome.add_theme_color_override("font_color", StorybookUI.INK)
+	welcome.add_theme_color_override("font_outline_color", Color(StorybookUI.CREAM, 0.90))
+	welcome.add_theme_constant_override("outline_size", 3)
 	page.add_child(welcome)
 	var companion := Label.new()
 	var equipped := MetaCatalog.companion(AppState.equipped_companion())
@@ -143,9 +146,13 @@ func _show_home() -> void:
 	companion.add_theme_color_override("font_color", PINK)
 	page.add_child(companion)
 	var identity := Label.new()
+	identity.name = "HomeCompanionSummary"
 	identity.text = "Current Companion  •  %d playable games" % GameRegistry.playable_count()
 	identity.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	identity.add_theme_color_override("font_color", CYAN)
+	identity.add_theme_font_size_override("font_size", 21)
+	identity.add_theme_color_override("font_color", Color("254b54"))
+	identity.add_theme_color_override("font_outline_color", Color(StorybookUI.CREAM, 0.90))
+	identity.add_theme_constant_override("outline_size", 3)
 	page.add_child(identity)
 	var hero := Control.new()
 	hero.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -486,7 +493,9 @@ func _category_color(category: String) -> Color:
 func _make_art_button(accessible_text: String, texture: Texture2D, height: float) -> Button:
 	var button := Button.new()
 	button.text = accessible_text
-	button.tooltip_text = accessible_text.capitalize()
+	# The hidden native text supplies the accessible name. Mobile tooltips can
+	# otherwise linger as an unrelated little label over the meadow.
+	button.tooltip_text = ""
 	button.custom_minimum_size = Vector2(0, height)
 	button.add_theme_color_override("font_color", Color.TRANSPARENT)
 	button.add_theme_color_override("font_hover_color", Color.TRANSPARENT)

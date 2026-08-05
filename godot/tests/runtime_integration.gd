@@ -336,7 +336,7 @@ func _run() -> void:
 	var hero_viewport_matches_rect: bool = is_instance_valid(hero_preview) and not hero_viewports.is_empty() and hero_preview.size.y > 0.0 and absf(
 		float(hero_viewports[0].size.x) / float(hero_viewports[0].size.y) - hero_preview.size.x / hero_preview.size.y
 	) <= 0.02
-	_check(is_instance_valid(hero_preview) and hero_preview.presentation_context == "hero" and is_instance_valid(hero_camera) and hero_camera.size <= 5.81 and hero_camera.position.x < -8.0 and absf(hero_camera.position.z) < 2.0 and hero_viewport_matches_rect, "home companion uses a closer opposite-facing side-view hero camera without viewport stretching (size=%s, position=%s, aspect_match=%s)" % [hero_camera.size if is_instance_valid(hero_camera) else -1.0, hero_camera.position if is_instance_valid(hero_camera) else Vector3.ZERO, hero_viewport_matches_rect])
+	_check(is_instance_valid(hero_preview) and hero_preview.presentation_context == "hero" and is_instance_valid(hero_camera) and hero_camera.size >= 6.59 and hero_camera.position.y >= 4.27 and hero_camera.position.x < -8.0 and absf(hero_camera.position.z) < 2.0 and hero_viewport_matches_rect, "home companion uses a padded, raised side-view hero camera so horns and hooves stay in frame without viewport stretching (size=%s, position=%s, aspect_match=%s)" % [hero_camera.size if is_instance_valid(hero_camera) else -1.0, hero_camera.position if is_instance_valid(hero_camera) else Vector3.ZERO, hero_viewport_matches_rect])
 	var meadow_backgrounds_animate := true
 	for background_preview in meadow_background_previews:
 		if not is_instance_valid(background_preview.find_child("IdleAnimator", true, false)) or background_preview.anchor_top < 0.30:
@@ -345,11 +345,15 @@ func _run() -> void:
 	var centered_slot := shell.find_child("TrueCenterHeaderSlot", true, false) as Control
 	var home_sign := shell.find_child("HomeTitleSign", true, false) as TextureRect
 	var alley_sign_button := shell.find_child("UnicornAlleyStreetSignButton", true, false) as Button
+	var welcome_text := shell.find_child("HomeWelcomeText", true, false) as Label
+	var companion_summary := shell.find_child("HomeCompanionSummary", true, false) as Label
 	var expected_center: float = shell.global_position.x + shell.size.x * 0.5
 	var actual_center: float = centered_slot.global_position.x + centered_slot.size.x * 0.5 if is_instance_valid(centered_slot) else -1.0
 	_check(is_instance_valid(centered_slot) and absf(actual_center - expected_center) <= 1.0, "navigation headers center titles on the physical screen independently of side controls (actual %.2f, expected %.2f)" % [actual_center, expected_center])
 	_check(is_instance_valid(home_sign) and home_sign.texture.resource_path.ends_with("title_sign_option3_compact_v1.png"), "home meadow uses the approved illustrated Unicorn Arcade sign")
-	_check(is_instance_valid(alley_sign_button) and alley_sign_button.has_node("StreetSignArt") and alley_sign_button.text == "UNICORN ALLEY", "home uses an accessible illustrated Unicorn Alley street-sign action")
+	_check(is_instance_valid(alley_sign_button) and alley_sign_button.has_node("StreetSignArt") and alley_sign_button.text == "UNICORN ALLEY" and alley_sign_button.tooltip_text.is_empty(), "home uses an accessible illustrated Unicorn Alley street-sign action without a stray mobile tooltip")
+	_check(is_instance_valid(welcome_text) and welcome_text.get_theme_font_size("font_size") >= 22 and welcome_text.get_theme_color("font_color") == StorybookUI.INK, "home welcome text is larger and dark enough to read against the meadow sky")
+	_check(is_instance_valid(companion_summary) and companion_summary.get_theme_font_size("font_size") >= 21 and companion_summary.get_theme_color("font_color").get_luminance() < 0.30, "home companion summary is larger and uses high-contrast dark teal text")
 	shell.call("_show_dashboard")
 	await get_tree().process_frame
 	_check(shell.find_children("CategoryIcon", "ArcadePictogram", true, false).size() == 4, "all four game-category cards restore polished pictogram icons")
