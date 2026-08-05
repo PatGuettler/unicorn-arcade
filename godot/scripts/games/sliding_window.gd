@@ -1,6 +1,7 @@
 extends Control
 
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 
 var level := 1
 var level_data: Array[int] = []
@@ -180,13 +181,16 @@ func _build_ui() -> void:
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(actions)
 	var hint := Button.new()
+	StorybookUI.apply_game_action(hint, 120)
 	hint.text = "Hint"
 	hint.pressed.connect(_show_hint)
 	actions.add_child(hint)
 	action_button = Button.new()
+	StorybookUI.apply_game_action(action_button, 160)
 	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Level" else level))
 	actions.add_child(action_button)
 	var back := Button.new()
+	StorybookUI.apply_game_action(back, 170)
 	back.text = "Number Games"
 	back.pressed.connect(func() -> void:
 		AppState.set_shell_destination("category", "Number")

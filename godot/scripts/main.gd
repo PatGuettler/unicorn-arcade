@@ -373,8 +373,14 @@ func _add_header(title: String, show_back: bool, show_home: bool, back_action: C
 	right.alignment = BoxContainer.ALIGNMENT_END
 	header.add_child(right)
 	coin_label = Label.new()
+	coin_label.name = "CoinBalanceLabel"
 	coin_label.text = "★ %d" % AppState.coins()
 	coin_label.add_theme_color_override("font_color", YELLOW)
+	coin_label.add_theme_color_override("font_outline_color", StorybookUI.PLUM)
+	coin_label.add_theme_constant_override("outline_size", 3)
+	coin_label.add_theme_font_size_override("font_size", 24)
+	coin_label.custom_minimum_size.y = 48
+	coin_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	right.add_child(coin_label)
 	if show_home:
 		var home := Button.new()

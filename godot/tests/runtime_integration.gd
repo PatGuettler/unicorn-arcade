@@ -39,6 +39,7 @@ func _run() -> void:
 		add_child(game)
 		await get_tree().process_frame
 		_check(_ui_is_accessible(game), "%s meets readable text, contrast, and touch-target minimums" % game_id)
+		_check(_storybook_action_count(game) >= 3, "%s uses the shared storybook treatment for back, hint, and retry actions" % game_id)
 		_check(game.game_id == game_id, "%s selects the requested shared-game mode" % game_id)
 		_check(game.active, "%s begins in an active play state" % game_id)
 		_check(game.target_rounds > 0, "%s has a positive round target" % game_id)
@@ -49,6 +50,7 @@ func _run() -> void:
 	add_child(cash)
 	await get_tree().process_frame
 	_check(_ui_is_accessible(cash), "Cash Counter meets readable text, contrast, and touch-target minimums")
+	_check(_storybook_action_count(cash) >= 3, "Cash Counter styles back, hint, and retry with the shared storybook action treatment")
 	_check(cash.active, "Cash Counter begins in an active play state")
 	cash.target = 20
 	cash.total = 0
@@ -61,6 +63,7 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(coin_count.target > 0, "Coin Count begins with a positive target")
 	_check(_ui_is_accessible(coin_count), "Coin Count meets readable text, contrast, and touch-target minimums")
+	_check(_storybook_action_count(coin_count) >= 2, "Coin Count styles retry and navigation with the shared storybook action treatment")
 	_check(coin_count.coin_buttons.size() == 4 and coin_count.coin_buttons.all(func(button: Button) -> bool: return button is CoinChoiceButton), "Coin Count uses four illustrated denomination coins instead of text boxes")
 	_check(coin_count.coin_buttons[0].custom_minimum_size.y >= 170.0 and coin_count.coin_buttons[0].tooltip_text.contains("worth"), "illustrated coins retain large accessible tap targets and denomination descriptions")
 	remove_child(coin_count)
@@ -70,12 +73,14 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(rhyme.target_rounds > 0 and not rhyme.challenge.is_empty(), "Rhyme Rally begins with a playable challenge")
 	_check(_ui_is_accessible(rhyme), "Rhyme Rally meets readable text, contrast, and touch-target minimums")
+	_check(_storybook_action_count(rhyme) >= 2, "Rhyme Rally styles retry and navigation with the shared storybook action treatment")
 	remove_child(rhyme)
 	rhyme.free()
 	var math_swipe = MATH_SWIPE_SCENE.instantiate()
 	add_child(math_swipe)
 	await get_tree().process_frame
 	_check(_ui_is_accessible(math_swipe), "Math Swipe meets readable text, contrast, and touch-target minimums")
+	_check(_storybook_action_count(math_swipe) >= 2, "Math Swipe styles retry/next and navigation with the shared storybook action treatment")
 	_check(math_swipe.active and math_swipe.cards.size() == 2, "Math Swipe launches with two answer cards")
 	var correct_card: Button
 	for card in math_swipe.cards:
@@ -90,6 +95,7 @@ func _run() -> void:
 	add_child(jump)
 	await get_tree().process_frame
 	_check(_ui_is_accessible(jump), "Unicorn Jump meets readable text, contrast, and touch-target minimums")
+	_check(_storybook_action_count(jump) >= 4, "Unicorn Jump styles zoom, retry/next, and navigation with the shared storybook action treatment")
 	_check(jump.active and jump.level_data.size() == 10, "Unicorn Jump launches its level-one ten-node trail")
 	_check(jump.node_buttons.size() == 11 and jump.node_buttons.all(func(button: TextureButton) -> bool: return button.texture_normal != null), "Unicorn Jump builds the full trail from authored stepping-stone art")
 	_check(jump.find_children("TrailConnector*", "Line2D", true, false).size() == 10, "Unicorn Jump restores the original connected winding path")
@@ -108,6 +114,7 @@ func _run() -> void:
 	add_child(sliding)
 	await get_tree().process_frame
 	_check(_ui_is_accessible(sliding), "Sliding Window meets readable text, contrast, and touch-target minimums")
+	_check(_storybook_action_count(sliding) >= 3, "Sliding Window styles hint, retry/next, and navigation with the shared storybook action treatment")
 	_check(sliding.active and sliding.window_size == 3, "Sliding Window launches its level-one race")
 	var max_index := 0
 	for index in sliding.window_size:
@@ -121,6 +128,7 @@ func _run() -> void:
 	add_child(mathtris)
 	await get_tree().process_frame
 	_check(_ui_is_accessible(mathtris), "Mathtris meets readable text, contrast, and touch-target minimums")
+	_check(_storybook_action_count(mathtris) >= 4, "Mathtris styles power, hint, retry, and navigation with the shared storybook action treatment")
 	_check(mathtris.active and mathtris.board.size() == 14 and mathtris.board[0].size() == 8, "Mathtris launches an 8 by 14 live board")
 	_check(not mathtris.falling.is_empty(), "Mathtris launches an initial falling wave")
 	remove_child(mathtris)
@@ -129,6 +137,7 @@ func _run() -> void:
 	add_child(galaxy)
 	await get_tree().process_frame
 	_check(_ui_is_accessible(galaxy), "Galaxy Unicorn meets readable text, contrast, and touch-target minimums")
+	_check(_storybook_action_count(galaxy) >= 2, "Galaxy Unicorn styles retry/next and Arcade navigation with the shared storybook action treatment")
 	_check(galaxy.active and galaxy.target_kills == 10 and galaxy.lives == 3, "Galaxy Unicorn launches with the React target and lives")
 	_check(is_equal_approx(galaxy.player_x, 0.5), "Galaxy Unicorn centers the player for its opening wave")
 	galaxy.call("_spawn_enemy", false)
@@ -347,6 +356,7 @@ func _run() -> void:
 	var alley_sign_button := shell.find_child("UnicornAlleyStreetSignButton", true, false) as Button
 	var welcome_text := shell.find_child("HomeWelcomeText", true, false) as Label
 	var companion_summary := shell.find_child("HomeCompanionSummary", true, false) as Label
+	var coin_balance := shell.find_child("CoinBalanceLabel", true, false) as Label
 	var expected_center: float = shell.global_position.x + shell.size.x * 0.5
 	var actual_center: float = centered_slot.global_position.x + centered_slot.size.x * 0.5 if is_instance_valid(centered_slot) else -1.0
 	_check(is_instance_valid(centered_slot) and absf(actual_center - expected_center) <= 1.0, "navigation headers center titles on the physical screen independently of side controls (actual %.2f, expected %.2f)" % [actual_center, expected_center])
@@ -354,6 +364,7 @@ func _run() -> void:
 	_check(is_instance_valid(alley_sign_button) and alley_sign_button.has_node("StreetSignArt") and alley_sign_button.text == "UNICORN ALLEY" and alley_sign_button.tooltip_text.is_empty(), "home uses an accessible illustrated Unicorn Alley street-sign action without a stray mobile tooltip")
 	_check(is_instance_valid(welcome_text) and welcome_text.get_theme_font_size("font_size") >= 22 and welcome_text.get_theme_color("font_color") == StorybookUI.INK, "home welcome text is larger and dark enough to read against the meadow sky")
 	_check(is_instance_valid(companion_summary) and companion_summary.get_theme_font_size("font_size") >= 21 and companion_summary.get_theme_color("font_color").get_luminance() < 0.30, "home companion summary is larger and uses high-contrast dark teal text")
+	_check(is_instance_valid(coin_balance) and coin_balance.get_theme_font_size("font_size") >= 24 and coin_balance.get_theme_constant("outline_size") >= 3, "top star balance uses a larger outlined symbol and number")
 	shell.call("_show_dashboard")
 	await get_tree().process_frame
 	_check(shell.find_children("CategoryIcon", "ArcadePictogram", true, false).size() == 4, "all four game-category cards restore polished pictogram icons")
@@ -451,6 +462,18 @@ func _skeletons_are_in_rest_pose(node: Node) -> bool:
 			if not skeleton.get_bone_pose(bone_index).is_equal_approx(skeleton.get_bone_rest(bone_index)):
 				return false
 	return true
+
+
+func _storybook_action_count(root: Node) -> int:
+	var count := 0
+	for node in root.find_children("*", "Button", true, false):
+		var button := node as Button
+		if not button.has_meta("storybook_game_action"):
+			continue
+		var normal := button.get_theme_stylebox("normal") as StyleBoxFlat
+		if is_instance_valid(normal) and normal.border_width_left >= 3 and button.custom_minimum_size.y >= 58.0 and button.get_theme_font_size("font_size") >= 19:
+			count += 1
+	return count
 
 
 func _check(condition: bool, message: String) -> void:

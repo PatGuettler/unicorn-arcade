@@ -1,6 +1,7 @@
 extends Control
 
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 const STONE_CREAM = preload("res://assets/games/unicorn_jump/jump_stone_normal_cream_v1.png")
 const STONE_LILAC = preload("res://assets/games/unicorn_jump/jump_stone_normal_lilac_v1.png")
@@ -307,7 +308,7 @@ func _action_button(label_text: String) -> Button:
 	var button := Button.new()
 	button.text = label_text
 	button.custom_minimum_size = Vector2(112, 60)
-	button.add_theme_font_size_override("font_size", 19)
+	StorybookUI.apply_game_action(button, 112)
 	return button
 
 

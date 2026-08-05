@@ -30,6 +30,14 @@ static func apply_button(button: BaseButton, fill: Color = NAVY, dark_text: bool
 	button.add_theme_stylebox_override("disabled", button_style(fill.darkened(0.32), Color(GOLD, 0.42), 2, radius, 1))
 
 
+static func apply_game_action(button: BaseButton, minimum_width: float = 150.0) -> void:
+	apply_button(button, NAVY, false, 14)
+	button.custom_minimum_size.x = maxf(button.custom_minimum_size.x, minimum_width)
+	button.custom_minimum_size.y = maxf(button.custom_minimum_size.y, 58.0)
+	button.add_theme_font_size_override("font_size", 19)
+	button.set_meta("storybook_game_action", true)
+
+
 static func apply_line_edit(line_edit: LineEdit) -> void:
 	line_edit.add_theme_color_override("font_color", CREAM)
 	line_edit.add_theme_color_override("font_placeholder_color", Color(MUTED, 0.92))

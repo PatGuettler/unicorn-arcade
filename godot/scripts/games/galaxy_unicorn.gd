@@ -1,6 +1,7 @@
 extends Control
 
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 
 const ENEMIES := [
 	{"kind": "cloud", "hp": 1, "speed": 0.00035, "score": 10, "radius": 18.0},
@@ -279,9 +280,11 @@ func _build_ui() -> void:
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	add_child(actions)
 	action_button = Button.new()
+	StorybookUI.apply_game_action(action_button, 160)
 	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Sector" else level))
 	actions.add_child(action_button)
 	var back := Button.new()
+	StorybookUI.apply_game_action(back, 150)
 	back.text = "Arcade"
 	back.pressed.connect(func() -> void:
 		AppState.set_shell_destination("category", "Arcade")

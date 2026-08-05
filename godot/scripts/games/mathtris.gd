@@ -1,6 +1,7 @@
 extends Control
 
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const COLS := 8
 const ROWS := 14
 const SOLVES_FOR_POWER := 3
@@ -424,12 +425,14 @@ func _build_ui() -> void:
 		button.pressed.connect(_nudge.bind(direction))
 		controls.add_child(button)
 	power_button = Button.new()
+	StorybookUI.apply_game_action(power_button, 120)
 	power_button.custom_minimum_size.x = 120
 	power_button.pressed.connect(_activate_power)
 	controls.add_child(power_button)
 	var hint := Button.new()
 	hint.text = "Hint"
 	hint.custom_minimum_size.x = 48
+	StorybookUI.apply_game_action(hint, 96)
 	hint.pressed.connect(_show_hint)
 	controls.add_child(hint)
 	message_label = Label.new()
@@ -440,9 +443,11 @@ func _build_ui() -> void:
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(actions)
 	action_button = Button.new()
+	StorybookUI.apply_game_action(action_button, 160)
 	action_button.pressed.connect(_start_game)
 	actions.add_child(action_button)
 	var back := Button.new()
+	StorybookUI.apply_game_action(back, 170)
 	back.text = "Number Games"
 	back.pressed.connect(func() -> void:
 		AppState.set_shell_destination("category", "Number")

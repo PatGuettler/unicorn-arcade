@@ -1,6 +1,7 @@
 extends Control
 
 const Rules = preload("res://scripts/games/word_game_rules.gd")
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const BILLS := [1, 5, 10, 20, 50, 100]
 const NAVY := Color("08112f")
 const CYAN := Color("58d6e8")
@@ -108,6 +109,7 @@ func _build_ui() -> void:
 	margin.add_child(layout)
 	var header := HBoxContainer.new()
 	var back := Button.new()
+	StorybookUI.apply_game_action(back, 120)
 	back.text = "‹ BACK"
 	back.pressed.connect(_go_back)
 	header.add_child(back)
@@ -121,6 +123,9 @@ func _build_ui() -> void:
 	coin_label = Label.new()
 	coin_label.text = "★ %d" % AppState.coins()
 	coin_label.add_theme_color_override("font_color", YELLOW)
+	coin_label.add_theme_color_override("font_outline_color", StorybookUI.PLUM)
+	coin_label.add_theme_constant_override("outline_size", 3)
+	coin_label.add_theme_font_size_override("font_size", 24)
 	header.add_child(coin_label)
 	layout.add_child(header)
 	level_label = Label.new()
@@ -163,10 +168,12 @@ func _build_ui() -> void:
 	actions.add_theme_constant_override("separation", 12)
 	layout.add_child(actions)
 	hint_button = Button.new()
+	StorybookUI.apply_game_action(hint_button, 130)
 	hint_button.text = "HINT"
 	hint_button.pressed.connect(_show_hint)
 	actions.add_child(hint_button)
 	retry_button = Button.new()
+	StorybookUI.apply_game_action(retry_button, 150)
 	retry_button.text = "RETRY"
 	retry_button.pressed.connect(_start_round)
 	actions.add_child(retry_button)

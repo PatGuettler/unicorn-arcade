@@ -1,5 +1,7 @@
 extends Control
 
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
+
 const CHALLENGES := [
 	{"prompt": "cat", "answer": "hat", "options": ["hat", "dog", "cup", "pen"]},
 	{"prompt": "sun", "answer": "fun", "options": ["fun", "cat", "bed", "log"]},
@@ -140,10 +142,12 @@ func _build_ui() -> void:
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	layout.add_child(actions)
 	var retry := Button.new()
+	StorybookUI.apply_game_action(retry, 170)
 	retry.text = "Retry / Next"
 	retry.pressed.connect(_start_level)
 	actions.add_child(retry)
 	var back := Button.new()
+	StorybookUI.apply_game_action(back, 160)
 	back.text = "Word Games"
 	back.pressed.connect(func() -> void:
 		AppState.set_shell_destination("category", "Word")

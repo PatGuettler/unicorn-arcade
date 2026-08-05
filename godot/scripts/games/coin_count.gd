@@ -115,13 +115,13 @@ func _build_ui() -> void:
 	var retry := Button.new()
 	retry.text = "Retry / Next"
 	retry.custom_minimum_size = Vector2(210, 58)
-	StorybookUI.apply_button(retry, StorybookUI.NAVY)
+	StorybookUI.apply_game_action(retry, 210)
 	retry.pressed.connect(_start_round)
 	actions.add_child(retry)
 	var back := Button.new()
 	back.text = "Number Games"
 	back.custom_minimum_size = Vector2(210, 58)
-	StorybookUI.apply_button(back, StorybookUI.NAVY)
+	StorybookUI.apply_game_action(back, 210)
 	back.pressed.connect(func() -> void:
 		AppState.set_shell_destination("category", "Number")
 		get_tree().change_scene_to_file("res://scenes/main.tscn")
