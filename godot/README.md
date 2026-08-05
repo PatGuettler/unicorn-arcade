@@ -169,3 +169,14 @@ This checkpoint exposes the complete 22-game registry plus the companion/decor m
 - Runtime: autoload `AdBarService` + `scripts/main.gd` (no ads on login). Copy `config/admob.example.json` → `config/admob.json`, set `ads_enabled: true` and banner unit ID for device testing (test ID first).
 - Production banner unit: `ca-app-pub-2846735043546429/2606475202` after QA. Play package: `com.grapegames.wlarcade`.
 
+## CI / Play internal testing
+
+Pushes to **`godot-port`** run [`.github/workflows/deploy-android.yml`](../.github/workflows/deploy-android.yml):
+
+1. Builds a signed **AAB** and uploads to Play **internal** track (`com.grapegames.wlarcade`).
+2. Publishes a **debug APK** as a GitHub Actions **artifact** (`UnicornArcade-debug-apk`) — download from the workflow run and sideload on your phone.
+
+Uses the same secrets as before (`ANDROID_KEYSTORE_BASE64`, `KEY_ALIAS`, `KEYSTORE_PASSWORD`, `SERVICE_ACCOUNT_JSON`). CI writes `config/admob.json` with the Google **test** banner and `ads_enabled: true`.
+
+To install from Play instead of sideloading: add your Google account as an **internal tester** for the app in Play Console, then open the internal testing link after a green workflow run.
+
