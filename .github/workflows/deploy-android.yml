@@ -14,6 +14,7 @@ env:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
     env:
       ANDROID_HOME: /usr/local/lib/android/sdk
       ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
@@ -21,6 +22,14 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
+
+      - name: Cache Godot import cache
+        uses: actions/cache@v4
+        with:
+          path: godot/.godot
+          key: godot-import-${{ runner.os }}-${{ hashFiles('godot/**/*.import', 'godot/project.godot', 'godot/export_presets.cfg') }}
+          restore-keys: |
+            godot-import-${{ runner.os }}-
 
       - name: Setup Java
         uses: actions/setup-java@v4

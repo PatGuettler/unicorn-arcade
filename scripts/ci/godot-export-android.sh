@@ -16,6 +16,32 @@ if [[ -z "${ANDROID_SDK_ROOT}" ]]; then
 	exit 1
 fi
 
+configure_godot_android_paths() {
+	local settings_dir="$HOME/.config/godot"
+	mkdir -p "$settings_dir"
+	local settings_file="$settings_dir/editor_settings-4.tres"
+	local java_home="${JAVA_HOME:-}"
+	if [[ -z "$java_home" ]] && command -v java >/dev/null 2>&1; then
+		java_home="$(readlink -f "$(command -v java)" | sed 's|/bin/java||')"
+	fi
+	cat >"$settings_file" <<EOF
+[gd_resource type="EditorSettings" format=3]
+
+[resource]
+export/android/android_sdk_path = "${ANDROID_SDK_ROOT}"
+export/android/java_sdk_path = "${java_home}"
+EOF
+}
+
+start_adb_server() {
+	local adb_bin="${ANDROID_SDK_ROOT}/platform-tools/adb"
+	if [[ -x "$adb_bin" ]]; then
+		"$adb_bin" start-server >/dev/null 2>&1 || true
+	elif command -v adb >/dev/null 2>&1; then
+		adb start-server >/dev/null 2>&1 || true
+	fi
+}
+
 install_godot() {
 	if command -v godot >/dev/null 2>&1; then
 		return 0
@@ -70,12 +96,14 @@ export_android() {
 	mkdir -p "$PROJECT/build/android"
 	write_admob_config
 	bump_version_code
+	configure_godot_android_paths
+	start_adb_server
 
-	echo "Importing project assets..."
-	godot --headless --path "$PROJECT" --editor --quit-after 120 || true
+	echo "Importing project assets (this can take several minutes on first run)..."
+	godot --headless --path "$PROJECT" --import
 
 	echo "Installing Android build template..."
-	godot --headless --path "$PROJECT" --install-android-build-template
+	godot --headless --path "$PROJECT" --install-android-build-template 2>&1 | grep -v "cannot connect to daemon" || true
 
 	echo "Exporting release AAB..."
 	godot --headless --path "$PROJECT" --verbose \
