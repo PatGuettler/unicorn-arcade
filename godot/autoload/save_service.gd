@@ -1,6 +1,6 @@
 extends Node
 
-const SAVE_VERSION := 3
+const SAVE_VERSION := 4
 const SAVE_PATH := "user://unicorn_arcade_v2.json"
 
 
@@ -20,7 +20,9 @@ func default_state() -> Dictionary:
 			"music": true,
 			"sound": true,
 			"reduced_motion": false,
+			"tutorials_enabled": true,
 		},
+		"tutorials": {},
 	}
 
 
@@ -64,6 +66,7 @@ func _migrate(source: Dictionary) -> Dictionary:
 			if source.has(key):
 				result[key] = source[key]
 	_normalize_meta(result)
+	_normalize_learning_state(result, source, version)
 	result["version"] = SAVE_VERSION
 	return result
 
@@ -96,3 +99,22 @@ func _normalize_meta(state: Dictionary) -> void:
 				})
 		normalized_rooms[str(room_id)] = normalized_items
 	state["rooms"] = normalized_rooms
+
+
+func _normalize_learning_state(state: Dictionary, source: Dictionary, source_version: int) -> void:
+	if not state.get("settings") is Dictionary:
+		state["settings"] = {}
+	for setting in {"music": true, "sound": true, "reduced_motion": false, "tutorials_enabled": true}:
+		if not state["settings"].has(setting):
+			state["settings"][setting] = {"music": true, "sound": true, "reduced_motion": false, "tutorials_enabled": true}[setting]
+	if not state.get("tutorials") is Dictionary:
+		state["tutorials"] = {}
+	# Existing players are never forced backward through lessons they have already
+	# mastered. Only the first three previously reached levels are marked complete.
+	if source_version < 4 and not source.has("tutorials"):
+		for game_id in state.get("progress", {}):
+			var max_level := int(state["progress"][game_id].get("max_level", 1))
+			var completed_levels: Array[int] = []
+			for tutorial_level in range(1, mini(4, max_level)):
+				completed_levels.append(tutorial_level)
+			state["tutorials"][str(game_id)] = completed_levels

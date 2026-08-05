@@ -3,6 +3,7 @@ extends Control
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const RainbowJumpFXScene = preload("res://scripts/ui/rainbow_jump_fx.gd")
 const STONE_CREAM = preload("res://assets/games/unicorn_jump/jump_stone_normal_cream_v1.png")
 const STONE_LILAC = preload("res://assets/games/unicorn_jump/jump_stone_normal_lilac_v1.png")
 const STONE_CURRENT = preload("res://assets/games/unicorn_jump/jump_stone_current_v1.png")
@@ -28,6 +29,10 @@ var scroller: ScrollContainer
 var action_button: Button
 var companion_preview: RoomItemPreview3D
 var zoom := 1.0
+var jump_in_progress := false
+var touch_points := {}
+var pinch_distance := 0.0
+var fx_layer: RainbowJumpFX
 
 
 func _ready() -> void:
@@ -88,6 +93,8 @@ func _start_level(for_level: int) -> void:
 	visited = [0]
 	started_ms = Time.get_ticks_msec()
 	active = true
+	jump_in_progress = false
+	CompanionAbilityService.begin_level("unicorn_jump", level)
 	action_button.hide()
 	status_label.text = "Count the current number of stones, then tap that exact landing."
 	_rebuild_path()
@@ -95,16 +102,23 @@ func _start_level(for_level: int) -> void:
 
 
 func _choose_node(index: int) -> void:
-	if not active or index == current_index:
+	if not active or jump_in_progress or index == current_index:
 		return
 	var expected := current_index + level_data[current_index]
 	if index != expected:
+		if CompanionAbilityService.consume_checkpoint_retry():
+			status_label.text = "Sparkle saved your checkpoint! Count again from this stone."
+			_bounce_stone(node_buttons[index])
+			return
 		active = false
 		status_label.text = "Wrong landing. Follow the jump value to stone %d." % expected
 		action_button.text = "Retry"
 		action_button.show()
 		_set_nodes_enabled(false)
 		return
+	jump_in_progress = true
+	_set_nodes_enabled(false)
+	await _animate_jump(current_index, index)
 	current_index = index
 	visited.append(index)
 	if current_index == level_data.size():
@@ -117,6 +131,9 @@ func _choose_node(index: int) -> void:
 	else:
 		status_label.text = "Perfect landing. Keep going!"
 	_update_path()
+	jump_in_progress = false
+	if active:
+		_set_nodes_enabled(true)
 
 
 func _rebuild_path() -> void:
@@ -177,7 +194,7 @@ func _rebuild_path() -> void:
 
 
 func _update_path() -> void:
-	jump_label.text = "LEVEL %d  •  %s" % [level, _jump_instruction(level_data[current_index]) if current_index < level_data.size() else "TRAIL COMPLETE"]
+	jump_label.text = "LEVEL %d  •  STONE %d OF %d" % [level, current_index + 1, level_data.size() + 1]
 	for index in node_buttons.size():
 		var button := node_buttons[index]
 		var value_label := button.get_node("JumpValue") as Label
@@ -240,9 +257,96 @@ func _stone_center_x(index: int) -> float:
 
 
 func _change_zoom(amount: float) -> void:
-	zoom = clampf(zoom + amount, 0.8, 1.2)
+	_set_zoom(zoom + amount)
+
+
+func _set_zoom(value: float) -> void:
+	var next_zoom := clampf(value, 0.8, 1.2)
+	if is_equal_approx(next_zoom, zoom):
+		return
+	var ratio := next_zoom / zoom
+	var old_scroll := scroller.scroll_vertical if is_instance_valid(scroller) else 0
+	zoom = next_zoom
 	_rebuild_path()
 	_update_path()
+	if is_instance_valid(scroller):
+		scroller.set_deferred("scroll_vertical", roundi(old_scroll * ratio))
+
+
+func _input(event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			touch_points[touch.index] = touch.position
+		else:
+			touch_points.erase(touch.index)
+		if touch_points.size() < 2:
+			pinch_distance = 0.0
+	elif event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		touch_points[drag.index] = drag.position
+		if touch_points.size() == 2:
+			var points: Array = touch_points.values()
+			var first_point: Vector2 = points[0]
+			var second_point: Vector2 = points[1]
+			var distance := first_point.distance_to(second_point)
+			if pinch_distance > 0.0:
+				_set_zoom(zoom * distance / pinch_distance)
+			pinch_distance = distance
+			get_viewport().set_input_as_handled()
+	elif event is InputEventMagnifyGesture:
+		_set_zoom(zoom * (event as InputEventMagnifyGesture).factor)
+
+
+func _animate_jump(from_index: int, to_index: int) -> void:
+	if AppState.setting("reduced_motion", false):
+		await get_tree().create_timer(0.16).timeout
+		return
+	var from_button := node_buttons[from_index]
+	var to_button := node_buttons[to_index]
+	var start := from_button.global_position + from_button.size * 0.5 + Vector2(0, -42)
+	var finish := to_button.global_position + to_button.size * 0.5 + Vector2(0, -42)
+	var flight := RoomItemPreviewScene.new()
+	flight.name = "JumpingCompanion"
+	flight.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	flight.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": true, "presentation": "marketplace"})
+	flight.size = Vector2(178, 138) * zoom
+	flight.z_index = 110
+	add_child(flight)
+	flight.global_position = start - flight.size * 0.5
+	if is_instance_valid(companion_preview):
+		companion_preview.hide()
+	fx_layer.clear_flight()
+	var distance_stones := maxi(1, absi(to_index - from_index))
+	var duration := minf(1.1, 0.62 + distance_stones * 0.06)
+	var tween := create_tween()
+	tween.tween_method(func(progress: float) -> void:
+		var midpoint := (start + finish) * 0.5 + Vector2(0, -92.0 - distance_stones * 5.0)
+		var first := start.lerp(midpoint, progress)
+		var second := midpoint.lerp(finish, progress)
+		var point := first.lerp(second, progress)
+		flight.global_position = point - flight.size * 0.5
+		flight.rotation = sin(progress * PI * 2.0) * 0.035
+		fx_layer.set_flight_point(_fx_local(point + Vector2(-flight.size.x * 0.32, 8)))
+	, 0.0, 1.0, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	await tween.finished
+	fx_layer.clear_flight()
+	fx_layer.landing_burst(_fx_local(finish + Vector2(-36, 20)))
+	flight.queue_free()
+	if is_instance_valid(companion_preview):
+		companion_preview.show()
+
+
+func _bounce_stone(button: TextureButton) -> void:
+	var original := button.scale
+	button.pivot_offset = button.size * 0.5
+	var tween := button.create_tween()
+	tween.tween_property(button, "scale", original * 1.12, 0.12).set_trans(Tween.TRANS_BACK)
+	tween.tween_property(button, "scale", original, 0.18).set_trans(Tween.TRANS_BOUNCE)
+
+
+func _fx_local(global_point: Vector2) -> Vector2:
+	return fx_layer.get_global_transform_with_canvas().affine_inverse() * global_point
 
 
 func _build_ui() -> void:
@@ -264,7 +368,8 @@ func _build_ui() -> void:
 	root.add_child(title)
 	jump_label = Label.new()
 	jump_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	jump_label.add_theme_font_size_override("font_size", 20)
+	jump_label.add_theme_font_size_override("font_size", 24)
+	jump_label.add_theme_color_override("font_color", Color("fff3d6"))
 	jump_label.add_theme_color_override("font_outline_color", Color("120d32"))
 	jump_label.add_theme_constant_override("outline_size", 4)
 	root.add_child(jump_label)
@@ -276,6 +381,9 @@ func _build_ui() -> void:
 	path_box.custom_minimum_size.x = PATH_WIDTH
 	path_box.add_theme_constant_override("separation", 0)
 	scroller.add_child(path_box)
+	fx_layer = RainbowJumpFXScene.new()
+	add_child(fx_layer)
+	fx_layer.z_index = 100
 	status_label = Label.new()
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -287,12 +395,6 @@ func _build_ui() -> void:
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	actions.add_theme_constant_override("separation", 8)
 	root.add_child(actions)
-	var zoom_out := _action_button("Zoom −")
-	zoom_out.pressed.connect(_change_zoom.bind(-0.1))
-	actions.add_child(zoom_out)
-	var zoom_in := _action_button("Zoom +")
-	zoom_in.pressed.connect(_change_zoom.bind(0.1))
-	actions.add_child(zoom_in)
 	action_button = _action_button("")
 	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Level" else level))
 	actions.add_child(action_button)

@@ -81,7 +81,29 @@ func set_setting(key: String, value) -> void:
 	_save_and_emit()
 
 
+func tutorial_complete(game_id: String, level: int) -> bool:
+	return level in data.get("tutorials", {}).get(game_id, [])
+
+
+func mark_tutorial_complete(game_id: String, level: int) -> void:
+	var tutorials: Dictionary = data.get("tutorials", {})
+	var completed: Array = tutorials.get(game_id, [])
+	if level not in completed:
+		completed.append(level)
+		completed.sort()
+		tutorials[game_id] = completed
+		data["tutorials"] = tutorials
+		_save_and_emit()
+
+
+func reset_tutorials() -> void:
+	data["tutorials"] = {}
+	_save_and_emit()
+
+
 func spend_hint(level: int) -> bool:
+	if CompanionAbilityService.consume_free_hint():
+		return true
 	var cost := RewardService.hint_cost(level)
 	if coins() < cost:
 		return false
@@ -201,6 +223,8 @@ func reset_room(companion_id: String) -> void:
 
 func complete_level(game_id: String, level: int, elapsed_ms: int) -> int:
 	var reward := RewardService.level_reward(level)
+	var companion_bonus := CompanionAbilityService.reward_bonus(reward)
+	reward += companion_bonus
 	data["player"]["coins"] = coins() + reward
 	var progress: Dictionary = data.get("progress", {})
 	var record: Dictionary = progress.get(game_id, {"max_level": 1, "completed": []})

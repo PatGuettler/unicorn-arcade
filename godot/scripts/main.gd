@@ -291,51 +291,158 @@ func _show_profile() -> void:
 	page.add_child(scroll)
 	var content := VBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 12)
+	content.add_theme_constant_override("separation", 16)
 	scroll.add_child(content)
-	var player := Label.new()
-	player.text = "%s\n★ %d coins  •  %d completed runs" % [AppState.player_name(), AppState.coins(), AppState.completed_run_count()]
-	player.add_theme_font_size_override("font_size", 24)
-	player.add_theme_color_override("font_color", CYAN)
-	content.add_child(player)
-	var progress_title := Label.new()
-	progress_title.text = "GAME PROGRESS"
-	progress_title.add_theme_font_size_override("font_size", 18)
-	progress_title.add_theme_color_override("font_color", PINK)
-	content.add_child(progress_title)
+	var hero_card := PanelContainer.new()
+	hero_card.name = "ProfileHeroCard"
+	hero_card.custom_minimum_size.y = 250
+	hero_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), StorybookUI.GOLD, 22))
+	content.add_child(hero_card)
+	var hero_row := HBoxContainer.new()
+	hero_row.add_theme_constant_override("separation", 18)
+	hero_card.add_child(hero_row)
+	var preview := _build_companion_preview(AppState.equipped_companion(), "profile", 205)
+	preview.custom_minimum_size.x = 205
+	preview.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	hero_row.add_child(preview)
+	var identity := VBoxContainer.new()
+	identity.alignment = BoxContainer.ALIGNMENT_CENTER
+	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	identity.add_theme_constant_override("separation", 9)
+	hero_row.add_child(identity)
+	var player_name := _card_label(AppState.player_name().to_upper(), 31, Color("9c356d"), HORIZONTAL_ALIGNMENT_CENTER)
+	identity.add_child(player_name)
+	var companion := MetaCatalog.companion(AppState.equipped_companion())
+	identity.add_child(_card_label("EQUIPPED • %s" % str(companion.get("name", "Sparkle")).to_upper(), 19, Color("254b54"), HORIZONTAL_ALIGNMENT_CENTER))
+	var stats := GridContainer.new()
+	stats.columns = 2
+	stats.add_theme_constant_override("h_separation", 8)
+	stats.add_theme_constant_override("v_separation", 8)
+	identity.add_child(stats)
+	stats.add_child(_profile_stat("★ %d" % AppState.coins(), "COINS"))
+	stats.add_child(_profile_stat("%d" % AppState.completed_run_count(), "RUNS"))
+	stats.add_child(_profile_stat("%d / 6" % AppState.owned_companions().size(), "UNICORNS"))
+	stats.add_child(_profile_stat("%d" % AppState.data.get("inventory", {}).size(), "DECOR"))
+	var ability_definition := CompanionAbilityService.definition()
+	var ability_card := PanelContainer.new()
+	ability_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("241c55"), Color("58d6e8"), 18))
+	content.add_child(ability_card)
+	var ability_copy := Label.new()
+	ability_copy.text = "✦  %s\n%s" % [str(ability_definition.get("name", "COMPANION POWER")).to_upper(), str(ability_definition.get("description", ""))]
+	ability_copy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ability_copy.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ability_copy.add_theme_font_size_override("font_size", 20)
+	ability_copy.add_theme_color_override("font_color", StorybookUI.CREAM)
+	ability_card.add_child(ability_copy)
+	content.add_child(_profile_section_title("GAME PROGRESS"))
 	for category in ["Number", "Word", "Mystery", "Arcade"]:
-		var category_label := Label.new()
-		category_label.text = category.to_upper()
-		category_label.add_theme_color_override("font_color", YELLOW)
-		content.add_child(category_label)
+		var category_card := PanelContainer.new()
+		category_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254d"), _category_color(category), 18))
+		content.add_child(category_card)
+		var category_stack := VBoxContainer.new()
+		category_stack.add_theme_constant_override("separation", 8)
+		category_card.add_child(category_stack)
+		var games := GameRegistry.games_in_category(category)
+		var completed_count := 0
+		for game in games:
+			completed_count += AppState.progress_for_game(game["id"]).get("completed", []).size()
+		var category_toggle := Button.new()
+		category_toggle.text = "%s MAGIC    •    %d RUNS    ▾" % [category.to_upper(), completed_count]
+		category_toggle.add_theme_font_size_override("font_size", 22)
+		StorybookUI.apply_button(category_toggle, Color("22345f"), false, 14)
+		category_stack.add_child(category_toggle)
+		var game_grid := GridContainer.new()
+		game_grid.columns = 1
+		game_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		game_grid.add_theme_constant_override("h_separation", 8)
+		game_grid.add_theme_constant_override("v_separation", 8)
+		category_stack.add_child(game_grid)
+		category_toggle.pressed.connect(func() -> void:
+			game_grid.visible = not game_grid.visible
+			category_toggle.text = "%s MAGIC    •    %d RUNS    %s" % [category.to_upper(), completed_count, "▾" if game_grid.visible else "▸"]
+		)
 		for game in GameRegistry.games_in_category(category):
 			var record := AppState.progress_for_game(game["id"])
 			var completed: Array = record.get("completed", [])
+			var game_card := PanelContainer.new()
+			game_card.custom_minimum_size.y = 72
+			game_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			game_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), _category_color(category), 12))
 			var row := Label.new()
-			row.text = "%s — Level %d, %d runs" % [game["title"], AppState.current_level(game["id"]), completed.size()]
-			row.add_theme_color_override("font_color", TEXT if not completed.is_empty() else MUTED)
-			content.add_child(row)
-	var settings_title := Label.new()
-	settings_title.text = "SETTINGS"
-	settings_title.add_theme_font_size_override("font_size", 18)
-	settings_title.add_theme_color_override("font_color", PINK)
-	content.add_child(settings_title)
+			row.text = "%s\nLEVEL %d  •  %d RUNS" % [str(game["title"]).to_upper(), AppState.current_level(game["id"]), completed.size()]
+			row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			row.add_theme_font_size_override("font_size", 17)
+			row.add_theme_color_override("font_color", StorybookUI.INK)
+			game_card.add_child(row)
+			game_grid.add_child(game_card)
+	content.add_child(_profile_section_title("SETTINGS & LEARNING"))
+	var settings_card := PanelContainer.new()
+	settings_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), StorybookUI.GOLD, 18))
+	content.add_child(settings_card)
+	var settings_stack := VBoxContainer.new()
+	settings_stack.add_theme_constant_override("separation", 8)
+	settings_card.add_child(settings_stack)
 	for setting_data in [
 		{"key": "music", "label": "Music"},
 		{"key": "sound", "label": "Sound effects"},
 		{"key": "reduced_motion", "label": "Reduced motion"},
+		{"key": "tutorials_enabled", "label": "Guided first three levels"},
 	]:
 		var toggle := CheckButton.new()
 		toggle.text = setting_data["label"]
 		toggle.button_pressed = bool(AppState.setting(setting_data["key"], setting_data["key"] != "reduced_motion"))
+		toggle.custom_minimum_size.y = 56
+		toggle.add_theme_font_size_override("font_size", 19)
+		toggle.add_theme_color_override("font_color", StorybookUI.INK)
 		toggle.toggled.connect(func(value: bool) -> void: AppState.set_setting(setting_data["key"], value))
-		content.add_child(toggle)
+		settings_stack.add_child(toggle)
+	var reset_tutorials := _make_button("RESET ALL TUTORIALS", Color("6d3f83"), 60)
+	reset_tutorials.pressed.connect(func() -> void:
+		var dialog := ConfirmationDialog.new()
+		dialog.title = "Reset tutorials?"
+		dialog.dialog_text = "The first three guided levels will be available again in every game."
+		page.add_child(dialog)
+		dialog.confirmed.connect(func() -> void:
+			AppState.reset_tutorials()
+			status_label.text = "Tutorial progress reset."
+			dialog.queue_free()
+		)
+		dialog.popup_centered(Vector2i(520, 260))
+	)
+	settings_stack.add_child(reset_tutorials)
+	status_label = Label.new()
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.add_theme_color_override("font_color", Color("254b54"))
+	settings_stack.add_child(status_label)
 	var logout := _make_button("LOG OUT", Color("7c2948"), 60)
 	logout.pressed.connect(func() -> void:
 		AppState.logout()
 		_show_login()
 	)
 	content.add_child(logout)
+
+
+func _profile_stat(value: String, caption: String) -> PanelContainer:
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(120, 70)
+	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("f7d8eb"), Color("d16b9e"), 12))
+	var label := Label.new()
+	label.text = "%s\n%s" % [value, caption]
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 17)
+	label.add_theme_color_override("font_color", StorybookUI.INK)
+	card.add_child(label)
+	return card
+
+
+func _profile_section_title(value: String) -> Label:
+	var label := Label.new()
+	label.text = value
+	label.add_theme_font_size_override("font_size", 22)
+	label.add_theme_color_override("font_color", Color("9c356d"))
+	label.add_theme_color_override("font_outline_color", StorybookUI.CREAM)
+	label.add_theme_constant_override("outline_size", 3)
+	return label
 
 
 func _add_header(title: String, show_back: bool, show_home: bool, back_action: Callable = Callable()) -> void:

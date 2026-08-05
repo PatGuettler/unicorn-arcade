@@ -29,7 +29,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not active:
 		return
-	rival_elapsed += delta * 1000.0
+	rival_elapsed += delta * 1000.0 * CompanionAbilityService.time_scale()
 	var speed := Rules.rival_move_ms(level)
 	while rival_elapsed >= speed:
 		rival_elapsed -= speed

@@ -3,6 +3,15 @@ extends Control
 const Rules = preload("res://scripts/games/word_game_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const BILLS := [1, 5, 10, 20, 50, 100]
+const BILL_ART := {
+	1: "res://assets/games/currency/one_dollar.jpg",
+	5: "res://assets/games/currency/five_dollar.png",
+	10: "res://assets/games/currency/ten_dollar.png",
+	20: "res://assets/games/currency/twenty_dollar.jpg",
+	50: "res://assets/games/currency/fifty_dollar.png",
+	100: "res://assets/games/currency/one_hundred_dollar.png",
+}
+const BILL_NAMES := {1: "ONE DOLLAR", 5: "FIVE DOLLARS", 10: "TEN DOLLARS", 20: "TWENTY DOLLARS", 50: "FIFTY DOLLARS", 100: "ONE HUNDRED DOLLARS"}
 const NAVY := Color("08112f")
 const CYAN := Color("58d6e8")
 const YELLOW := Color("ffd166")
@@ -156,10 +165,35 @@ func _build_ui() -> void:
 	layout.add_child(grid)
 	for bill in BILLS:
 		var button := Button.new()
-		button.text = "$%d" % bill
-		button.custom_minimum_size = Vector2(0, 82)
+		button.text = "$%d %s" % [bill, BILL_NAMES[bill]]
+		button.tooltip_text = "%s US bill" % BILL_NAMES[bill].to_lower()
+		button.set_meta("currency_art", true)
+		button.custom_minimum_size = Vector2(0, 126)
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		button.add_theme_font_size_override("font_size", 25)
+		for color_name in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_disabled_color"]:
+			button.add_theme_color_override(color_name, Color.TRANSPARENT)
+		button.add_theme_stylebox_override("normal", StorybookUI.button_style(Color("fff7dc"), Color("e1ae4f"), 3, 14))
+		button.add_theme_stylebox_override("hover", StorybookUI.button_style(Color("ffffff"), Color("58d6e8"), 4, 14))
+		button.add_theme_stylebox_override("pressed", StorybookUI.button_style(Color("e8ddbd"), Color("e1ae4f"), 3, 14))
+		var art := TextureRect.new()
+		art.name = "OfficialBillPortrait"
+		art.texture = load(BILL_ART[bill])
+		art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 7)
+		button.add_child(art)
+		var badge := Label.new()
+		badge.text = "$%d" % bill
+		badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		badge.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		badge.add_theme_font_size_override("font_size", 20)
+		badge.add_theme_color_override("font_color", Color("172143"))
+		badge.add_theme_color_override("font_outline_color", Color("fff3d6"))
+		badge.add_theme_constant_override("outline_size", 4)
+		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		badge.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		button.add_child(badge)
 		button.pressed.connect(_add_bill.bind(bill))
 		grid.add_child(button)
 		bill_buttons.append(button)

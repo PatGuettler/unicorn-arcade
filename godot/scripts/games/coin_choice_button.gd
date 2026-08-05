@@ -9,6 +9,12 @@ const SILVER := Color("b8c1cf")
 const SILVER_LIGHT := Color("eef3fa")
 const NAVY := Color("17254d")
 const CREAM := Color("fff3d6")
+const COIN_TEXTURES := {
+	"Penny": "res://assets/games/currency/penny.png",
+	"Nickel": "res://assets/games/currency/nickel.png",
+	"Dime": "res://assets/games/currency/dime.png",
+	"Quarter": "res://assets/games/currency/quarter.png",
+}
 
 var denomination := "Penny"
 var cents := 1
@@ -22,6 +28,7 @@ func setup(coin_name: String, coin_cents: int, ratio: float) -> void:
 	name = "%sCoinButton" % coin_name
 	text = coin_name
 	tooltip_text = "%s, worth %d cents" % [coin_name, coin_cents]
+	set_meta("currency_art", true)
 	custom_minimum_size = Vector2(220, 174)
 	focus_mode = Control.FOCUS_ALL
 	flat = true
@@ -33,6 +40,20 @@ func setup(coin_name: String, coin_cents: int, ratio: float) -> void:
 	add_theme_color_override("font_focus_color", Color.TRANSPARENT)
 	add_theme_color_override("font_disabled_color", Color.TRANSPARENT)
 	add_theme_font_size_override("font_size", 20)
+	var portrait := TextureRect.new()
+	portrait.name = "OfficialCoinPortrait"
+	portrait.texture = load(COIN_TEXTURES[coin_name])
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	portrait.anchor_left = 0.5
+	portrait.anchor_right = 0.5
+	portrait.offset_left = -66.0 * size_ratio
+	portrait.offset_right = 66.0 * size_ratio
+	portrait.offset_top = 2
+	portrait.offset_bottom = 134.0 * size_ratio
+	add_child(portrait)
+	portrait.position.x -= 0.0
 	queue_redraw()
 
 
@@ -90,4 +111,3 @@ func _draw_coin_face(center: Vector2, radius: float, dark: Color, light: Color) 
 
 func _value_label() -> String:
 	return "%d¢" % cents
-

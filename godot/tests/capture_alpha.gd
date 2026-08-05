@@ -23,6 +23,7 @@ func _capture() -> void:
 	var animation_progress := 0.5
 	var owned_all := false
 	var background_walk := false
+	var skip_tutorial := false
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--mode="):
 			mode = argument.trim_prefix("--mode=")
@@ -49,6 +50,8 @@ func _capture() -> void:
 			owned_all = true
 		elif argument == "--background-walk":
 			background_walk = true
+		elif argument == "--skip-tutorial":
+			skip_tutorial = true
 	if output.is_empty():
 		push_error("capture_alpha requires --output=<absolute png path>")
 		get_tree().quit(2)
@@ -63,6 +66,8 @@ func _capture() -> void:
 	var captured: Node
 	if mode == "game":
 		AppState.selected_game_id = game_id
+		if skip_tutorial:
+			AppState.data["tutorials"][game_id] = [1, 2, 3]
 		var record := GameRegistry.get_game(game_id)
 		var scene_path := str(record.get("scene", ""))
 		if scene_path.is_empty():
@@ -97,7 +102,14 @@ func _capture() -> void:
 		if mode == "category":
 			AppState.selected_category = "Word"
 		captured = MAIN_SCENE.instantiate()
-	add_child(captured)
+	if mode == "game":
+		get_tree().root.add_child(captured)
+	else:
+		add_child(captured)
+	# Game captures must become the active scene so the shared runtime shell,
+	# objective plaque, tutorial layer, and safe-area behavior are included in QA.
+	if mode == "game":
+		get_tree().current_scene = captured
 	if background_walk:
 		var background_preview := captured.find_child("MeadowCompanion_*", true, false)
 		if is_instance_valid(background_preview):

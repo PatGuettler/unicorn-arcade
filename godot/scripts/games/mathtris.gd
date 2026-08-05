@@ -4,7 +4,6 @@ const Rules = preload("res://scripts/games/gameplay_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const COLS := 8
 const ROWS := 14
-const SOLVES_FOR_POWER := 3
 
 var board: Array[Array] = []
 var falling: Array[Dictionary] = []
@@ -13,65 +12,89 @@ var selected := Vector2i(-1, -1)
 var score := 0
 var level := 1
 var drops_placed := 0
-var clear_charge := 0
-var power_ready := false
 var active := false
 var fall_accumulator := 0.0
 var started_ms := 0
-var slow_until_ms := 0
 var last_spawn_col := -1
-var companion_id := "sparkle"
 var hud_label: Label
 var message_label: Label
 var next_label: Label
-var power_button: Button
 var action_button: Button
 var rng := RandomNumberGenerator.new()
+var swipe_cell := Vector2i(-1, -1)
+var swipe_start := Vector2.ZERO
+var swipe_consumed := false
 
 
 func _ready() -> void:
 	rng.randomize()
-	companion_id = str(AppState.data.get("player", {}).get("equipped_companion", "sparkle"))
 	_build_ui()
 	_start_game()
-
-
-func _unhandled_key_input(event: InputEvent) -> void:
-	if not active or not event is InputEventKey:
-		return
-	var key_event := event as InputEventKey
-	if not key_event.pressed:
-		return
-	if key_event.keycode == KEY_LEFT:
-		_nudge(Vector2i.LEFT)
-	elif key_event.keycode == KEY_RIGHT:
-		_nudge(Vector2i.RIGHT)
-	elif key_event.keycode == KEY_DOWN:
-		_nudge(Vector2i.DOWN)
 
 
 func _process(delta: float) -> void:
 	if not active:
 		return
-	fall_accumulator += delta * 1000.0
+	fall_accumulator += delta * 1000.0 * CompanionAbilityService.time_scale()
 	var elapsed := (Time.get_ticks_msec() - started_ms) / 1000
 	var interval := Rules.mathtris_drop_ms(level, drops_placed, elapsed)
-	if Time.get_ticks_msec() < slow_until_ms:
-		interval *= 2
 	if fall_accumulator >= interval:
 		fall_accumulator = 0.0
 		_step_falling()
+
+
+func _input(event: InputEvent) -> void:
+	if not active:
+		return
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			swipe_cell = _cell_at(touch.position)
+			swipe_start = touch.position
+			swipe_consumed = false
+		else:
+			swipe_cell = Vector2i(-1, -1)
+	elif event is InputEventScreenDrag and swipe_cell.x >= 0 and not swipe_consumed:
+		var drag := event as InputEventScreenDrag
+		var delta := drag.position - swipe_start
+		if delta.length() >= 30.0:
+			var direction := Vector2i(signi(roundi(delta.x)), 0) if absf(delta.x) > absf(delta.y) else Vector2i(0, signi(roundi(delta.y)))
+			_try_swap(swipe_cell, swipe_cell + direction)
+			swipe_consumed = true
+			get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton:
+		var mouse := event as InputEventMouseButton
+		if mouse.button_index == MOUSE_BUTTON_LEFT:
+			if mouse.pressed:
+				swipe_cell = _cell_at(mouse.position)
+				swipe_start = mouse.position
+				swipe_consumed = false
+			else:
+				swipe_cell = Vector2i(-1, -1)
+	elif event is InputEventMouseMotion and swipe_cell.x >= 0 and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT) and not swipe_consumed:
+		var motion := event as InputEventMouseMotion
+		var delta := motion.position - swipe_start
+		if delta.length() >= 30.0:
+			var direction := Vector2i(signi(roundi(delta.x)), 0) if absf(delta.x) > absf(delta.y) else Vector2i(0, signi(roundi(delta.y)))
+			_try_swap(swipe_cell, swipe_cell + direction)
+			swipe_consumed = true
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not active or not event is InputEventKey or not (event as InputEventKey).pressed:
+		return
+	match (event as InputEventKey).keycode:
+		KEY_LEFT: _nudge(Vector2i.LEFT)
+		KEY_RIGHT: _nudge(Vector2i.RIGHT)
+		KEY_DOWN: _nudge(Vector2i.DOWN)
 
 
 func _start_game() -> void:
 	score = 0
 	level = 1
 	drops_placed = 0
-	clear_charge = 0
-	power_ready = false
 	fall_accumulator = 0.0
 	started_ms = Time.get_ticks_msec()
-	slow_until_ms = 0
 	last_spawn_col = -1
 	selected = Vector2i(-1, -1)
 	board = _make_board()
@@ -79,7 +102,8 @@ func _start_game() -> void:
 	falling.clear()
 	active = true
 	action_button.hide()
-	message_label.text = "Make five-block equations across or down. Tap two neighbors to swap."
+	message_label.text = "Make true five-tile equations. Swipe neighboring settled tiles to swap."
+	CompanionAbilityService.begin_level("mathtris", level)
 	_spawn_wave()
 	_refresh()
 
@@ -102,7 +126,7 @@ func _seed_bottom_pile() -> void:
 		for row in range(ROWS - fill_rows, ROWS):
 			for col in COLS:
 				board[row][col] = allowed[rng.randi_range(0, allowed.size() - 1)]
-		if _find_equations().is_empty():
+		if _find_matches().is_empty():
 			return
 
 
@@ -130,10 +154,8 @@ func _spawn_wave() -> void:
 
 
 func _next_token() -> String:
-	var allowed := Rules.mathtris_allowed(level)
-	# Match the React bag's useful bias toward digits while retaining operators.
 	var bag: Array[String] = []
-	for token in allowed:
+	for token in Rules.mathtris_allowed(level):
 		var copies := 2 if token in ["+", "=", "-"] else (3 if int(token) <= 5 else 1)
 		for copy in copies:
 			bag.append(token)
@@ -144,25 +166,23 @@ func _step_falling() -> void:
 	if falling.is_empty():
 		_spawn_wave()
 		return
-	var settled := false
-	# Lowest pieces move first so simultaneous drops do not overlap.
+	var settled_cells: Array[Vector2i] = []
 	falling.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return int(a["row"]) > int(b["row"]))
 	for piece in falling.duplicate():
 		var row := int(piece["row"])
 		var col := int(piece["col"])
 		if row + 1 >= ROWS or board[row + 1][col] != "" or _falling_at(row + 1, col, piece):
+			# The value and its decorated tile settle together; no separate spawn box remains.
 			board[row][col] = str(piece["value"])
+			settled_cells.append(Vector2i(col, row))
 			falling.erase(piece)
 			drops_placed += 1
-			settled = true
 		else:
 			piece["row"] = row + 1
-	if settled:
-		var hits := _find_equations()
-		if not hits.is_empty():
-			_clear_hits(hits, 100)
-		elif _top_row_full():
-			_game_over()
+	if not settled_cells.is_empty():
+		var matches := _find_matches(settled_cells)
+		if not matches.is_empty():
+			_clear_matches(matches, 100, true)
 	if active and falling.is_empty():
 		_spawn_wave()
 	_refresh()
@@ -190,63 +210,107 @@ func _cell_pressed(row: int, col: int) -> void:
 	var here := Vector2i(col, row)
 	if selected.x < 0:
 		selected = here
-		message_label.text = "Now tap a neighboring fixed block."
+		message_label.text = "Tap a neighbor, or slide this tile one space."
 		_refresh()
 		return
-	if abs(selected.x - col) + abs(selected.y - row) != 1:
+	if selected == here:
+		selected = Vector2i(-1, -1)
+		_refresh()
+		return
+	if not _try_swap(selected, here):
 		selected = here
 		_refresh()
-		return
-	var first: String = board[selected.y][selected.x]
-	board[selected.y][selected.x] = board[row][col]
-	board[row][col] = first
+
+
+func _try_swap(first: Vector2i, second: Vector2i) -> bool:
+	if first.x < 0 or second.x < 0 or first.x >= COLS or second.x >= COLS or first.y < 0 or second.y < 0 or first.y >= ROWS or second.y >= ROWS:
+		return false
+	if abs(first.x - second.x) + abs(first.y - second.y) != 1:
+		return false
+	if board[first.y][first.x] == "" or board[second.y][second.x] == "":
+		return false
+	var value: String = board[first.y][first.x]
+	board[first.y][first.x] = board[second.y][second.x]
+	board[second.y][second.x] = value
 	selected = Vector2i(-1, -1)
-	var hits := _find_equations()
-	if not hits.is_empty():
-		_clear_hits(hits, 150)
+	var matches := _find_matches([first, second])
+	if matches.is_empty():
+		message_label.text = "Tiles slid. No true equation yet."
 	else:
-		message_label.text = "Blocks swapped. Keep building an equation."
+		_clear_matches(matches, 150, true)
 	_refresh()
+	return true
+
+
+func _find_matches(anchors: Array[Vector2i] = []) -> Array[Dictionary]:
+	var matches: Array[Dictionary] = []
+	for row in ROWS:
+		for start_col in range(COLS - 4):
+			var cells_for_match: Array[Vector2i] = []
+			var tokens: Array[String] = []
+			for offset in 5:
+				cells_for_match.append(Vector2i(start_col + offset, row))
+				tokens.append(board[row][start_col + offset])
+			if not tokens.has("") and Rules.equation_valid(tokens) and _touches_anchor(cells_for_match, anchors):
+				matches.append({"cells": cells_for_match, "tokens": tokens, "orientation": "horizontal", "start": Vector2i(start_col, row)})
+	for col in COLS:
+		for start_row in range(ROWS - 4):
+			var cells_for_match: Array[Vector2i] = []
+			var tokens: Array[String] = []
+			for offset in 5:
+				cells_for_match.append(Vector2i(col, start_row + offset))
+				tokens.append(board[start_row + offset][col])
+			if not tokens.has("") and Rules.equation_valid(tokens) and _touches_anchor(cells_for_match, anchors):
+				matches.append({"cells": cells_for_match, "tokens": tokens, "orientation": "vertical", "start": Vector2i(col, start_row)})
+	return matches
+
+
+func _touches_anchor(match_cells: Array[Vector2i], anchors: Array[Vector2i]) -> bool:
+	if anchors.is_empty():
+		return true
+	for anchor in anchors:
+		if anchor in match_cells:
+			return true
+	return false
 
 
 func _find_equations() -> Array[Vector2i]:
+	return _hits_from_matches(_find_matches())
+
+
+func _hits_from_matches(matches: Array[Dictionary]) -> Array[Vector2i]:
 	var unique := {}
-	for row in ROWS:
-		for start_col in range(COLS - 4):
-			var tokens: Array[String] = []
-			for offset in 5:
-				tokens.append(board[row][start_col + offset])
-			if not tokens.has("") and Rules.equation_valid(tokens):
-				for offset in 5:
-					unique[Vector2i(start_col + offset, row)] = true
-	for col in COLS:
-		for start_row in range(ROWS - 4):
-			var tokens: Array[String] = []
-			for offset in 5:
-				tokens.append(board[start_row + offset][col])
-			if not tokens.has("") and Rules.equation_valid(tokens):
-				for offset in 5:
-					unique[Vector2i(col, start_row + offset)] = true
-	var result: Array[Vector2i] = []
-	result.assign(unique.keys())
-	return result
+	for equation in matches:
+		for cell in equation["cells"]:
+			unique[cell] = true
+	var hits: Array[Vector2i] = []
+	hits.assign(unique.keys())
+	return hits
 
 
-func _clear_hits(hits: Array[Vector2i], points_per_cell: int) -> void:
+func _clear_matches(matches: Array[Dictionary], points_per_cell: int, allow_cascade: bool) -> void:
+	if matches.is_empty():
+		return
+	var hits := _hits_from_matches(matches)
+	var shown_tokens: Array[String] = []
+	shown_tokens.assign(matches[0]["tokens"])
+	message_label.text = "%s — TRUE!" % " ".join(shown_tokens)
 	for hit in hits:
 		board[hit.y][hit.x] = ""
 	score += hits.size() * points_per_cell
-	clear_charge += 1
-	if clear_charge >= SOLVES_FOR_POWER:
-		clear_charge = 0
-		power_ready = true
-		message_label.text = "Sparkle Burst is charged!"
-	else:
-		message_label.text = "Equation cleared!"
 	_apply_gravity()
 	level = score / 700 + 1
-	if _top_row_full():
-		_game_over()
+	if allow_cascade:
+		var cascade := _find_matches()
+		var guard := 0
+		while not cascade.is_empty() and guard < 8:
+			guard += 1
+			var cascade_hits := _hits_from_matches(cascade)
+			for hit in cascade_hits:
+				board[hit.y][hit.x] = ""
+			score += cascade_hits.size() * 175
+			_apply_gravity()
+			cascade = _find_matches()
 
 
 func _apply_gravity() -> void:
@@ -261,86 +325,36 @@ func _apply_gravity() -> void:
 			board[ROWS - stack.size() + index][col] = stack[index]
 
 
-func _activate_power() -> void:
-	if not active or not power_ready:
+func _activate_mystic_ability() -> void:
+	if not active:
 		return
-	var hits: Array[Vector2i] = []
-	var points := 0
-	match companion_id:
-		"rainbow":
-			for col in COLS:
-				if board[ROWS - 1][col] != "":
-					hits.append(Vector2i(col, ROWS - 1))
-			points = hits.size() * 35
-			message_label.text = "Rainbow Row! Bottom row cleared."
-		"star":
-			var best_col := 0
-			var best_count := -1
-			for col in COLS:
-				var count := 0
-				for row in ROWS:
-					count += 1 if board[row][col] != "" else 0
-				if count > best_count:
-					best_count = count
-					best_col = col
-			for row in ROWS:
-				if board[row][best_col] != "":
-					hits.append(Vector2i(best_col, row))
-			points = hits.size() * 45
-			message_label.text = "Star Beam! Full column cleared."
-		"cloud":
-			slow_until_ms = Time.get_ticks_msec() + 18000
-			score += 50
-			power_ready = false
-			message_label.text = "Cloud Float! Drops slow for 18 seconds."
-			_refresh()
-			return
-		"mystic":
-			for row in ROWS:
-				for col in COLS:
-					if board[row][col] != "":
-						hits.append(Vector2i(col, row))
-			points = 400 + hits.size() * 25
-			message_label.text = "Mystic Clear! Board cleared."
-		"dream":
-			hits = _force_equation()
-			points = hits.size() * 120
-			message_label.text = "Dream Fix! A near-equation was completed."
-		_:
-			hits = _find_equations()
-			if hits.is_empty():
-				hits = _force_equation()
-			points = hits.size() * 80
-			message_label.text = "Sparkle Burst! Equation fixed and cleared."
-	if hits.is_empty():
-		message_label.text = "No blocks for that power yet."
-		return
-	power_ready = false
-	for hit in hits:
-		board[hit.y][hit.x] = ""
-	score += points
-	_apply_gravity()
-	level = score / 700 + 1
-	_refresh()
-
-
-func _force_equation() -> Array[Vector2i]:
 	var kit: Array[String] = ["1", "+", "1", "=", "2"]
+	var best_row := 0
+	var most_empty := -1
+	for row in ROWS:
+		var empty := 0
+		for col in 5:
+			empty += 1 if board[row][col] == "" else 0
+		if empty > most_empty:
+			most_empty = empty
+			best_row = row
 	for col in 5:
-		board[ROWS - 1][col] = kit[col]
-	return _find_equations()
+		board[best_row][col] = kit[col]
+	var matches := _find_matches([Vector2i(0, best_row)])
+	_clear_matches(matches, 120, true)
+	message_label.text = "Mystic completed 1 + 1 = 2 — a real equation!"
+	_refresh()
 
 
 func _show_hint() -> void:
 	if not active or not AppState.spend_hint(level):
 		return
-	var allowed := Rules.mathtris_allowed(level)
 	var example := "1 + 1 = 2"
-	if "3" in allowed:
+	if "3" in Rules.mathtris_allowed(level):
 		example = "1 + 2 = 3"
-	if "-" in allowed:
+	if "-" in Rules.mathtris_allowed(level):
 		example = "4 - 1 = 3"
-	message_label.text = "Try making %s across or down." % example
+	message_label.text = "Build %s across or down. Swipe only one space." % example
 
 
 func _falling_at(row: int, col: int, except: Dictionary = {}) -> bool:
@@ -352,39 +366,56 @@ func _falling_at(row: int, col: int, except: Dictionary = {}) -> bool:
 	return false
 
 
-func _top_row_full() -> bool:
-	for col in COLS:
-		if board[0][col] == "":
-			return false
-	return true
+func _cell_at(global_point: Vector2) -> Vector2i:
+	for row in ROWS:
+		for col in COLS:
+			if cells[row * COLS + col].get_global_rect().has_point(global_point):
+				return Vector2i(col, row)
+	return Vector2i(-1, -1)
 
 
 func _game_over() -> void:
 	active = false
+	falling.clear()
 	message_label.text = "Top out! Final score %d." % score
-	action_button.text = "Play Again"
+	action_button.text = "PLAY AGAIN"
 	action_button.show()
+	_refresh()
 
 
 func _refresh() -> void:
-	var display := board.duplicate(true)
+	var falling_lookup := {}
 	for piece in falling:
-		display[int(piece["row"])][int(piece["col"])] = str(piece["value"])
+		falling_lookup[Vector2i(int(piece["col"]), int(piece["row"]))] = str(piece["value"])
 	for row in ROWS:
 		for col in COLS:
 			var button := cells[row * COLS + col]
-			button.text = display[row][col]
-			button.modulate = Color("ffe172") if selected == Vector2i(col, row) else Color.WHITE
-	hud_label.text = "MATHTRIS    SCORE %d    LEVEL %d" % [score, level]
-	next_label.text = "Drops: %d   Speed: %dms" % [falling.size(), Rules.mathtris_drop_ms(level, drops_placed, (Time.get_ticks_msec() - started_ms) / 1000)]
-	var names := {"sparkle": "Sparkle Burst", "rainbow": "Rainbow Row", "star": "Star Beam", "cloud": "Cloud Float", "dream": "Dream Fix", "mystic": "Mystic Clear"}
-	power_button.text = "%s %s" % [names.get(companion_id, "Sparkle Burst"), "READY" if power_ready else "%d/%d" % [clear_charge, SOLVES_FOR_POWER]]
-	power_button.disabled = not power_ready
+			var cell := Vector2i(col, row)
+			var value: String = falling_lookup.get(cell, board[row][col])
+			button.text = value
+			button.disabled = value == "" or falling_lookup.has(cell)
+			button.add_theme_stylebox_override("normal", _tile_style(value, falling_lookup.has(cell), selected == cell))
+			button.add_theme_stylebox_override("disabled", _tile_style(value, falling_lookup.has(cell), false))
+			button.add_theme_color_override("font_color", Color("172143"))
+			button.add_theme_color_override("font_disabled_color", Color("172143") if value != "" else Color.TRANSPARENT)
+	hud_label.text = "SCORE %d    •    LEVEL %d" % [score, level]
+	next_label.text = "%d FALLING    •    %dms DROP" % [falling.size(), Rules.mathtris_drop_ms(level, drops_placed, (Time.get_ticks_msec() - started_ms) / 1000)]
+
+
+func _tile_style(value: String, is_falling: bool, is_selected: bool) -> StyleBoxFlat:
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("fff1a8") if is_falling else (Color("ffd2ed") if value != "" else Color(0.34, 0.45, 0.72, 0.14))
+	style.border_color = Color("62dce9") if is_selected else (Color("f4c75b") if value != "" else Color(0.60, 0.70, 0.92, 0.22))
+	style.set_border_width_all(3 if is_selected else 2)
+	style.set_corner_radius_all(9)
+	style.shadow_color = Color(0.08, 0.03, 0.20, 0.45)
+	style.shadow_size = 3 if value != "" else 0
+	return style
 
 
 func _build_ui() -> void:
 	var bg := ColorRect.new()
-	bg.color = Color("090e25")
+	bg.color = Color("16143f")
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(bg)
 	var root := VBoxContainer.new()
@@ -399,58 +430,51 @@ func _build_ui() -> void:
 	root.add_child(hud_label)
 	next_label = Label.new()
 	next_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	next_label.add_theme_font_size_override("font_size", 17)
+	next_label.add_theme_color_override("font_color", Color("fff3d6"))
 	root.add_child(next_label)
+	var grid_frame := PanelContainer.new()
+	grid_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	grid_frame.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("221b58"), Color("e1ae4f"), 16))
+	root.add_child(grid_frame)
 	var grid := GridContainer.new()
 	grid.columns = COLS
-	grid.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	grid.add_theme_constant_override("h_separation", 2)
-	grid.add_theme_constant_override("v_separation", 2)
-	root.add_child(grid)
+	grid.add_theme_constant_override("h_separation", 3)
+	grid.add_theme_constant_override("v_separation", 3)
+	grid_frame.add_child(grid)
 	for row in ROWS:
 		for col in COLS:
 			var cell := Button.new()
-			cell.custom_minimum_size = Vector2(50, 33)
-			cell.add_theme_font_size_override("font_size", 17)
+			cell.custom_minimum_size = Vector2(44, 29)
+			cell.add_theme_font_size_override("font_size", 19)
 			cell.pressed.connect(_cell_pressed.bind(row, col))
+			cell.set_meta("mathtris_tile", true)
 			grid.add_child(cell)
 			cells.append(cell)
 	var controls := HBoxContainer.new()
 	controls.alignment = BoxContainer.ALIGNMENT_CENTER
+	controls.add_theme_constant_override("separation", 8)
 	root.add_child(controls)
-	for label in ["LEFT", "DOWN", "RIGHT"]:
+	for definition in [{"label": "←", "direction": Vector2i.LEFT}, {"label": "↓", "direction": Vector2i.DOWN}, {"label": "→", "direction": Vector2i.RIGHT}]:
 		var button := Button.new()
-		button.text = label
-		button.custom_minimum_size = Vector2(62, 44)
-		var direction := Vector2i.LEFT if label == "LEFT" else (Vector2i.DOWN if label == "DOWN" else Vector2i.RIGHT)
-		button.pressed.connect(_nudge.bind(direction))
+		button.text = definition["label"]
+		StorybookUI.apply_game_action(button, 76)
+		button.pressed.connect(_nudge.bind(definition["direction"]))
 		controls.add_child(button)
-	power_button = Button.new()
-	StorybookUI.apply_game_action(power_button, 120)
-	power_button.custom_minimum_size.x = 120
-	power_button.pressed.connect(_activate_power)
-	controls.add_child(power_button)
 	var hint := Button.new()
-	hint.text = "Hint"
-	hint.custom_minimum_size.x = 48
-	StorybookUI.apply_game_action(hint, 96)
+	hint.text = "HINT"
+	StorybookUI.apply_game_action(hint, 110)
 	hint.pressed.connect(_show_hint)
 	controls.add_child(hint)
 	message_label = Label.new()
 	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message_label.custom_minimum_size.y = 52
+	message_label.add_theme_font_size_override("font_size", 18)
+	message_label.add_theme_color_override("font_color", Color("fff3d6"))
 	root.add_child(message_label)
-	var actions := HBoxContainer.new()
-	actions.alignment = BoxContainer.ALIGNMENT_CENTER
-	root.add_child(actions)
 	action_button = Button.new()
-	StorybookUI.apply_game_action(action_button, 160)
+	action_button.text = "PLAY AGAIN"
+	StorybookUI.apply_game_action(action_button, 180)
 	action_button.pressed.connect(_start_game)
-	actions.add_child(action_button)
-	var back := Button.new()
-	StorybookUI.apply_game_action(back, 170)
-	back.text = "Number Games"
-	back.pressed.connect(func() -> void:
-		AppState.set_shell_destination("category", "Number")
-		get_tree().change_scene_to_file("res://scenes/main.tscn")
-	)
-	actions.add_child(back)
+	root.add_child(action_button)

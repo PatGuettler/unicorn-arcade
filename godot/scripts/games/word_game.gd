@@ -65,7 +65,7 @@ func _process(delta: float) -> void:
 	if active:
 		timer_label.text = "%.1fs" % ((Time.get_ticks_msec() - started_ms) / 1000.0)
 	if active and game_id == "unicorn_blast":
-		_update_blast(delta)
+		_update_blast(delta * CompanionAbilityService.time_scale())
 
 
 func _start_level() -> void:

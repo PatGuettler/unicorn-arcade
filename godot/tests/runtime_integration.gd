@@ -95,19 +95,22 @@ func _run() -> void:
 	add_child(jump)
 	await get_tree().process_frame
 	_check(_ui_is_accessible(jump), "Unicorn Jump meets readable text, contrast, and touch-target minimums")
-	_check(_storybook_action_count(jump) >= 4, "Unicorn Jump styles zoom, retry/next, and navigation with the shared storybook action treatment")
+	_check(_storybook_action_count(jump) >= 2, "Unicorn Jump styles retry/next and navigation without obsolete zoom buttons")
 	_check(jump.active and jump.level_data.size() == 10, "Unicorn Jump launches its level-one ten-node trail")
 	_check(jump.node_buttons.size() == 11 and jump.node_buttons.all(func(button: TextureButton) -> bool: return button.texture_normal != null), "Unicorn Jump builds the full trail from authored stepping-stone art")
 	_check(jump.find_children("TrailConnector*", "Line2D", true, false).size() == 10, "Unicorn Jump restores the original connected winding path")
 	var trail_companion = jump.find_child("ActiveCompanionOnStone", true, false)
 	_check(is_instance_valid(trail_companion) and trail_companion.source_model_id == AppState.equipped_companion(), "the equipped 3D companion stands on the current stepping stone")
-	_check((jump.node_buttons[0].get_node("JumpValue") as Label).text.is_empty() and jump.jump_label.text.contains(str(absi(jump.level_data[0]))), "jump distance appears in the HUD while all countable landing stones remain unlabeled")
+	_check((jump.node_buttons[0].get_node("JumpValue") as Label).text.is_empty() and jump.find_children("*Zoom*", "Button", true, false).is_empty(), "landing stones stay unlabeled and zoom buttons are removed for pinch zoom")
 	_check(jump.node_buttons.size() == jump.level_data.size() + 1, "every intermediate wrong landing remains visible between the current stone and later correct destinations")
 	var landing: int = jump.level_data[0]
 	_check(jump.node_buttons[landing].self_modulate == Color.WHITE, "Unicorn Jump does not reveal the counted landing with a highlight")
+	AppState.data["settings"]["reduced_motion"] = false
 	jump.call("_choose_node", landing)
+	await get_tree().create_timer(1.15).timeout
 	_check(jump.current_index == landing and jump.active, "Unicorn Jump accepts the exact indexed landing")
 	_check(trail_companion.get_parent() == jump.node_buttons[landing], "the active companion moves to the newly reached stone")
+	_check(jump.fx_layer.burst_amount > 0.0 and jump.find_child("JumpingCompanion", true, false) == null, "Unicorn Jump leaves a rainbow tail-puff landing burst after its animated arc")
 	remove_child(jump)
 	jump.free()
 	var sliding = SLIDING_SCENE.instantiate()
@@ -131,6 +134,34 @@ func _run() -> void:
 	_check(_storybook_action_count(mathtris) >= 4, "Mathtris styles power, hint, retry, and navigation with the shared storybook action treatment")
 	_check(mathtris.active and mathtris.board.size() == 14 and mathtris.board[0].size() == 8, "Mathtris launches an 8 by 14 live board")
 	_check(not mathtris.falling.is_empty(), "Mathtris launches an initial falling wave")
+	mathtris.board = mathtris.call("_make_board")
+	for col in 5:
+		mathtris.board[3][col] = ["1", "+", "1", "=", "2"][col]
+	var match_anchors: Array[Vector2i] = [Vector2i(0, 3)]
+	var anchored_matches: Array = mathtris.call("_find_matches", match_anchors)
+	_check(anchored_matches.size() == 1 and anchored_matches[0]["orientation"] == "horizontal", "Mathtris reports exact true-equation cells and orientation")
+	mathtris.board[10][0] = "4"
+	mathtris.board[10][1] = "5"
+	mathtris.call("_try_swap", Vector2i(0, 10), Vector2i(1, 10))
+	_check(mathtris.board[3][0] == "1", "an unrelated valid equation is not cleared by a different swap")
+	mathtris.board = mathtris.call("_make_board")
+	for col in 5:
+		mathtris.board[9][col] = ["1", "+", "2", "3", "="][col]
+	mathtris.call("_try_swap", Vector2i(3, 9), Vector2i(4, 9))
+	_check(mathtris.board[9].slice(0, 5).all(func(value: String) -> bool: return value == ""), "an adjacent slide clears only the true equation it creates")
+	mathtris.board = mathtris.call("_make_board")
+	var falling_fixture: Array[Dictionary] = [{"row": 0, "col": 2, "value": "3"}]
+	mathtris.falling = falling_fixture
+	mathtris.call("_refresh")
+	var falling_cell: Button = mathtris.cells[2]
+	var falling_style := falling_cell.get_theme_stylebox("disabled") as StyleBoxFlat
+	_check(falling_cell.text == "3" and falling_style != null and falling_style.bg_color.a > 0.9, "falling Mathtris values move with their complete decorated tile")
+	mathtris.falling.clear()
+	for col in 8:
+		mathtris.board[0][col] = "1"
+	mathtris.active = true
+	mathtris.call("_spawn_wave")
+	_check(not mathtris.active and mathtris.falling.is_empty(), "a blocked Mathtris spawn tops out without an orphan box")
 	remove_child(mathtris)
 	mathtris.free()
 	var galaxy = GALAXY_SCENE.instantiate()
@@ -181,8 +212,8 @@ func _run() -> void:
 	await get_tree().process_frame
 	_check(_ui_is_accessible(market), "decor Marketplace meets readable text, contrast, and touch-target minimums")
 	_check(market.tab == "decor" and MetaCatalog.filtered_furniture("all", "").size() == 107, "Marketplace keeps the full 107-item decor catalog available")
-	_check(market.find_children("CatalogModelPreview", "RoomItemPreview3D", true, false).size() == market.DECOR_PAGE_SIZE, "Marketplace initially creates only one mobile-friendly page of live 3D previews")
-	_check(market.find_children("DecorCard_*", "PanelContainer", true, false).size() == market.DECOR_PAGE_SIZE and market.find_child("LoadMoreDecor", true, false) != null, "decor catalog pages its rarity-framed cards without hiding the remaining inventory")
+	_check(market.find_children("CatalogModelThumbnail", "TextureRect", true, false).size() == 107, "Marketplace exposes the complete modeled decor collection in one continuous lightweight list")
+	_check(market.find_children("DecorCard_*", "PanelContainer", true, false).size() == 107 and market.find_child("LoadMoreDecor", true, false) == null, "decor catalog no longer rebuilds around a Load More boundary")
 	_check(market.find_child("DecorCategoryChips", true, false) != null and market.find_child("DecorSearch", true, false) != null, "decor catalog restores quick category chips and search")
 	market.category_scroll.scroll_horizontal = 80
 	var category_scroll_before: int = market.category_scroll.scroll_horizontal
@@ -190,23 +221,20 @@ func _run() -> void:
 	category_drag.position = market.category_scroll.get_global_rect().get_center()
 	category_drag.relative = Vector2(-120, 2)
 	market.call("_input", category_drag)
-	_check(market.category_scroll.scroll_horizontal > category_scroll_before, "Marketplace category chips respond to horizontal Android dragging even when the gesture starts over a chip")
+	_check(market.category_dragging and market.category_scroll.scroll_horizontal == category_scroll_before, "horizontal category dragging is owned by the native ScrollContainer instead of a second jumpy manual scroller")
 	var category_release := InputEventScreenTouch.new()
 	category_release.pressed = false
 	category_release.position = category_drag.position
 	market.call("_input", category_release)
 	market.call("_set_decor_category", "beds")
 	_check(market.category == "all", "a horizontal category swipe does not accidentally activate the chip under the finger")
-	market.call("_load_more_decor")
-	await get_tree().process_frame
-	_check(market.find_children("CatalogModelPreview", "RoomItemPreview3D", true, false).size() == market.DECOR_PAGE_SIZE * 2, "Load More reveals the next modeled decor page")
 	market.catalog_scroll.scroll_vertical = 200
 	var scroll_before: int = market.catalog_scroll.scroll_vertical
 	var market_drag := InputEventScreenDrag.new()
 	market_drag.position = market.catalog_scroll.get_global_rect().get_center()
 	market_drag.relative = Vector2(2, -120)
 	market.call("_input", market_drag)
-	_check(market.catalog_scroll.scroll_vertical > scroll_before, "decor Marketplace responds to vertical Android dragging anywhere across a catalog card")
+	_check(market.catalog_dragging and market.catalog_scroll.scroll_vertical == scroll_before, "vertical decor dragging uses one native inertial scroll owner without double-applying movement")
 	var signature_nodes := ["bed_race", "pet_fish", "tv_retro", "xmas_sock"]
 	var signatures_found := 0
 	for item_id in signature_nodes:
@@ -499,7 +527,8 @@ func _collect_ui_issues(node: Node, issues: Array[String]) -> void:
 			if control.get_theme_constant("outline_size") < 2:
 				issues.append("low-contrast label %s" % control.name)
 		if control is BaseButton:
-			if control.custom_minimum_size.y < 56.0:
+			var required_touch_height := 44.0 if control.has_meta("mathtris_tile") else 56.0
+			if control.custom_minimum_size.y < required_touch_height:
 				issues.append("short touch target %s" % control.name)
 			if control.get_theme_font_size("font_size") < 18:
 				issues.append("small button text %s" % control.name)

@@ -71,7 +71,11 @@ func _apply_label(label: Label) -> void:
 
 func _apply_button(button: BaseButton) -> void:
 	var minimum := button.custom_minimum_size
-	minimum.y = maxf(minimum.y, MIN_TOUCH_SIZE)
+	# Mathtris uses an 8x14 spatial board; a 56px minimum would push its controls
+	# off every phone. The contiguous swipe grid gets a 44px target while all
+	# standalone controls keep the full 56px accessibility minimum.
+	var touch_size := 44.0 if button.has_meta("mathtris_tile") else MIN_TOUCH_SIZE
+	minimum.y = maxf(minimum.y, touch_size)
 	if minimum.x > 0.0 and minimum.x < MIN_TOUCH_SIZE:
 		minimum.x = MIN_TOUCH_SIZE
 	button.custom_minimum_size = minimum

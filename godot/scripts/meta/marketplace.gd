@@ -12,7 +12,9 @@ const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 const TEXT := Color("f7f1ff")
 const MUTED := Color("aab7e8")
-const DECOR_PAGE_SIZE := 18
+# The catalog is rendered as one continuous list. The previous 18-card rebuild
+# changed the ScrollContainer's content height during a drag and caused a jump.
+const DECOR_PAGE_SIZE := 10000
 
 var root: VBoxContainer
 var content: VBoxContainer
@@ -209,10 +211,14 @@ func _show_decor() -> void:
 		preview_frame.custom_minimum_size = Vector2(126, 126)
 		preview_frame.add_theme_stylebox_override("panel", _preview_style())
 		row.add_child(preview_frame)
-		var preview := RoomItemPreviewScene.new()
-		preview.name = "CatalogModelPreview"
+		var preview := TextureRect.new()
+		preview.name = "CatalogModelThumbnail"
 		preview.custom_minimum_size = Vector2(118, 118)
-		preview.setup(definition)
+		preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		preview.texture = load("res://assets/store/decor_thumbnails/%s.png" % id)
+		preview.set_meta("source_model_id", id)
 		preview_frame.add_child(preview)
 		var details := VBoxContainer.new()
 		details.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -300,16 +306,12 @@ func _input(event: InputEvent) -> void:
 		var drag := event as InputEventScreenDrag
 		if is_instance_valid(category_scroll) and category_scroll.get_global_rect().has_point(drag.position) and absf(drag.relative.x) > absf(drag.relative.y):
 			category_dragging = true
-			category_scroll.scroll_horizontal -= roundi(drag.relative.x * 1.25)
-			get_viewport().set_input_as_handled()
 			return
 		if not catalog_scroll.get_global_rect().has_point(drag.position):
 			return
 		if absf(drag.relative.y) <= absf(drag.relative.x):
 			return
 		catalog_dragging = true
-		catalog_scroll.scroll_vertical -= roundi(drag.relative.y * 1.25)
-		get_viewport().set_input_as_handled()
 	elif event is InputEventScreenTouch and not (event as InputEventScreenTouch).pressed:
 		if catalog_dragging or category_dragging:
 			catalog_dragging = false

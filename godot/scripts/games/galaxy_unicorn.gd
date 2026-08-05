@@ -2,6 +2,7 @@ extends Control
 
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
+const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 
 const ENEMIES := [
 	{"kind": "cloud", "hp": 1, "speed": 0.00035, "score": 10, "radius": 18.0},
@@ -32,6 +33,7 @@ var started_ms := 0
 var hud_label: Label
 var message_label: Label
 var action_button: Button
+var player_preview: RoomItemPreview3D
 
 
 func _ready() -> void:
@@ -44,7 +46,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	if not active or size.x < 1.0 or size.y < 1.0:
 		return
-	var ms := delta * 1000.0
+	var ms := delta * 1000.0 * CompanionAbilityService.time_scale()
 	fire_cooldown -= ms
 	spawn_timer += ms
 	invulnerable = maxf(0.0, invulnerable - ms)
@@ -69,6 +71,8 @@ func _process(delta: float) -> void:
 	_move_world(ms)
 	_resolve_collisions()
 	_update_hud()
+	if is_instance_valid(player_preview):
+		player_preview.position = Vector2(player_x * size.x - 78.0, size.y * 0.88 - 92.0)
 	queue_redraw()
 
 
@@ -103,6 +107,7 @@ func _start_level(for_level: int) -> void:
 	opening_timer = 0.0
 	started_ms = Time.get_ticks_msec()
 	active = true
+	CompanionAbilityService.begin_level("galaxy_unicorn", level)
 	message_label.text = "Drag Sparkle left and right. Rainbow bolts fire automatically."
 	action_button.hide()
 	_update_hud()
@@ -223,6 +228,21 @@ func _lose_life(duration: float) -> void:
 		action_button.show()
 
 
+func _mystic_blast() -> void:
+	if not active or enemies.is_empty():
+		return
+	var target: Dictionary = enemies[0]
+	for enemy in enemies:
+		if float(enemy["position"].y) > float(target["position"].y):
+			target = enemy
+	kills += 1
+	score += int(target["score"])
+	target["hp"] = 0
+	enemies.erase(target)
+	message_label.text = "Mystic turned the nearest threat into stardust!"
+	_resolve_collisions()
+
+
 func _draw() -> void:
 	# Star field and nebula haze.
 	draw_rect(Rect2(Vector2.ZERO, size), Color("160d3b"))
@@ -251,8 +271,7 @@ func _draw() -> void:
 	for pickup in pickups:
 		draw_circle(pickup["position"], 14.0, Color("75f0c0") if pickup["kind"] == "heal" else Color("ffe45e"))
 	var player := Vector2(player_x * size.x, size.y * 0.88)
-	draw_colored_polygon(PackedVector2Array([player + Vector2(0, -32), player + Vector2(-25, 24), player + Vector2(0, 14), player + Vector2(25, 24)]), Color("f59ce7") if invulnerable <= 0.0 else Color("70e7ff"))
-	draw_line(player + Vector2(0, 18), player + Vector2(0, 52), Color("8d5cff"), 12.0)
+	draw_circle(player + Vector2(0, 31), 20.0, Color(0.04, 0.02, 0.14, 0.46))
 
 
 func _update_hud() -> void:
@@ -260,9 +279,18 @@ func _update_hud() -> void:
 
 
 func _build_ui() -> void:
+	player_preview = RoomItemPreviewScene.new()
+	player_preview.name = "GalaxyEquippedCompanion"
+	player_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_preview.size = Vector2(156, 124)
+	player_preview.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": true, "presentation": "marketplace"})
+	player_preview.z_index = 20
+	add_child(player_preview)
 	hud_label = Label.new()
+	hud_label.name = "LegacyGalaxyHUD"
 	hud_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	hud_label.position.y = 16
+	hud_label.position.y = 205
+	hud_label.hide()
 	hud_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	hud_label.add_theme_font_size_override("font_size", 21)
 	hud_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
