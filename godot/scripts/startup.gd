@@ -1,7 +1,7 @@
 extends Control
 
 const MAIN_SCENE := "res://scenes/main.tscn"
-const VIDEO_START_TIMEOUT_SECONDS := 2.5
+const VIDEO_START_TIMEOUT_SECONDS := 4.0
 const VIDEO_FINISH_GRACE_SECONDS := 0.35
 const VIDEO_END_EARLY_SECONDS := 0.12
 
@@ -14,6 +14,7 @@ const VIDEO_END_EARLY_SECONDS := 0.12
 var _is_finishing := false
 var _playback_started := false
 var _fallback_started := false
+var _threaded_load_attempted := false
 var _threaded_load_requested := false
 
 
@@ -21,8 +22,6 @@ func _ready() -> void:
 	video.finished.connect(_finish_intro)
 	playback_guard.timeout.connect(_finish_intro)
 	skip_button.button_down.connect(_finish_intro)
-	if "--startup-test" not in OS.get_cmdline_user_args():
-		_threaded_load_requested = ResourceLoader.load_threaded_request(MAIN_SCENE, "PackedScene", true) == OK
 	playback_guard.start(VIDEO_START_TIMEOUT_SECONDS)
 	video.play()
 
@@ -38,6 +37,7 @@ func _process(_delta: float) -> void:
 	if not _playback_started and video.is_playing() and position > 0.0:
 		_playback_started = true
 		poster.hide()
+		_begin_main_scene_load()
 		# Once decoding starts, replace the startup timeout with a playback
 		# failsafe based on the real stream length.
 		playback_guard.start(maxf(length + VIDEO_FINISH_GRACE_SECONDS, 0.5))
@@ -88,7 +88,15 @@ func _finish_intro() -> void:
 	skip_button.disabled = true
 	skip_button.hide()
 	set_process_input(false)
+	_begin_main_scene_load()
 	_poll_main_scene_load()
+
+
+func _begin_main_scene_load() -> void:
+	if _threaded_load_attempted or "--startup-test" in OS.get_cmdline_user_args():
+		return
+	_threaded_load_attempted = true
+	_threaded_load_requested = ResourceLoader.load_threaded_request(MAIN_SCENE, "PackedScene", true) == OK
 
 
 func _poll_main_scene_load() -> void:
