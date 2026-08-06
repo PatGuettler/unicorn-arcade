@@ -13,6 +13,7 @@ const MEADOW_BACKGROUND = preload("res://assets/meta/environments/magical_meadow
 const TITLE_SIGN = preload("res://assets/ui/title_sign_option3_v1.png")
 const HOME_TITLE_SIGN = preload("res://assets/ui/title_sign_option3_compact_v1.png")
 const ALLEY_STREET_SIGN = preload("res://assets/ui/unicorn_alley_street_sign_compact_v1.png")
+const PENNY_TEXTURE_PATH := "res://assets/games/currency/penny.png"
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 const ArcadePictogramScene = preload("res://scripts/ui/arcade_pictogram.gd")
 
@@ -319,7 +320,7 @@ func _show_profile() -> void:
 	stats.add_theme_constant_override("h_separation", 8)
 	stats.add_theme_constant_override("v_separation", 8)
 	identity.add_child(stats)
-	stats.add_child(_profile_stat("★ %d" % AppState.coins(), "COINS"))
+	stats.add_child(_profile_money_stat(AppState.coins(), "COINS"))
 	stats.add_child(_profile_stat("%d" % AppState.completed_run_count(), "RUNS"))
 	stats.add_child(_profile_stat("%d / 6" % AppState.owned_companions().size(), "UNICORNS"))
 	stats.add_child(_profile_stat("%d" % AppState.data.get("inventory", {}).size(), "DECOR"))
@@ -365,15 +366,30 @@ func _show_profile() -> void:
 			var record := AppState.progress_for_game(game["id"])
 			var completed: Array = record.get("completed", [])
 			var game_card := PanelContainer.new()
-			game_card.custom_minimum_size.y = 72
+			game_card.custom_minimum_size.y = 88
 			game_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 			game_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), _category_color(category), 12))
-			var row := Label.new()
-			row.text = "%s\nLEVEL %d  •  %d RUNS" % [str(game["title"]).to_upper(), AppState.current_level(game["id"]), completed.size()]
-			row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			row.add_theme_font_size_override("font_size", 17)
-			row.add_theme_color_override("font_color", StorybookUI.INK)
-			game_card.add_child(row)
+			var card_row := HBoxContainer.new()
+			card_row.add_theme_constant_override("separation", 12)
+			game_card.add_child(card_row)
+			var pictogram := ArcadePictogramScene.new()
+			pictogram.custom_minimum_size = Vector2(64, 64)
+			pictogram.setup(str(game["id"]), _category_color(category))
+			card_row.add_child(pictogram)
+			var game_copy := VBoxContainer.new()
+			game_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			game_copy.alignment = BoxContainer.ALIGNMENT_CENTER
+			card_row.add_child(game_copy)
+			var title_line := Label.new()
+			title_line.text = str(game["title"]).to_upper()
+			title_line.add_theme_font_size_override("font_size", 18)
+			title_line.add_theme_color_override("font_color", StorybookUI.INK)
+			game_copy.add_child(title_line)
+			var progress_line := Label.new()
+			progress_line.text = "LEVEL %d  •  %d RUNS" % [AppState.current_level(game["id"]), completed.size()]
+			progress_line.add_theme_font_size_override("font_size", 16)
+			progress_line.add_theme_color_override("font_color", Color("254b54"))
+			game_copy.add_child(progress_line)
 			game_grid.add_child(game_card)
 	content.add_child(_profile_section_title("SETTINGS & LEARNING"))
 	var settings_card := PanelContainer.new()
@@ -432,6 +448,37 @@ func _profile_stat(value: String, caption: String) -> PanelContainer:
 	label.add_theme_font_size_override("font_size", 17)
 	label.add_theme_color_override("font_color", StorybookUI.INK)
 	card.add_child(label)
+	return card
+
+
+func _profile_money_stat(amount: int, caption: String) -> PanelContainer:
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(120, 70)
+	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("f7d8eb"), Color("d16b9e"), 12))
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 6)
+	card.add_child(row)
+	var coin := TextureRect.new()
+	coin.texture = load(PENNY_TEXTURE_PATH) as Texture2D
+	coin.custom_minimum_size = Vector2(34, 34)
+	coin.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	coin.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	row.add_child(coin)
+	var stack := VBoxContainer.new()
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_child(stack)
+	var value := Label.new()
+	value.text = str(amount)
+	value.add_theme_font_size_override("font_size", 22)
+	value.add_theme_color_override("font_color", StorybookUI.INK)
+	stack.add_child(value)
+	var cap := Label.new()
+	cap.text = caption
+	cap.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	cap.add_theme_font_size_override("font_size", 14)
+	cap.add_theme_color_override("font_color", Color("254b54"))
+	stack.add_child(cap)
 	return card
 
 

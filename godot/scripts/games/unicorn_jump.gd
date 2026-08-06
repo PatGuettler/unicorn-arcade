@@ -24,6 +24,9 @@ var node_buttons: Array[TextureButton] = []
 var connector_lines: Array[Line2D] = []
 var status_label: Label
 var jump_label: Label
+var jump_mission_panel: PanelContainer
+var jump_mission_value: Label
+var jump_mission_caption: Label
 var path_box: VBoxContainer
 var scroller: ScrollContainer
 var action_button: Button
@@ -195,6 +198,13 @@ func _rebuild_path() -> void:
 
 func _update_path() -> void:
 	jump_label.text = "LEVEL %d  •  STONE %d OF %d" % [level, current_index + 1, level_data.size() + 1]
+	if current_index < level_data.size():
+		var jump_value := int(level_data[current_index])
+		jump_mission_panel.show()
+		jump_mission_value.text = str(absi(jump_value))
+		jump_mission_caption.text = "JUMP FORWARD %d STONES" % absi(jump_value) if jump_value >= 0 else "JUMP BACK %d STONES" % absi(jump_value)
+	else:
+		jump_mission_panel.hide()
 	for index in node_buttons.size():
 		var button := node_buttons[index]
 		var value_label := button.get_node("JumpValue") as Label
@@ -254,10 +264,6 @@ func _normal_stone_texture(index: int) -> Texture2D:
 func _stone_center_x(index: int) -> float:
 	var phase := float(index) / maxf(1.0, float(level_data.size())) * PI * 3.2
 	return PATH_WIDTH * 0.5 + sin(phase) * 118.0 * zoom
-
-
-func _change_zoom(amount: float) -> void:
-	_set_zoom(zoom + amount)
 
 
 func _set_zoom(value: float) -> void:
@@ -331,7 +337,7 @@ func _animate_jump(from_index: int, to_index: int) -> void:
 	, 0.0, 1.0, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tween.finished
 	fx_layer.clear_flight()
-	fx_layer.landing_burst(_fx_local(finish + Vector2(-36, 20)))
+	fx_layer.landing_burst(_fx_local(finish + Vector2(-36, 20)), true)
 	flight.queue_free()
 	if is_instance_valid(companion_preview):
 		companion_preview.show()
@@ -373,6 +379,25 @@ func _build_ui() -> void:
 	jump_label.add_theme_color_override("font_outline_color", Color("120d32"))
 	jump_label.add_theme_constant_override("outline_size", 4)
 	root.add_child(jump_label)
+	jump_mission_panel = PanelContainer.new()
+	jump_mission_panel.name = "JumpMissionBadge"
+	jump_mission_panel.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("ffe8fb"), Color("f26fa7"), 24))
+	root.add_child(jump_mission_panel)
+	var mission_stack := VBoxContainer.new()
+	mission_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	jump_mission_panel.add_child(mission_stack)
+	jump_mission_caption = Label.new()
+	jump_mission_caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	jump_mission_caption.add_theme_font_size_override("font_size", 18)
+	jump_mission_caption.add_theme_color_override("font_color", Color("5b2a68"))
+	mission_stack.add_child(jump_mission_caption)
+	jump_mission_value = Label.new()
+	jump_mission_value.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	jump_mission_value.add_theme_font_size_override("font_size", 72)
+	jump_mission_value.add_theme_color_override("font_color", Color("173f68"))
+	jump_mission_value.add_theme_color_override("font_outline_color", Color("fff5e9"))
+	jump_mission_value.add_theme_constant_override("outline_size", 8)
+	mission_stack.add_child(jump_mission_value)
 	scroller = ScrollContainer.new()
 	scroller.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED

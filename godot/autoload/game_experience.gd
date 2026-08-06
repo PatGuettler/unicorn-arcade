@@ -3,6 +3,7 @@ extends Node
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const TutorialCatalog = preload("res://scripts/tutorial_catalog.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const PENNY_TEXTURE_PATH := "res://assets/games/currency/penny.png"
 
 var attached_scene: Node
 var attached_game_id := ""
@@ -168,12 +169,16 @@ func _build_header(title: String) -> PanelContainer:
 	profile.name = "GameHeaderProfile"
 	profile.pressed.connect(_show_profile_overlay)
 	row.add_child(profile)
-	coin_button = _header_button("★ %d" % AppState.coins(), "Current coin balance")
+	coin_button = _header_button("", "Current coin balance")
 	coin_button.name = "GameHeaderCoins"
-	coin_button.custom_minimum_size.x = 88
+	coin_button.custom_minimum_size = Vector2(96, 48)
 	coin_button.disabled = true
+	coin_button.icon = load(PENNY_TEXTURE_PATH) as Texture2D
+	coin_button.expand_icon = true
+	coin_button.add_theme_constant_override("icon_max_width", 28)
 	coin_button.add_theme_color_override("font_disabled_color", StorybookUI.GOLD_BRIGHT)
 	row.add_child(coin_button)
+	_update_coin_button(AppState.coins())
 	return panel
 
 
@@ -287,7 +292,7 @@ func _format_cents(cents: int) -> String:
 
 func _update_coin_button(coins: int) -> void:
 	if is_instance_valid(coin_button):
-		coin_button.text = "★ %d" % coins
+		coin_button.text = " %d" % coins
 
 
 func _update_ability_button() -> void:

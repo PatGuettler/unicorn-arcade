@@ -25,14 +25,15 @@ func clear_flight() -> void:
 	queue_redraw()
 
 
-func landing_burst(point: Vector2) -> void:
+func landing_burst(point: Vector2, tail_puff: bool = false) -> void:
 	burst_center = point
 	burst_amount = 0.0
 	var tween := create_tween()
-	tween.tween_property(self, "burst_amount", 1.0, 0.34).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-	tween.tween_interval(0.42)
-	tween.tween_property(self, "burst_amount", 0.0, 0.38)
+	tween.tween_property(self, "burst_amount", 1.0, 0.42 if tail_puff else 0.34).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_interval(0.48 if tail_puff else 0.42)
+	tween.tween_property(self, "burst_amount", 0.0, 0.42)
 	tween.tween_callback(queue_redraw)
+	set_meta("tail_puff", tail_puff)
 
 
 func _process(_delta: float) -> void:
@@ -50,11 +51,15 @@ func _draw() -> void:
 			draw_polyline(points, Color(COLORS[color_index], 0.86), 4.5, true)
 	if burst_amount <= 0.0:
 		return
-	var radius := 13.0 + burst_amount * 31.0
+	var radius := 13.0 + burst_amount * (38.0 if get_meta("tail_puff", false) else 31.0)
 	# A curled rainbow puff comes from the tail on every landing.
 	for color_index in COLORS.size():
-		var offset := Vector2(float(color_index - 2) * 2.8, 0)
-		draw_arc(burst_center + offset, radius - color_index * 1.8, PI * 0.18, PI * 1.82, 36, Color(COLORS[color_index], 1.0 - burst_amount * 0.18), 5.0, true)
+		var offset := Vector2(float(color_index - 2) * 3.4, float(color_index - 2) * -1.6 if get_meta("tail_puff", false) else 0.0)
+		draw_arc(burst_center + offset, radius - color_index * 1.8, PI * 0.18, PI * 1.82, 36, Color(COLORS[color_index], 1.0 - burst_amount * 0.18), 5.5 if get_meta("tail_puff", false) else 5.0, true)
+	if get_meta("tail_puff", false):
+		for streak in 6:
+			var tail := burst_center + Vector2(-18.0 - streak * 7.0, 10.0 + streak * 2.0)
+			draw_circle(tail, 3.0 + burst_amount * 4.0, COLORS[streak % COLORS.size()])
 	for index in 8:
 		var angle := TAU * float(index) / 8.0
 		var point := burst_center + Vector2.RIGHT.rotated(angle) * (radius + 13.0)

@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bj2px8ufjp70r"
-path="res://.godot/imported/android.png-fb2caea48032eea3d74244daf04c3454.ctex"
+path="res://.godot/imported/android.png-5d6836dfca0cb7041707213d016f991b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/admob/assets/android.png"
-dest_files=["res://.godot/imported/android.png-fb2caea48032eea3d74244daf04c3454.ctex"]
+source_file="res://addons/assets/android.png"
+dest_files=["res://.godot/imported/android.png-5d6836dfca0cb7041707213d016f991b.ctex"]
 
 [params]
 

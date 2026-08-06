@@ -150,6 +150,14 @@ func _run() -> void:
 	mathtris.call("_try_swap", Vector2i(3, 9), Vector2i(4, 9))
 	_check(mathtris.board[9].slice(0, 5).all(func(value: String) -> bool: return value == ""), "an adjacent slide clears only the true equation it creates")
 	mathtris.board = mathtris.call("_make_board")
+	for col in 5:
+		mathtris.board[3][col] = ["1", "+", "1", "=", "2"][col]
+	for col in 5:
+		mathtris.board[11][col] = ["2", "+", "2", "=", "4"][col]
+	var bottom_match: Array = mathtris.call("_find_matches", [Vector2i(0, 11)])
+	mathtris.call("_clear_matches", bottom_match, 100, true)
+	_check(mathtris.board[3][0] == "1", "Mathtris cascade clears only equations touched by falling tiles")
+	mathtris.board = mathtris.call("_make_board")
 	var falling_fixture: Array[Dictionary] = [{"row": 0, "col": 2, "value": "3"}]
 	mathtris.falling = falling_fixture
 	mathtris.call("_refresh")

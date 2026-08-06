@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://ceou56162w5po"
-path="res://.godot/imported/pos_right.svg-3bffdda2e591a18530ab6b577adb4910.ctex"
+path="res://.godot/imported/pos_right.svg-525f52afbdf2c1727a2949e2b880dc09.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/admob/assets/pos_right.svg"
-dest_files=["res://.godot/imported/pos_right.svg-3bffdda2e591a18530ab6b577adb4910.ctex"]
+source_file="res://addons/assets/pos_right.svg"
+dest_files=["res://.godot/imported/pos_right.svg-525f52afbdf2c1727a2949e2b880dc09.ctex"]
 
 [params]
 

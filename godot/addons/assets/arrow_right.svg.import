@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dsl4ryirrswdy"
-path="res://.godot/imported/arrow_right.svg-1b89cb5efaa445f457f67b5ee3937603.ctex"
+path="res://.godot/imported/arrow_right.svg-b31681c023c82b600610b1850888fa4a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/admob/assets/arrow_right.svg"
-dest_files=["res://.godot/imported/arrow_right.svg-1b89cb5efaa445f457f67b5ee3937603.ctex"]
+source_file="res://addons/assets/arrow_right.svg"
+dest_files=["res://.godot/imported/arrow_right.svg-b31681c023c82b600610b1850888fa4a.ctex"]
 
 [params]
 

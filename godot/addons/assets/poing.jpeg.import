@@ -3,15 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://1bxvf4dmrg85"
-path="res://.godot/imported/poing.jpeg-b1ae7a0b5e3bb646b5b1cf5ae07e3b86.ctex"
+path="res://.godot/imported/poing.jpeg-210aec867c5e040c6073f2ce4311ebe1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://addons/admob/assets/poing.jpeg"
-dest_files=["res://.godot/imported/poing.jpeg-b1ae7a0b5e3bb646b5b1cf5ae07e3b86.ctex"]
+source_file="res://addons/assets/poing.jpeg"
+dest_files=["res://.godot/imported/poing.jpeg-210aec867c5e040c6073f2ce4311ebe1.ctex"]
 
 [params]
 

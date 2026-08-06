@@ -233,6 +233,7 @@ func _try_swap(first: Vector2i, second: Vector2i) -> bool:
 	board[first.y][first.x] = board[second.y][second.x]
 	board[second.y][second.x] = value
 	selected = Vector2i(-1, -1)
+	_play_slide_swap(first, second, value, board[first.y][first.x])
 	var matches := _find_matches([first, second])
 	if matches.is_empty():
 		message_label.text = "Tiles slid. No true equation yet."
@@ -298,10 +299,10 @@ func _clear_matches(matches: Array[Dictionary], points_per_cell: int, allow_casc
 	for hit in hits:
 		board[hit.y][hit.x] = ""
 	score += hits.size() * points_per_cell
-	_apply_gravity()
+	var cascade_anchors := _apply_gravity()
 	level = score / 700 + 1
 	if allow_cascade:
-		var cascade := _find_matches()
+		var cascade := _find_matches(cascade_anchors)
 		var guard := 0
 		while not cascade.is_empty() and guard < 8:
 			guard += 1
@@ -309,11 +310,12 @@ func _clear_matches(matches: Array[Dictionary], points_per_cell: int, allow_casc
 			for hit in cascade_hits:
 				board[hit.y][hit.x] = ""
 			score += cascade_hits.size() * 175
-			_apply_gravity()
-			cascade = _find_matches()
+			cascade_anchors = _apply_gravity()
+			cascade = _find_matches(cascade_anchors)
 
 
-func _apply_gravity() -> void:
+func _apply_gravity() -> Array[Vector2i]:
+	var settled: Array[Vector2i] = []
 	for col in COLS:
 		var stack: Array[String] = []
 		for row in ROWS:
@@ -322,7 +324,10 @@ func _apply_gravity() -> void:
 		for row in ROWS:
 			board[row][col] = ""
 		for index in stack.size():
-			board[ROWS - stack.size() + index][col] = stack[index]
+			var target_row := ROWS - stack.size() + index
+			board[target_row][col] = stack[index]
+			settled.append(Vector2i(col, target_row))
+	return settled
 
 
 func _activate_mystic_ability() -> void:
@@ -355,6 +360,42 @@ func _show_hint() -> void:
 	if "-" in Rules.mathtris_allowed(level):
 		example = "4 - 1 = 3"
 	message_label.text = "Build %s across or down. Swipe only one space." % example
+
+
+func _play_slide_swap(first: Vector2i, second: Vector2i, text_at_first: String, text_at_second: String) -> void:
+	if AppState.setting("reduced_motion", false):
+		return
+	var button_a := cells[first.y * COLS + first.x]
+	var button_b := cells[second.y * COLS + second.x]
+	var delta := button_b.global_position - button_a.global_position
+	var overlay_a := _swap_overlay(text_at_first, button_a.global_position, button_a.size)
+	var overlay_b := _swap_overlay(text_at_second, button_b.global_position, button_b.size)
+	add_child(overlay_a)
+	add_child(overlay_b)
+	var tween := create_tween().set_parallel(true)
+	tween.tween_property(overlay_a, "global_position", overlay_a.global_position + delta, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.tween_property(overlay_b, "global_position", overlay_b.global_position - delta, 0.14).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tween.finished.connect(func() -> void:
+		overlay_a.queue_free()
+		overlay_b.queue_free()
+	)
+
+
+func _swap_overlay(label_text: String, global_pos: Vector2, tile_size: Vector2) -> PanelContainer:
+	var panel := PanelContainer.new()
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	panel.global_position = global_pos
+	panel.size = tile_size
+	panel.add_theme_stylebox_override("panel", _tile_style(label_text, false, false))
+	var label := Label.new()
+	label.text = label_text
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	label.add_theme_font_size_override("font_size", 19)
+	label.add_theme_color_override("font_color", Color("172143"))
+	panel.add_child(label)
+	return panel
 
 
 func _falling_at(row: int, col: int, except: Dictionary = {}) -> bool:
@@ -394,19 +435,20 @@ func _refresh() -> void:
 			var value: String = falling_lookup.get(cell, board[row][col])
 			button.text = value
 			button.disabled = value == "" or falling_lookup.has(cell)
-			button.add_theme_stylebox_override("normal", _tile_style(value, falling_lookup.has(cell), selected == cell))
-			button.add_theme_stylebox_override("disabled", _tile_style(value, falling_lookup.has(cell), false))
+			button.add_theme_stylebox_override("normal", _tile_style(value, falling_lookup.has(cell), selected == cell, row))
+			button.add_theme_stylebox_override("disabled", _tile_style(value, falling_lookup.has(cell), false, row))
 			button.add_theme_color_override("font_color", Color("172143"))
 			button.add_theme_color_override("font_disabled_color", Color("172143") if value != "" else Color.TRANSPARENT)
 	hud_label.text = "SCORE %d    •    LEVEL %d" % [score, level]
 	next_label.text = "%d FALLING    •    %dms DROP" % [falling.size(), Rules.mathtris_drop_ms(level, drops_placed, (Time.get_ticks_msec() - started_ms) / 1000)]
 
 
-func _tile_style(value: String, is_falling: bool, is_selected: bool) -> StyleBoxFlat:
+func _tile_style(value: String, is_falling: bool, is_selected: bool, row: int = -1) -> StyleBoxFlat:
 	var style := StyleBoxFlat.new()
-	style.bg_color = Color("fff1a8") if is_falling else (Color("ffd2ed") if value != "" else Color(0.34, 0.45, 0.72, 0.14))
-	style.border_color = Color("62dce9") if is_selected else (Color("f4c75b") if value != "" else Color(0.60, 0.70, 0.92, 0.22))
-	style.set_border_width_all(3 if is_selected else 2)
+	var empty_spawn := value == "" and not is_falling and row == 0
+	style.bg_color = Color("fff1a8") if is_falling else (Color("ffd2ed") if value != "" else Color(0.34, 0.45, 0.72, 0.08 if empty_spawn else 0.14))
+	style.border_color = Color("62dce9") if is_selected else (Color("f4c75b") if value != "" else Color(0.60, 0.70, 0.92, 0.0 if empty_spawn else 0.22))
+	style.set_border_width_all(3 if is_selected else (0 if empty_spawn else 2))
 	style.set_corner_radius_all(9)
 	style.shadow_color = Color(0.08, 0.03, 0.20, 0.45)
 	style.shadow_size = 3 if value != "" else 0
