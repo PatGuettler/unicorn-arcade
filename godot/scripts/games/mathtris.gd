@@ -467,13 +467,11 @@ func _build_ui() -> void:
 	add_child(root)
 	hud_label = Label.new()
 	hud_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hud_label.add_theme_font_size_override("font_size", 25)
-	hud_label.add_theme_color_override("font_color", Color("66e5ff"))
+	StorybookUI.apply_story_label(hud_label, Color("66e5ff"), 25, true)
 	root.add_child(hud_label)
 	next_label = Label.new()
 	next_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	next_label.add_theme_font_size_override("font_size", 17)
-	next_label.add_theme_color_override("font_color", Color("fff3d6"))
+	StorybookUI.apply_story_label(next_label, Color("fff3d6"), 17, true)
 	root.add_child(next_label)
 	var grid_frame := PanelContainer.new()
 	grid_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER

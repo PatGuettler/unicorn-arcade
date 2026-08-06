@@ -81,3 +81,15 @@ static func input_style(fill: Color, border: Color, width: int) -> StyleBoxFlat:
 
 static func uses_dark_ink(fill: Color) -> bool:
 	return fill.get_luminance() >= 0.43
+
+
+static func apply_story_label(label: Label, color: Color = CREAM, font_size: int = 20, outlined: bool = true) -> void:
+	label.add_theme_font_size_override("font_size", font_size)
+	label.add_theme_color_override("font_color", color)
+	if outlined:
+		label.add_theme_color_override("font_outline_color", PLUM)
+		label.add_theme_constant_override("outline_size", 3)
+
+
+static func apply_prompt_plaque(panel: PanelContainer, fill: Color = CREAM) -> void:
+	panel.add_theme_stylebox_override("panel", plaque_style(fill, GOLD, 18))

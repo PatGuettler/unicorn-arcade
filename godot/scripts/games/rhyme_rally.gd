@@ -105,19 +105,22 @@ func _build_ui() -> void:
 	var title := Label.new()
 	title.text = "RHYME RALLY"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 38)
-	title.add_theme_color_override("font_color", Color("f26fa7"))
+	StorybookUI.apply_story_label(title, Color("f26fa7"), 38, true)
 	layout.add_child(title)
+	var prompt_plaque := PanelContainer.new()
+	StorybookUI.apply_prompt_plaque(prompt_plaque, Color("fff3d6"))
+	layout.add_child(prompt_plaque)
+	var prompt_stack := VBoxContainer.new()
+	prompt_plaque.add_child(prompt_stack)
 	var instruction := Label.new()
 	instruction.text = "What rhymes with"
 	instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	instruction.add_theme_font_size_override("font_size", 20)
-	layout.add_child(instruction)
+	StorybookUI.apply_story_label(instruction, Color("59375c"), 20, false)
+	prompt_stack.add_child(instruction)
 	prompt_label = Label.new()
 	prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	prompt_label.add_theme_font_size_override("font_size", 64)
-	prompt_label.add_theme_color_override("font_color", Color("ffd166"))
-	layout.add_child(prompt_label)
+	StorybookUI.apply_story_label(prompt_label, Color("9c356d"), 64, false)
+	prompt_stack.add_child(prompt_label)
 	progress_label = Label.new()
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	layout.add_child(progress_label)

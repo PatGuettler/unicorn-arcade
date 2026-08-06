@@ -167,23 +167,27 @@ func _build_ui() -> void:
 	var title := Label.new()
 	title.text = "MATH SWIPE"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 38)
-	title.add_theme_color_override("font_color", Color("61e7ff"))
+	StorybookUI.apply_story_label(title, Color("61e7ff"), 38, true)
 	root.add_child(title)
 	progress_label = Label.new()
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	progress_label.add_theme_font_size_override("font_size", 18)
+	StorybookUI.apply_story_label(progress_label, Color("fff3d6"), 18, true)
 	root.add_child(progress_label)
+	var prompt_plaque := PanelContainer.new()
+	StorybookUI.apply_prompt_plaque(prompt_plaque, Color("fff3d6"))
+	root.add_child(prompt_plaque)
+	var prompt_stack := VBoxContainer.new()
+	prompt_plaque.add_child(prompt_stack)
 	var prompt := Label.new()
 	prompt.text = "SOLVE THE EQUATION"
 	prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	prompt.add_theme_color_override("font_color", Color("99a6c8"))
-	root.add_child(prompt)
+	StorybookUI.apply_story_label(prompt, Color("59375c"), 16, false)
+	prompt_stack.add_child(prompt)
 	problem_label = Label.new()
 	problem_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	problem_label.add_theme_font_size_override("font_size", 48)
 	problem_label.custom_minimum_size.y = 90
-	root.add_child(problem_label)
+	StorybookUI.apply_story_label(problem_label, Color("172143"), 48, false)
+	prompt_stack.add_child(problem_label)
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 24)
@@ -192,6 +196,7 @@ func _build_ui() -> void:
 		var card := Button.new()
 		card.custom_minimum_size = Vector2(220, 260)
 		card.add_theme_font_size_override("font_size", 72)
+		StorybookUI.apply_button(card, Color("241c55"), false, 22)
 		card.gui_input.connect(_card_input.bind(card))
 		row.add_child(card)
 		cards.append(card)

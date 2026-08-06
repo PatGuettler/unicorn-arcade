@@ -660,21 +660,27 @@ func _build_ui() -> void:
 	instruction_label = Label.new()
 	instruction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	instruction_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	instruction_label.add_theme_font_size_override("font_size", 18)
-	instruction_label.add_theme_color_override("font_color", Color("c8d2ff"))
+	StorybookUI.apply_story_label(instruction_label, Color("c8d2ff"), 18, true)
 	content.add_child(instruction_label)
+	var prompt_plaque := PanelContainer.new()
+	prompt_plaque.name = "WordPromptPlaque"
+	StorybookUI.apply_prompt_plaque(prompt_plaque, Color("fff3d6"))
+	content.add_child(prompt_plaque)
 	prompt_label = Label.new()
 	prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	prompt_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	prompt_label.custom_minimum_size = Vector2(0, 78)
-	prompt_label.add_theme_font_size_override("font_size", 36)
-	prompt_label.add_theme_color_override("font_color", YELLOW)
-	content.add_child(prompt_label)
+	StorybookUI.apply_story_label(prompt_label, Color("9c356d"), 36, false)
+	prompt_plaque.add_child(prompt_label)
 	secondary_label = Label.new()
 	secondary_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	secondary_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	secondary_label.add_theme_color_override("font_color", Color("62e6a7"))
+	StorybookUI.apply_story_label(secondary_label, Color("62e6a7"), 20, true)
 	content.add_child(secondary_label)
+	var play_frame := PanelContainer.new()
+	play_frame.name = "WordPlayFrame"
+	play_frame.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("14214a"), Color("e1ae4f"), 18))
+	content.add_child(play_frame)
 	play_area = Control.new()
 	play_area.custom_minimum_size = Vector2(0, 350)
 	play_area.clip_contents = true
@@ -683,7 +689,7 @@ func _build_ui() -> void:
 	play_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	play_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	play_area.add_child(play_bg)
-	content.add_child(play_area)
+	play_frame.add_child(play_area)
 	input_line = LineEdit.new()
 	input_line.custom_minimum_size = Vector2(0, 58)
 	input_line.add_theme_font_size_override("font_size", 22)

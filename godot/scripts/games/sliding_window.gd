@@ -148,18 +148,20 @@ func _build_ui() -> void:
 	var title := Label.new()
 	title.text = "RACE THE UNICORN!"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 36)
-	title.add_theme_color_override("font_color", Color("65e7ff"))
+	StorybookUI.apply_story_label(title, Color("65e7ff"), 36, true)
 	root.add_child(title)
 	progress_label = Label.new()
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	StorybookUI.apply_story_label(progress_label, Color("fff3d6"), 20, true)
 	root.add_child(progress_label)
+	var instruction_plaque := PanelContainer.new()
+	StorybookUI.apply_prompt_plaque(instruction_plaque, Color("ffe8fb"))
+	root.add_child(instruction_plaque)
 	var instruction := Label.new()
 	instruction.text = "FIND THE MAXIMUM"
 	instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	instruction.add_theme_font_size_override("font_size", 22)
-	instruction.add_theme_color_override("font_color", Color("ffe172"))
-	root.add_child(instruction)
+	StorybookUI.apply_story_label(instruction, Color("5b2a68"), 22, false)
+	instruction_plaque.add_child(instruction)
 	value_row = HBoxContainer.new()
 	value_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	value_row.add_theme_constant_override("separation", 10)

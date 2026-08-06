@@ -3,7 +3,9 @@ extends Node
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const TutorialCatalog = preload("res://scripts/tutorial_catalog.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const ProgressRingScene = preload("res://scripts/ui/progress_ring.gd")
 const PENNY_TEXTURE_PATH := "res://assets/games/currency/penny.png"
+const MEADOW_BACKGROUND_PATH := "res://assets/meta/environments/magical_meadow_v1.png"
 
 var attached_scene: Node
 var attached_game_id := ""
@@ -87,6 +89,7 @@ func _attach_scene(scene: Node) -> void:
 		layout.z_index = 900
 		scene.add_child(layout)
 	layout.alignment = BoxContainer.ALIGNMENT_BEGIN
+	_apply_storybook_atmosphere(scene)
 	_hide_legacy_chrome(layout, str(game["title"]))
 	var header := _build_header(str(game["title"]))
 	layout.add_child(header)
@@ -95,6 +98,7 @@ func _attach_scene(scene: Node) -> void:
 	layout.add_child(plaque)
 	layout.move_child(plaque, 1)
 	_restyle_controls(scene)
+	_polish_game_labels(scene)
 	last_level = _scene_int(scene, "level", 1)
 	CompanionAbilityService.begin_level(attached_game_id, last_level)
 	was_active = bool(scene.get("active")) if _has_property(scene, "active") else true
@@ -120,20 +124,60 @@ func _find_primary_layout(node: Node) -> VBoxContainer:
 	return null
 
 
+func _apply_storybook_atmosphere(scene: Node) -> void:
+	if not is_instance_valid(scene) or scene.has_node("StorybookAtmosphere"):
+		return
+	var atmosphere := Control.new()
+	atmosphere.name = "StorybookAtmosphere"
+	atmosphere.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	atmosphere.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	atmosphere.z_index = -20
+	var wash := ColorRect.new()
+	wash.color = Color("120d2e")
+	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	wash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	atmosphere.add_child(wash)
+	var meadow := TextureRect.new()
+	meadow.texture = load(MEADOW_BACKGROUND_PATH) as Texture2D
+	meadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	meadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	meadow.modulate = Color(1, 1, 1, 0.34)
+	meadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	meadow.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	atmosphere.add_child(meadow)
+	var veil := ColorRect.new()
+	veil.color = Color(0.08, 0.05, 0.22, 0.42)
+	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	atmosphere.add_child(veil)
+	scene.add_child(atmosphere)
+	scene.move_child(atmosphere, 0)
+	for child in scene.get_children():
+		if child is ColorRect and child != wash and child != veil:
+			var rect := child as ColorRect
+			if is_equal_approx(rect.anchor_right, 1.0) and is_equal_approx(rect.anchor_bottom, 1.0):
+				rect.color = Color(rect.color, 0.12)
+				break
+
+
 func _hide_legacy_chrome(layout: VBoxContainer, title: String) -> void:
-	for child in layout.get_children().slice(0, mini(3, layout.get_child_count())):
+	for child in layout.get_children().slice(0, mini(4, layout.get_child_count())):
 		if child is HBoxContainer and _contains_navigation(child):
 			child.hide()
-		elif child is Label and str((child as Label).text).strip_edges().to_upper() == title.to_upper():
-			child.hide()
+		elif child is Label:
+			var copy := str((child as Label).text).strip_edges().to_upper()
+			if copy == title.to_upper() or copy.begins_with("★") or copy.contains("UNICORN JUMP") or copy.contains("MATHTRIS") or copy.contains("COIN COUNT") or copy.contains("CASH COUNTER") or copy.contains("SLIDING WINDOW") or copy.contains("MATH SWIPE") or copy.contains("GALAXY UNICORN") or copy.contains("RHYME RALLY") or copy.contains("RACE THE UNICORN"):
+				child.hide()
 
 
 func _contains_navigation(node: Node) -> bool:
 	for child in node.get_children():
 		if child is Button:
 			var text := str((child as Button).text).to_upper()
-			if "BACK" in text or "GAMES" in text:
+			if "BACK" in text or "GAMES" in text or text == "ARCADE":
 				return true
+		elif child is Label and str((child as Label).text).begins_with("★"):
+			return true
 		if _contains_navigation(child):
 			return true
 	return false
@@ -430,33 +474,49 @@ func _show_profile_overlay() -> void:
 		return
 	var overlay := _modal_backdrop("InGameProfileOverlay")
 	attached_scene.add_child(overlay)
-	var card := _modal_card(overlay, 0.08, 0.92, 0.08, 0.92)
+	var card := _modal_card(overlay, 0.06, 0.94, 0.06, 0.94)
+	var scroll := ScrollContainer.new()
+	card.add_child(scroll)
 	var stack := VBoxContainer.new()
+	stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	stack.add_theme_constant_override("separation", 12)
-	card.add_child(stack)
+	scroll.add_child(stack)
 	stack.add_child(_modal_title("PLAYER PROFILE"))
+	var companion := MetaCatalog.companion(AppState.equipped_companion())
+	var preview := RoomItemPreviewScene.new()
+	preview.custom_minimum_size = Vector2(160, 140)
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": false, "presentation": "marketplace"})
+	stack.add_child(preview)
 	var hero := Label.new()
-	hero.text = "%s\n★ %d COINS   •   %d COMPLETED RUNS" % [AppState.player_name().to_upper(), AppState.coins(), AppState.completed_run_count()]
+	hero.text = "%s\n%s  •  %d COINS  •  %d RUNS" % [AppState.player_name().to_upper(), str(companion.get("name", "Sparkle")).to_upper(), AppState.coins(), AppState.completed_run_count()]
 	hero.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hero.add_theme_font_size_override("font_size", 22)
+	hero.add_theme_font_size_override("font_size", 20)
 	hero.add_theme_color_override("font_color", StorybookUI.INK)
 	stack.add_child(hero)
 	var ability := CompanionAbilityService.definition()
 	var ability_card := Label.new()
-	ability_card.text = "%s — %s" % [ability.get("name", "Companion Power"), ability.get("description", "")]
+	ability_card.text = "✦ %s — %s" % [ability.get("name", "Companion Power"), ability.get("description", "")]
 	ability_card.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ability_card.add_theme_font_size_override("font_size", 19)
+	ability_card.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ability_card.add_theme_font_size_override("font_size", 18)
 	ability_card.add_theme_color_override("font_color", Color("59375c"))
 	stack.add_child(ability_card)
+	var rings := HBoxContainer.new()
+	rings.alignment = BoxContainer.ALIGNMENT_CENTER
+	rings.add_theme_constant_override("separation", 6)
+	stack.add_child(rings)
 	for category in ["Number", "Word", "Mystery", "Arcade"]:
 		var completed := 0
-		for game in GameRegistry.games_in_category(category):
+		var level_sum := 0.0
+		var games := GameRegistry.games_in_category(category)
+		for game in games:
 			completed += AppState.progress_for_game(game["id"]).get("completed", []).size()
-		var row := Label.new()
-		row.text = "%s MAGIC   •   %d COMPLETED RUNS" % [category.to_upper(), completed]
-		row.add_theme_font_size_override("font_size", 19)
-		row.add_theme_color_override("font_color", StorybookUI.INK)
-		stack.add_child(row)
+			level_sum += clampf(float(AppState.current_level(game["id"]) - 1) / 20.0, 0.0, 1.0)
+		var ratio := 0.0 if games.is_empty() else level_sum / float(games.size())
+		var ring := ProgressRingScene.new()
+		ring.setup(ratio, category.to_upper(), "%d RUNS" % completed, Color("58d6e8") if category == "Number" else (Color("f26fa7") if category == "Word" else (Color("9b7bff") if category == "Mystery" else Color("ffd166"))))
+		rings.add_child(ring)
 	var tutorial_toggle := CheckButton.new()
 	tutorial_toggle.text = "GUIDED FIRST THREE LEVELS"
 	tutorial_toggle.button_pressed = bool(AppState.setting("tutorials_enabled", true))
@@ -583,7 +643,23 @@ func _restyle_controls(node: Node) -> void:
 			StorybookUI.apply_game_action(button, maxf(96.0, button.custom_minimum_size.x))
 			button.custom_minimum_size.y = maxf(56.0, button.custom_minimum_size.y)
 			var copy := button.text.to_upper()
-			if copy == "ARCADE" or ("GAMES" in copy and ("NUMBER" in copy or "WORD" in copy or "MYSTERY" in copy or "ARCADE" in copy)):
+			if copy == "ARCADE" or "BACK" in copy or ("GAMES" in copy and ("NUMBER" in copy or "WORD" in copy or "MYSTERY" in copy or "ARCADE" in copy)):
 				button.hide()
+	elif node is Label:
+		var label := node as Label
+		var copy := label.text.strip_edges().to_upper()
+		if copy.begins_with("★") and not label.has_meta("keep_visible"):
+			label.hide()
 	for child in node.get_children():
 		_restyle_controls(child)
+
+
+func _polish_game_labels(node: Node) -> void:
+	if node is Label and not (node as Label).has_meta("standard_game_chrome"):
+		var label := node as Label
+		if label.visible and label.get_theme_font_size("font_size") >= 18:
+			if not label.has_theme_color_override("font_outline_color"):
+				label.add_theme_color_override("font_outline_color", Color("120d32"))
+				label.add_theme_constant_override("outline_size", maxi(2, label.get_theme_constant("outline_size")))
+	for child in node.get_children():
+		_polish_game_labels(child)

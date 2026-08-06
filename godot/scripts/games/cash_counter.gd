@@ -139,18 +139,21 @@ func _build_ui() -> void:
 	layout.add_child(header)
 	level_label = Label.new()
 	level_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	level_label.add_theme_color_override("font_color", Color("c8d2ff"))
+	StorybookUI.apply_story_label(level_label, Color("c8d2ff"), 20, true)
 	layout.add_child(level_label)
+	var target_plaque := PanelContainer.new()
+	StorybookUI.apply_prompt_plaque(target_plaque, Color("fff3d6"))
+	layout.add_child(target_plaque)
+	var target_stack := VBoxContainer.new()
+	target_plaque.add_child(target_stack)
 	target_label = Label.new()
 	target_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	target_label.add_theme_font_size_override("font_size", 32)
-	target_label.add_theme_color_override("font_color", Color("62e6a7"))
-	layout.add_child(target_label)
+	StorybookUI.apply_story_label(target_label, Color("254b54"), 32, false)
+	target_stack.add_child(target_label)
 	total_label = Label.new()
 	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	total_label.add_theme_font_size_override("font_size", 72)
-	total_label.add_theme_color_override("font_color", Color.WHITE)
-	layout.add_child(total_label)
+	StorybookUI.apply_story_label(total_label, Color("172143"), 72, false)
+	target_stack.add_child(total_label)
 	message_label = Label.new()
 	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

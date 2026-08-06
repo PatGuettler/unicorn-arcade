@@ -16,10 +16,12 @@ const ALLEY_STREET_SIGN = preload("res://assets/ui/unicorn_alley_street_sign_com
 const PENNY_TEXTURE_PATH := "res://assets/games/currency/penny.png"
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 const ArcadePictogramScene = preload("res://scripts/ui/arcade_pictogram.gd")
+const ProgressRingScene = preload("res://scripts/ui/progress_ring.gd")
 
 var page: VBoxContainer
 var status_label: Label
 var coin_label: Label
+var profile_category_filter := "All"
 
 
 func _ready() -> void:
@@ -291,110 +293,172 @@ func _show_profile() -> void:
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page.add_child(scroll)
 	var content := VBoxContainer.new()
+	content.name = "ProfileContent"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 16)
+	content.add_theme_constant_override("separation", 18)
 	scroll.add_child(content)
-	var hero_card := PanelContainer.new()
-	hero_card.name = "ProfileHeroCard"
-	hero_card.custom_minimum_size.y = 250
-	hero_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), StorybookUI.GOLD, 22))
-	content.add_child(hero_card)
+	content.add_child(_build_profile_unicorn_banner())
+	content.add_child(_build_profile_stat_strip())
+	content.add_child(_profile_section_title("MAGIC RINGS"))
+	content.add_child(_build_profile_progress_rings())
+	content.add_child(_profile_section_title("YOUR GAMES"))
+	content.add_child(_build_profile_category_chips())
+	content.add_child(_build_profile_game_grid())
+	content.add_child(_profile_section_title("SETTINGS & LEARNING"))
+	content.add_child(_build_profile_settings())
+	var logout := _make_button("LOG OUT", Color("7c2948"), 60)
+	logout.pressed.connect(func() -> void:
+		AppState.logout()
+		_show_login()
+	)
+	content.add_child(logout)
+
+
+func _build_profile_unicorn_banner() -> PanelContainer:
+	var companion := MetaCatalog.companion(AppState.equipped_companion())
+	var ability_definition := CompanionAbilityService.definition()
+	var banner := PanelContainer.new()
+	banner.name = "EquippedUnicornBanner"
+	banner.custom_minimum_size.y = 268
+	banner.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("241c55"), Color("f26fa7"), 24))
+	var stack := VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 10)
+	banner.add_child(stack)
+	var eyebrow := Label.new()
+	eyebrow.text = "EQUIPPED UNICORN"
+	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	eyebrow.add_theme_font_size_override("font_size", 15)
+	eyebrow.add_theme_color_override("font_color", Color("f4d37f"))
+	stack.add_child(eyebrow)
 	var hero_row := HBoxContainer.new()
-	hero_row.add_theme_constant_override("separation", 18)
-	hero_card.add_child(hero_row)
-	var preview := _build_companion_preview(AppState.equipped_companion(), "profile", 205)
-	preview.custom_minimum_size.x = 205
-	preview.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	hero_row.add_theme_constant_override("separation", 14)
+	stack.add_child(hero_row)
+	var preview := _build_companion_preview(AppState.equipped_companion(), "profile", 188)
+	preview.custom_minimum_size = Vector2(188, 168)
 	hero_row.add_child(preview)
 	var identity := VBoxContainer.new()
-	identity.alignment = BoxContainer.ALIGNMENT_CENTER
 	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	identity.add_theme_constant_override("separation", 9)
+	identity.alignment = BoxContainer.ALIGNMENT_CENTER
+	identity.add_theme_constant_override("separation", 8)
 	hero_row.add_child(identity)
-	var player_name := _card_label(AppState.player_name().to_upper(), 31, Color("9c356d"), HORIZONTAL_ALIGNMENT_CENTER)
-	identity.add_child(player_name)
-	var companion := MetaCatalog.companion(AppState.equipped_companion())
-	identity.add_child(_card_label("EQUIPPED • %s" % str(companion.get("name", "Sparkle")).to_upper(), 19, Color("254b54"), HORIZONTAL_ALIGNMENT_CENTER))
-	var stats := GridContainer.new()
-	stats.columns = 2
-	stats.add_theme_constant_override("h_separation", 8)
-	stats.add_theme_constant_override("v_separation", 8)
-	identity.add_child(stats)
-	stats.add_child(_profile_money_stat(AppState.coins(), "COINS"))
-	stats.add_child(_profile_stat("%d" % AppState.completed_run_count(), "RUNS"))
-	stats.add_child(_profile_stat("%d / 6" % AppState.owned_companions().size(), "UNICORNS"))
-	stats.add_child(_profile_stat("%d" % AppState.data.get("inventory", {}).size(), "DECOR"))
-	var ability_definition := CompanionAbilityService.definition()
-	var ability_card := PanelContainer.new()
-	ability_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("241c55"), Color("58d6e8"), 18))
-	content.add_child(ability_card)
-	var ability_copy := Label.new()
-	ability_copy.text = "✦  %s\n%s" % [str(ability_definition.get("name", "COMPANION POWER")).to_upper(), str(ability_definition.get("description", ""))]
-	ability_copy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	ability_copy.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	ability_copy.add_theme_font_size_override("font_size", 20)
-	ability_copy.add_theme_color_override("font_color", StorybookUI.CREAM)
-	ability_card.add_child(ability_copy)
-	content.add_child(_profile_section_title("GAME PROGRESS"))
+	identity.add_child(_card_label(AppState.player_name().to_upper(), 28, Color("fff3d6"), HORIZONTAL_ALIGNMENT_CENTER))
+	identity.add_child(_card_label(str(companion.get("name", "Sparkle")).to_upper(), 24, Color("f26fa7"), HORIZONTAL_ALIGNMENT_CENTER))
+	var power := Label.new()
+	power.text = "✦ %s\n%s" % [str(ability_definition.get("name", "Companion Power")).to_upper(), str(ability_definition.get("description", ""))]
+	power.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	power.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	power.add_theme_font_size_override("font_size", 17)
+	power.add_theme_color_override("font_color", Color("c9d3ef"))
+	identity.add_child(power)
+	var alley := _make_button("VISIT UNICORN ALLEY", Color("c45186"), 54)
+	alley.pressed.connect(func() -> void: _show_dashboard())
+	stack.add_child(alley)
+	return banner
+
+
+func _build_profile_stat_strip() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "ProfileStatStrip"
+	row.add_theme_constant_override("separation", 8)
+	row.add_child(_profile_money_stat(AppState.coins(), "COINS"))
+	row.add_child(_profile_stat("%d" % AppState.completed_run_count(), "RUNS"))
+	row.add_child(_profile_stat("%d / 6" % AppState.owned_companions().size(), "UNICORNS"))
+	row.add_child(_profile_stat("%d" % AppState.data.get("inventory", {}).size(), "DECOR"))
+	for child in row.get_children():
+		if child is Control:
+			(child as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return row
+
+
+func _build_profile_progress_rings() -> PanelContainer:
+	var card := PanelContainer.new()
+	card.name = "ProfileProgressRings"
+	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254d"), StorybookUI.GOLD, 20))
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	card.add_child(row)
 	for category in ["Number", "Word", "Mystery", "Arcade"]:
-		var category_card := PanelContainer.new()
-		category_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254d"), _category_color(category), 18))
-		content.add_child(category_card)
-		var category_stack := VBoxContainer.new()
-		category_stack.add_theme_constant_override("separation", 8)
-		category_card.add_child(category_stack)
-		var games := GameRegistry.games_in_category(category)
-		var completed_count := 0
-		for game in games:
-			completed_count += AppState.progress_for_game(game["id"]).get("completed", []).size()
-		var category_toggle := Button.new()
-		category_toggle.text = "%s MAGIC    •    %d RUNS    ▾" % [category.to_upper(), completed_count]
-		category_toggle.add_theme_font_size_override("font_size", 22)
-		StorybookUI.apply_button(category_toggle, Color("22345f"), false, 14)
-		category_stack.add_child(category_toggle)
-		var game_grid := GridContainer.new()
-		game_grid.columns = 1
-		game_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		game_grid.add_theme_constant_override("h_separation", 8)
-		game_grid.add_theme_constant_override("v_separation", 8)
-		category_stack.add_child(game_grid)
-		category_toggle.pressed.connect(func() -> void:
-			game_grid.visible = not game_grid.visible
-			category_toggle.text = "%s MAGIC    •    %d RUNS    %s" % [category.to_upper(), completed_count, "▾" if game_grid.visible else "▸"]
+		var progress := _category_progress_ratio(category)
+		var runs := _category_run_count(category)
+		var ring := ProgressRingScene.new()
+		ring.setup(progress, category.to_upper(), "%d RUNS" % runs, _category_color(category))
+		row.add_child(ring)
+	return card
+
+
+func _build_profile_category_chips() -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.name = "ProfileCategoryChips"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	for category in ["All", "Number", "Word", "Mystery", "Arcade"]:
+		var chip := Button.new()
+		chip.text = category.to_upper()
+		chip.custom_minimum_size = Vector2(92, 48)
+		chip.toggle_mode = true
+		chip.button_pressed = profile_category_filter == category
+		var fill := Color("22345f")
+		if profile_category_filter == category:
+			fill = StorybookUI.GOLD if category == "All" else _category_color(category)
+		StorybookUI.apply_button(chip, fill, profile_category_filter == category and category == "All", 14)
+		chip.pressed.connect(func() -> void:
+			profile_category_filter = category
+			_show_profile()
 		)
+		row.add_child(chip)
+	return row
+
+
+func _build_profile_game_grid() -> GridContainer:
+	var grid := GridContainer.new()
+	grid.name = "ProfileGameGrid"
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 10)
+	grid.add_theme_constant_override("v_separation", 10)
+	var categories := ["Number", "Word", "Mystery", "Arcade"] if profile_category_filter == "All" else [profile_category_filter]
+	for category in categories:
 		for game in GameRegistry.games_in_category(category):
-			var record := AppState.progress_for_game(game["id"])
-			var completed: Array = record.get("completed", [])
-			var game_card := PanelContainer.new()
-			game_card.custom_minimum_size.y = 88
-			game_card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			game_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), _category_color(category), 12))
-			var card_row := HBoxContainer.new()
-			card_row.add_theme_constant_override("separation", 12)
-			game_card.add_child(card_row)
-			var pictogram := ArcadePictogramScene.new()
-			pictogram.custom_minimum_size = Vector2(64, 64)
-			pictogram.setup(str(game["id"]), _category_color(category))
-			card_row.add_child(pictogram)
-			var game_copy := VBoxContainer.new()
-			game_copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-			game_copy.alignment = BoxContainer.ALIGNMENT_CENTER
-			card_row.add_child(game_copy)
-			var title_line := Label.new()
-			title_line.text = str(game["title"]).to_upper()
-			title_line.add_theme_font_size_override("font_size", 18)
-			title_line.add_theme_color_override("font_color", StorybookUI.INK)
-			game_copy.add_child(title_line)
-			var progress_line := Label.new()
-			progress_line.text = "LEVEL %d  •  %d RUNS" % [AppState.current_level(game["id"]), completed.size()]
-			progress_line.add_theme_font_size_override("font_size", 16)
-			progress_line.add_theme_color_override("font_color", Color("254b54"))
-			game_copy.add_child(progress_line)
-			game_grid.add_child(game_card)
-	content.add_child(_profile_section_title("SETTINGS & LEARNING"))
+			grid.add_child(_build_profile_game_tile(game, category))
+	return grid
+
+
+func _build_profile_game_tile(game: Dictionary, category: String) -> PanelContainer:
+	var completed: Array = AppState.progress_for_game(game["id"]).get("completed", [])
+	var level := AppState.current_level(game["id"])
+	var tile := PanelContainer.new()
+	tile.custom_minimum_size = Vector2(0, 126)
+	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tile.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), _category_color(category), 14))
+	var stack := VBoxContainer.new()
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 4)
+	tile.add_child(stack)
+	var pictogram := ArcadePictogramScene.new()
+	pictogram.custom_minimum_size = Vector2(58, 58)
+	pictogram.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	pictogram.setup(str(game["id"]), _category_color(category))
+	stack.add_child(pictogram)
+	var title_line := Label.new()
+	title_line.text = str(game["title"]).to_upper()
+	title_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title_line.add_theme_font_size_override("font_size", 15)
+	title_line.add_theme_color_override("font_color", StorybookUI.INK)
+	stack.add_child(title_line)
+	var progress_line := Label.new()
+	progress_line.text = "LV %d  •  %d RUNS" % [level, completed.size()]
+	progress_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	progress_line.add_theme_font_size_override("font_size", 14)
+	progress_line.add_theme_color_override("font_color", Color("254b54"))
+	stack.add_child(progress_line)
+	return tile
+
+
+func _build_profile_settings() -> PanelContainer:
 	var settings_card := PanelContainer.new()
 	settings_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), StorybookUI.GOLD, 18))
-	content.add_child(settings_card)
 	var settings_stack := VBoxContainer.new()
 	settings_stack.add_theme_constant_override("separation", 8)
 	settings_card.add_child(settings_stack)
@@ -430,12 +494,24 @@ func _show_profile() -> void:
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.add_theme_color_override("font_color", Color("254b54"))
 	settings_stack.add_child(status_label)
-	var logout := _make_button("LOG OUT", Color("7c2948"), 60)
-	logout.pressed.connect(func() -> void:
-		AppState.logout()
-		_show_login()
-	)
-	content.add_child(logout)
+	return settings_card
+
+
+func _category_progress_ratio(category: String) -> float:
+	var games := GameRegistry.games_in_category(category)
+	if games.is_empty():
+		return 0.0
+	var total := 0.0
+	for game in games:
+		total += clampf(float(AppState.current_level(game["id"]) - 1) / 20.0, 0.0, 1.0)
+	return total / float(games.size())
+
+
+func _category_run_count(category: String) -> int:
+	var completed_count := 0
+	for game in GameRegistry.games_in_category(category):
+		completed_count += AppState.progress_for_game(game["id"]).get("completed", []).size()
+	return completed_count
 
 
 func _profile_stat(value: String, caption: String) -> PanelContainer:

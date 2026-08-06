@@ -78,19 +78,21 @@ func _build_ui() -> void:
 	var title := Label.new()
 	title.text = "COIN COUNT"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.add_theme_font_size_override("font_size", 38)
-	title.add_theme_color_override("font_color", Color("58d6e8"))
+	StorybookUI.apply_story_label(title, Color("58d6e8"), 38, true)
 	layout.add_child(title)
+	var target_plaque := PanelContainer.new()
+	StorybookUI.apply_prompt_plaque(target_plaque, Color("fff3d6"))
+	layout.add_child(target_plaque)
+	var target_stack := VBoxContainer.new()
+	target_plaque.add_child(target_stack)
 	target_label = Label.new()
 	target_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	target_label.add_theme_font_size_override("font_size", 30)
-	target_label.add_theme_color_override("font_color", Color("ffd166"))
-	layout.add_child(target_label)
+	StorybookUI.apply_story_label(target_label, Color("9c356d"), 30, false)
+	target_stack.add_child(target_label)
 	total_label = Label.new()
 	total_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	total_label.add_theme_font_size_override("font_size", 72)
-	total_label.add_theme_color_override("font_color", Color.WHITE)
-	layout.add_child(total_label)
+	StorybookUI.apply_story_label(total_label, Color("172143"), 72, false)
+	target_stack.add_child(total_label)
 	message_label = Label.new()
 	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
