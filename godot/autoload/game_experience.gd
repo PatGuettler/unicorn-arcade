@@ -596,14 +596,38 @@ func _advance_tutorial(overlay: Control) -> void:
 
 
 func _show_notice(title: String, copy: String) -> void:
-	if not is_instance_valid(attached_scene):
+	if not is_instance_valid(attached_scene) or attached_scene.has_node("CompanionAbilityNotice"):
 		return
-	var dialog := AcceptDialog.new()
-	dialog.title = title
-	dialog.dialog_text = copy
-	attached_scene.add_child(dialog)
-	dialog.popup_centered(Vector2i(520, 240))
-	dialog.confirmed.connect(dialog.queue_free)
+	var overlay := _modal_backdrop("CompanionAbilityNotice")
+	attached_scene.add_child(overlay)
+	var card := _modal_card(overlay, 0.10, 0.90, 0.30, 0.70)
+	card.name = "AbilityNoticeCard"
+	var stack := VBoxContainer.new()
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 20)
+	card.add_child(stack)
+	var badge := Label.new()
+	badge.text = "UNICORN MAGIC"
+	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	StorybookUI.apply_story_label(badge, Color("c45186"), 18, false)
+	stack.add_child(badge)
+	stack.add_child(_modal_title(title.to_upper()))
+	var message := Label.new()
+	message.name = "AbilityNoticeCopy"
+	message.text = copy
+	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	message.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	message.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	message.custom_minimum_size.y = 100
+	StorybookUI.apply_story_label(message, StorybookUI.INK, 25, false)
+	stack.add_child(message)
+	var close := Button.new()
+	close.name = "AbilityNoticeClose"
+	close.text = "GOT IT!"
+	StorybookUI.apply_game_action(close, 220)
+	close.pressed.connect(overlay.queue_free)
+	stack.add_child(close)
 
 
 func _modal_backdrop(node_name: String) -> ColorRect:

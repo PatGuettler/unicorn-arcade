@@ -43,6 +43,8 @@ func _init() -> void:
 	var registered_ids: Array = registry.all_games().map(func(game: Dictionary): return game["id"])
 	_check(TutorialCatalog.covers_all(registered_ids), "all 22 games provide three guided tutorial levels")
 	_check(CompanionAbilityScript.ABILITIES.size() == 6, "all six unicorns have exactly one universal companion ability")
+	_check(CompanionAbilityScript.ABILITIES["rainbow"]["description"] == "Gives a chance at bonus coins.", "bonus coin power uses child-friendly copy")
+	_check(CompanionAbilityScript.ABILITIES.values().all(func(ability: Dictionary) -> bool: return not str(ability["description"]).contains("%") and not str(ability["description"]).contains("seconds")), "companion power descriptions avoid percentages and timing jargon")
 	_check(GameplayRules.math_swipe_target(1) == 3 and GameplayRules.math_swipe_target(10) == 8, "Math Swipe target formula matches React")
 	_check(GameplayRules.jump_path_length(3) == 20, "Unicorn Jump path length matches React")
 	_check(GameplayRules.jump_max(2) == 3 and GameplayRules.jump_max(3) == 4 and GameplayRules.jump_max(6) == 6, "Unicorn Jump bands match React")

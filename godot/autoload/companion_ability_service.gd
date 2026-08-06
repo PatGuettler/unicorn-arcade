@@ -4,12 +4,12 @@ signal ability_changed
 signal ability_activated(companion_id: String, game_id: String)
 
 const ABILITIES := {
-	"sparkle": {"name": "Second Sparkle", "description": "One free retry from your latest checkpoint.", "active": false},
-	"rainbow": {"name": "Lucky Rainbow", "description": "20% chance to add 50% bonus coins after a win.", "active": false},
-	"star": {"name": "Guiding Star", "description": "Your first hint in each level is free.", "active": false},
-	"cloud": {"name": "Cloud Time", "description": "Timed and moving hazards run 25% slower.", "active": false},
-	"dream": {"name": "Dreamy Nudge", "description": "After 8 quiet seconds, a correct move glows.", "active": false},
-	"mystic": {"name": "Mystic Move", "description": "Tap once to complete one correct micro-move.", "active": true},
+	"sparkle": {"name": "Second Sparkle", "description": "Gives you one free retry.", "active": false},
+	"rainbow": {"name": "Lucky Rainbow", "description": "Gives a chance at bonus coins.", "active": false},
+	"star": {"name": "Guiding Star", "description": "Gives you a free hint.", "active": false},
+	"cloud": {"name": "Cloud Time", "description": "Makes fast parts move slower.", "active": false},
+	"dream": {"name": "Dreamy Nudge", "description": "Makes a helpful move glow if you get stuck.", "active": false},
+	"mystic": {"name": "Mystic Move", "description": "Tap to make one helpful move.", "active": true},
 }
 
 var game_id := ""
