@@ -99,6 +99,7 @@ func _attach_scene(scene: Node) -> void:
 	layout.move_child(plaque, 1)
 	_restyle_controls(scene)
 	_polish_game_labels(scene)
+	_hide_game_scrollbars(scene)
 	last_level = _scene_int(scene, "level", 1)
 	CompanionAbilityService.begin_level(attached_game_id, last_level)
 	was_active = bool(scene.get("active")) if _has_property(scene, "active") else true
@@ -708,3 +709,14 @@ func _polish_game_labels(node: Node) -> void:
 				label.add_theme_constant_override("outline_size", maxi(2, label.get_theme_constant("outline_size")))
 	for child in node.get_children():
 		_polish_game_labels(child)
+
+
+func _hide_game_scrollbars(node: Node) -> void:
+	if node is ScrollContainer:
+		var scroll := node as ScrollContainer
+		if scroll.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+			scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+		if scroll.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+			scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
+	for child in node.get_children():
+		_hide_game_scrollbars(child)

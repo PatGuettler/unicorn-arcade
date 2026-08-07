@@ -4,6 +4,7 @@ const Rules = preload("res://scripts/games/gameplay_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 const RainbowJumpFXScene = preload("res://scripts/ui/rainbow_jump_fx.gd")
+const GameWorldViewportScene = preload("res://scripts/ui/game_world_viewport.gd")
 const STONE_CREAM = preload("res://assets/games/unicorn_jump/jump_stone_normal_cream_v1.png")
 const STONE_LILAC = preload("res://assets/games/unicorn_jump/jump_stone_normal_lilac_v1.png")
 const STONE_CURRENT = preload("res://assets/games/unicorn_jump/jump_stone_current_v1.png")
@@ -29,13 +30,12 @@ var jump_mission_panel: PanelContainer
 var jump_mission_value: Label
 var jump_mission_caption: Label
 var path_box: VBoxContainer
-var scroller: ScrollContainer
+var world_viewport
+## Kept as an alias so layout tests / dialogs can find the play surface.
+var scroller: Control
 var action_button: Button
 var companion_preview: RoomItemPreview3D
-var zoom := 1.0
 var jump_in_progress := false
-var touch_points := {}
-var pinch_distance := 0.0
 var fx_layer: RainbowJumpFX
 
 
@@ -106,6 +106,8 @@ func _start_level(for_level: int) -> void:
 
 
 func _choose_node(index: int) -> void:
+	if is_instance_valid(world_viewport) and world_viewport.consume_press_suppression():
+		return
 	if not active or jump_in_progress or index == current_index:
 		return
 	var expected := current_index + level_data[current_index]
@@ -146,11 +148,11 @@ func _rebuild_path() -> void:
 		child.queue_free()
 	node_buttons.clear()
 	connector_lines.clear()
-	var stone_size := BASE_STONE_SIZE * zoom
-	var row_height := BASE_ROW_HEIGHT * zoom
+	var stone_size := BASE_STONE_SIZE
+	var row_height := BASE_ROW_HEIGHT
 	var top_clearance := Control.new()
 	top_clearance.name = "TrailTopClearance"
-	top_clearance.custom_minimum_size.y = BASE_TOP_CLEARANCE * zoom
+	top_clearance.custom_minimum_size.y = BASE_TOP_CLEARANCE
 	top_clearance.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	path_box.add_child(top_clearance)
 	for index in range(level_data.size() + 1):
@@ -162,7 +164,7 @@ func _rebuild_path() -> void:
 			var next_center_x := _stone_center_x(index + 1)
 			var connector := Line2D.new()
 			connector.name = "TrailConnector%d" % index
-			connector.width = 8.0 * zoom
+			connector.width = 8.0
 			connector.default_color = Color("9788d8")
 			connector.joint_mode = Line2D.LINE_JOINT_ROUND
 			connector.begin_cap_mode = Line2D.LINE_CAP_ROUND
@@ -191,11 +193,11 @@ func _rebuild_path() -> void:
 		value_label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		value_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		value_label.add_theme_font_size_override("font_size", int(23 * zoom))
+		value_label.add_theme_font_size_override("font_size", 23)
 		value_label.add_theme_color_override("font_color", Color("382c60"))
 		value_label.add_theme_color_override("font_outline_color", Color("fff5e9"))
 		value_label.add_theme_constant_override("outline_size", 5)
-		value_label.position.y = -5.0 * zoom
+		value_label.position.y = -5.0
 		button.add_child(value_label)
 		row.add_child(button)
 		path_box.add_child(row)
@@ -237,18 +239,22 @@ func _update_path() -> void:
 		var connector := connector_lines[connector_index]
 		connector.default_color = Color("f2a5d4") if connector_index <= current_index else Color("9788d8")
 	await get_tree().process_frame
-	var current_row_top := BASE_TOP_CLEARANCE * zoom + current_index * BASE_ROW_HEIGHT * zoom
-	var desired := maxf(0.0, current_row_top - scroller.size.y * 0.20)
-	scroller.scroll_vertical = int(desired)
+	_focus_current_stone()
+
+
+func _focus_current_stone() -> void:
+	if not is_instance_valid(world_viewport) or current_index < 0 or current_index >= node_buttons.size():
+		return
+	world_viewport.focus_control(node_buttons[current_index], Vector2(0.5, 0.34))
 
 
 func _insert_non_obstructing_dialog(dialog: Control) -> void:
-	var layout := scroller.get_parent() as VBoxContainer
+	var layout := world_viewport.get_parent() as VBoxContainer if is_instance_valid(world_viewport) else null
 	if layout == null:
 		add_child(dialog)
 		return
 	layout.add_child(dialog)
-	layout.move_child(dialog, scroller.get_index())
+	layout.move_child(dialog, world_viewport.get_index())
 	dialog.tree_exited.connect(_restore_path_after_dialog)
 	_update_path.call_deferred()
 
@@ -272,8 +278,8 @@ func _attach_active_companion(button: TextureButton) -> void:
 		companion_preview.get_parent().remove_child(companion_preview)
 	button.add_child(companion_preview)
 	companion_preview.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	companion_preview.position = Vector2(-2.0 * zoom, -79.0 * zoom)
-	companion_preview.size = Vector2(158.0, 120.0) * zoom
+	companion_preview.position = Vector2(-2.0, -79.0)
+	companion_preview.size = Vector2(158.0, 120.0)
 	companion_preview.move_to_front()
 	(button.get_node("JumpValue") as Label).move_to_front()
 
@@ -284,45 +290,7 @@ func _normal_stone_texture(index: int) -> Texture2D:
 
 func _stone_center_x(index: int) -> float:
 	var phase := float(index) / maxf(1.0, float(level_data.size())) * PI * 3.2
-	return PATH_WIDTH * 0.5 + sin(phase) * 118.0 * zoom
-
-
-func _set_zoom(value: float) -> void:
-	var next_zoom := clampf(value, 0.8, 1.2)
-	if is_equal_approx(next_zoom, zoom):
-		return
-	var ratio := next_zoom / zoom
-	var old_scroll := scroller.scroll_vertical if is_instance_valid(scroller) else 0
-	zoom = next_zoom
-	_rebuild_path()
-	_update_path()
-	if is_instance_valid(scroller):
-		scroller.set_deferred("scroll_vertical", roundi(old_scroll * ratio))
-
-
-func _input(event: InputEvent) -> void:
-	if event is InputEventScreenTouch:
-		var touch := event as InputEventScreenTouch
-		if touch.pressed:
-			touch_points[touch.index] = touch.position
-		else:
-			touch_points.erase(touch.index)
-		if touch_points.size() < 2:
-			pinch_distance = 0.0
-	elif event is InputEventScreenDrag:
-		var drag := event as InputEventScreenDrag
-		touch_points[drag.index] = drag.position
-		if touch_points.size() == 2:
-			var points: Array = touch_points.values()
-			var first_point: Vector2 = points[0]
-			var second_point: Vector2 = points[1]
-			var distance := first_point.distance_to(second_point)
-			if pinch_distance > 0.0:
-				_set_zoom(zoom * distance / pinch_distance)
-			pinch_distance = distance
-			get_viewport().set_input_as_handled()
-	elif event is InputEventMagnifyGesture:
-		_set_zoom(zoom * (event as InputEventMagnifyGesture).factor)
+	return PATH_WIDTH * 0.5 + sin(phase) * 118.0
 
 
 func _animate_jump(from_index: int, to_index: int) -> void:
@@ -337,7 +305,8 @@ func _animate_jump(from_index: int, to_index: int) -> void:
 	flight.name = "JumpingCompanion"
 	flight.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	flight.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": true, "presentation": "marketplace"})
-	flight.size = Vector2(178, 138) * zoom
+	var camera_zoom: float = float(world_viewport.zoom) if is_instance_valid(world_viewport) else 1.0
+	flight.size = Vector2(178, 138) * camera_zoom
 	flight.z_index = 110
 	add_child(flight)
 	flight.global_position = start - flight.size * 0.5
@@ -419,23 +388,27 @@ func _build_ui() -> void:
 	jump_mission_value.add_theme_color_override("font_outline_color", Color("fff5e9"))
 	jump_mission_value.add_theme_constant_override("outline_size", 8)
 	mission_stack.add_child(jump_mission_value)
-	scroller = ScrollContainer.new()
-	scroller.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	root.add_child(scroller)
+	world_viewport = GameWorldViewportScene.new()
+	world_viewport.name = "GameWorldViewport"
+	world_viewport.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	world_viewport.custom_minimum_size.y = 320
+	root.add_child(world_viewport)
+	scroller = world_viewport
 	path_box = VBoxContainer.new()
+	path_box.name = "TrailPath"
 	path_box.custom_minimum_size.x = PATH_WIDTH
 	path_box.add_theme_constant_override("separation", 0)
-	scroller.add_child(path_box)
+	world_viewport.mount(path_box)
 	fx_layer = RainbowJumpFXScene.new()
 	add_child(fx_layer)
 	fx_layer.z_index = 100
 	status_label = Label.new()
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	status_label.add_theme_font_size_override("font_size", 20)
+	status_label.add_theme_font_size_override("font_size", 18)
 	status_label.add_theme_color_override("font_outline_color", Color("120d32"))
 	status_label.add_theme_constant_override("outline_size", 4)
+	status_label.text = "Drag to look around  •  Pinch to zoom  •  Tap a landing stone"
 	root.add_child(status_label)
 	var actions := HBoxContainer.new()
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER

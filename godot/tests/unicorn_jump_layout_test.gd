@@ -19,6 +19,9 @@ func _run() -> void:
 	_check(jump.node_buttons[0].global_position.y < jump.node_buttons[-1].global_position.y, "forward progress runs from the top of the trail downward")
 	_check(jump.node_buttons[landing].global_position.y > jump.node_buttons[0].global_position.y, "the first forward jump lands lower on the path")
 	_check(jump.find_child("TrailTopClearance", true, false) != null, "the trail keeps the unicorn clear of its top clipping edge")
+	_check(jump.world_viewport != null and jump.world_viewport is Control, "Unicorn Jump uses a pan/pinch game camera instead of a scrollbar")
+	_check(jump.find_child("GameWorldViewport", true, false) != null, "the playfield is a clipped GameWorldViewport")
+	_check(not (jump.world_viewport is ScrollContainer), "the playfield does not expose a ScrollContainer scrollbar")
 
 	var experience = get_tree().root.get_node("GameExperience")
 	var previous_scene = experience.attached_scene
@@ -34,7 +37,7 @@ func _run() -> void:
 	var notice := jump.find_child("CompanionAbilityNotice", true, false) as Control
 	_check(notice != null, "the companion dialog opens inside Unicorn Jump")
 	if notice != null:
-		_check(notice.get_parent() == jump.scroller.get_parent() and notice.get_index() < jump.scroller.get_index(), "the companion dialog reserves space above the trail")
+		_check(notice.get_parent() == jump.world_viewport.get_parent() and notice.get_index() < jump.world_viewport.get_index(), "the companion dialog reserves space above the trail")
 		var notice_rect := notice.get_global_rect()
 		_check(not notice_rect.intersects(jump.node_buttons[0].get_global_rect()), "the dialog does not cover the unicorn's current stone")
 		_check(not notice_rect.intersects(jump.node_buttons[landing].get_global_rect()), "the dialog does not cover the upcoming landing stone")

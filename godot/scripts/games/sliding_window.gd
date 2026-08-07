@@ -2,6 +2,7 @@ extends Control
 
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
+const GameWorldViewportScene = preload("res://scripts/ui/game_world_viewport.gd")
 
 var level := 1
 var level_data: Array[int] = []
@@ -18,7 +19,7 @@ var rival_label: Label
 var message_label: Label
 var action_button: Button
 var value_row: HBoxContainer
-var track_scroller: ScrollContainer
+var track_viewport
 
 
 func _ready() -> void:
@@ -68,6 +69,8 @@ func _start_level(for_level: int) -> void:
 
 
 func _choose(absolute_index: int) -> void:
+	if is_instance_valid(track_viewport) and track_viewport.consume_press_suppression():
+		return
 	if not active:
 		return
 	if not _index_is_in_window(absolute_index):
@@ -160,12 +163,10 @@ func _style_track_node(button: Button, in_window: bool) -> void:
 
 
 func _center_window() -> void:
-	if not is_instance_valid(track_scroller) or value_buttons.is_empty():
+	if not is_instance_valid(track_viewport) or value_buttons.is_empty():
 		return
-	var first := value_buttons[window_pos]
-	var last := value_buttons[window_pos + window_size - 1]
-	var window_center := (first.position.x + last.position.x + last.size.x) * 0.5
-	track_scroller.scroll_horizontal = roundi(maxf(0.0, window_center - track_scroller.size.x * 0.5))
+	var mid_index := mini(value_buttons.size() - 1, window_pos + window_size / 2)
+	track_viewport.focus_control(value_buttons[mid_index], Vector2(0.5, 0.5))
 
 
 func _update_rival() -> void:
@@ -201,17 +202,18 @@ func _build_ui() -> void:
 	instruction.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	StorybookUI.apply_story_label(instruction, Color("5b2a68"), 22, false)
 	instruction_plaque.add_child(instruction)
-	track_scroller = ScrollContainer.new()
-	track_scroller.name = "NumberTrackScroller"
-	track_scroller.custom_minimum_size.y = 132
-	track_scroller.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	track_scroller.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	root.add_child(track_scroller)
+	track_viewport = GameWorldViewportScene.new()
+	track_viewport.name = "NumberTrackViewport"
+	track_viewport.custom_minimum_size = Vector2(0, 148)
+	track_viewport.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	track_viewport.min_zoom = 0.85
+	track_viewport.max_zoom = 1.35
+	root.add_child(track_viewport)
 	value_row = HBoxContainer.new()
 	value_row.name = "FullNumberTrack"
 	value_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	value_row.add_theme_constant_override("separation", 10)
-	track_scroller.add_child(value_row)
+	track_viewport.mount(value_row)
 	var player_bar := ProgressBar.new()
 	player_bar.value = 100
 	player_bar.custom_minimum_size = Vector2(560, 18)
