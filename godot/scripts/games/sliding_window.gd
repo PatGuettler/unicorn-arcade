@@ -336,10 +336,9 @@ func _place_window(frame: PanelContainer, nodes: Array, start_index: int) -> voi
 	var last_index := clampi(start_index + window_size - 1, 0, nodes.size() - 1)
 	var first: Control = nodes[first_index]
 	var last: Control = nodes[last_index]
-	var top_left := first.position - Vector2(8, 8)
-	# Nodes are children of rows; convert into lanes space.
-	top_left = lanes.get_global_transform_with_canvas().affine_inverse() * first.get_global_rect().position - Vector2(8, 8)
-	var bottom_right := lanes.get_global_transform_with_canvas().affine_inverse() * last.get_global_rect().end + Vector2(8, 8)
+	var inverse := lanes.get_global_transform_with_canvas().affine_inverse()
+	var top_left := inverse * first.get_global_rect().position - Vector2(8, 8)
+	var bottom_right := inverse * last.get_global_rect().end + Vector2(8, 8)
 	frame.position = top_left
 	frame.size = bottom_right - top_left
 	frame.visible = active
