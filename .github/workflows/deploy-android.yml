@@ -102,7 +102,9 @@ jobs:
 
       - name: Export Godot Android (AAB + debug APK)
         env:
+          # Same as main Capacitor CI: versionCode=run_number, versionName=1.<run_number>
           VERSION_CODE: ${{ github.run_number }}
+          VERSION_NAME: 1.${{ github.run_number }}
           ADMOB_ADS_ENABLED: "true"
           ADMOB_BANNER_UNIT_ID: ca-app-pub-3940256099942544/6300978111
           RELEASE_PACKAGE_NAME: com.grapegames.wlarcade

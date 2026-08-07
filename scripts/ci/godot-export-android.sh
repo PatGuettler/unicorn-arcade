@@ -99,9 +99,13 @@ write_admob_config() {
 EOF
 }
 
-bump_version_code() {
+# Match main Capacitor CI: versionCode = run number, versionName = "1.<run_number>".
+bump_version() {
 	local preset="$PROJECT/export_presets.cfg"
+	local version_name="${VERSION_NAME:-1.${VERSION_CODE}}"
 	sed -i "s/^version\\/code=.*/version\\/code=${VERSION_CODE}/" "$preset"
+	sed -i "s/^version\\/name=.*/version\\/name=\"${version_name}\"/" "$preset"
+	echo "Android versionCode=${VERSION_CODE} versionName=${version_name}"
 }
 
 set_package_name() {
@@ -117,7 +121,7 @@ export_android() {
 	cp "$PRESET_PATH" "$PRESET_BACKUP"
 	trap restore_export_preset EXIT
 	write_admob_config
-	bump_version_code
+	bump_version
 	configure_godot_android_paths
 	start_adb_server
 
