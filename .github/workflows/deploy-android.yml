@@ -36,7 +36,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: godot/android/build
-          key: godot-android-build-${{ runner.os }}-${{ env.GODOT_VERSION }}-${{ hashFiles('godot/export_presets.cfg', 'godot/android/build/.build_version') }}
+          key: godot-android-build-${{ runner.os }}-${{ env.GODOT_VERSION }}-${{ hashFiles('godot/export_presets.cfg', 'godot/android/.build_version') }}
           restore-keys: |
             godot-android-build-${{ runner.os }}-${{ env.GODOT_VERSION }}-
 

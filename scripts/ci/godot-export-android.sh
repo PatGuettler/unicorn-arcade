@@ -73,14 +73,16 @@ install_godot() {
 	fi
 	unzip -qo "$cache/$zip" -d "$cache"
 	install -m 755 "$cache/Godot_v${GODOT_TAG}_linux.x86_64" "$HOME/.local/bin/godot"
-	local template_dir="${GODOT_VERSION}.stable"
-	if [[ -f "$PROJECT/android/.build_version" ]]; then
-		template_dir="$(tr -d '\r\n' <"$PROJECT/android/.build_version")"
-	fi
+	local template_dir
+	template_dir="$(android_export_template_dir)"
 	mkdir -p "$HOME/.local/share/godot/export_templates/${template_dir}"
 	unzip -qo "$cache/$tpz" -d "$cache/templates_unpack"
 	cp -a "$cache/templates_unpack/templates/." \
 		"$HOME/.local/share/godot/export_templates/${template_dir}/"
+	[[ -s "$HOME/.local/share/godot/export_templates/${template_dir}/android_source.zip" ]] || {
+		echo "ERROR: export templates missing android_source.zip under ${template_dir}" >&2
+		exit 1
+	}
 }
 
 write_admob_config() {
@@ -155,23 +157,47 @@ godot_import_is_warm() {
 	[[ "${imported_count:-0}" -ge 200 ]]
 }
 
+android_export_template_dir() {
+	local template_dir="${GODOT_VERSION}.stable"
+	if [[ -f "$PROJECT/android/.build_version" ]]; then
+		template_dir="$(tr -d '\r\n' <"$PROJECT/android/.build_version")"
+	fi
+	printf '%s\n' "$template_dir"
+}
+
 ensure_android_build_template() {
 	local marker="$PROJECT/android/build/build.gradle"
-	local godot_aar
+	local godot_aar template_dir android_source
 	godot_aar="$(find "$PROJECT/android/build/libs" -name 'godot-lib*.aar' -type f 2>/dev/null | head -1 || true)"
 	if [[ -f "$marker" && -n "$godot_aar" && -s "$godot_aar" ]]; then
 		echo "Android build template already present; skipping install."
 		return 0
 	fi
-	echo "Installing Android build template (one-time for this workspace/cache)..."
-	# Quiet + no verbose scan spam: template install still loads the project, but we
-	# only do this when android/build is missing from cache.
-	godot --headless --path "$PROJECT" --install-android-build-template
-	godot_aar="$(find "$PROJECT/android/build/libs" -name 'godot-lib*.aar' -type f 2>/dev/null | head -1 || true)"
-	[[ -f "$marker" && -n "$godot_aar" && -s "$godot_aar" ]] || {
-		echo "ERROR: Android build template install did not produce godot-lib*.aar" >&2
+
+	# Never call `godot --install-android-build-template` alone in CI: headless Godot
+	# prints the engine banner and then sits in the editor until the job times out.
+	# Extract android_source.zip from the export templates instead (same payload).
+	template_dir="$(android_export_template_dir)"
+	android_source="$HOME/.local/share/godot/export_templates/${template_dir}/android_source.zip"
+	[[ -s "$android_source" ]] || {
+		echo "ERROR: missing Android source template at $android_source" >&2
 		exit 1
 	}
+
+	echo "Installing Android build template from ${android_source} (unzip, no Godot)..."
+	rm -rf "$PROJECT/android/build"
+	mkdir -p "$PROJECT/android/build"
+	unzip -qo "$android_source" -d "$PROJECT/android/build"
+	chmod +x "$PROJECT/android/build/gradlew"
+	printf '%s\n' "$template_dir" >"$PROJECT/android/build/.build_version"
+	printf '%s\n' "$template_dir" >"$PROJECT/android/.build_version"
+
+	godot_aar="$(find "$PROJECT/android/build/libs" -name 'godot-lib*.aar' -type f 2>/dev/null | head -1 || true)"
+	[[ -f "$marker" && -n "$godot_aar" && -s "$godot_aar" ]] || {
+		echo "ERROR: Android build template extract did not produce godot-lib*.aar" >&2
+		exit 1
+	}
+	echo "Android build template ready ($(du -sh "$PROJECT/android/build" | cut -f1))"
 }
 
 build_legacy_profile_bridge() {
