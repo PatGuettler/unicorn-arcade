@@ -9,6 +9,18 @@ GODOT_CHANNEL="${GODOT_CHANNEL:-stable}"
 GODOT_TAG="${GODOT_VERSION}-${GODOT_CHANNEL}"
 EXPORT_PRESET="${EXPORT_PRESET:-Android Alpha}"
 VERSION_CODE="${VERSION_CODE:-1}"
+RELEASE_PACKAGE_NAME="${RELEASE_PACKAGE_NAME:-com.grapegames.wlarcade}"
+DEBUG_PACKAGE_NAME="${DEBUG_PACKAGE_NAME:-com.guettler.unicornarcade}"
+
+PRESET_PATH=""
+PRESET_BACKUP=""
+
+restore_export_preset() {
+	if [[ -n "$PRESET_BACKUP" && -f "$PRESET_BACKUP" && -n "$PRESET_PATH" ]]; then
+		cp "$PRESET_BACKUP" "$PRESET_PATH"
+		rm -f "$PRESET_BACKUP"
+	fi
+}
 
 export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
 if [[ -z "${ANDROID_SDK_ROOT}" ]]; then
@@ -92,8 +104,18 @@ bump_version_code() {
 	sed -i "s/^version\\/code=.*/version\\/code=${VERSION_CODE}/" "$preset"
 }
 
+set_package_name() {
+	local package_name="$1"
+	local preset="$PROJECT/export_presets.cfg"
+	sed -i "s|^package/unique_name=.*|package/unique_name=\"${package_name}\"|" "$preset"
+}
+
 export_android() {
 	mkdir -p "$PROJECT/build/android"
+	PRESET_PATH="$PROJECT/export_presets.cfg"
+	PRESET_BACKUP="$(mktemp)"
+	cp "$PRESET_PATH" "$PRESET_BACKUP"
+	trap restore_export_preset EXIT
 	write_admob_config
 	bump_version_code
 	configure_godot_android_paths
@@ -106,12 +128,14 @@ export_android() {
 		echo "Found existing .godot/imported cache; run with FORCE_GODOT_IMPORT=1 to re-import."
 	fi
 
-	echo "Exporting release AAB (installs Android build template as part of export)..."
+	echo "Exporting Play release AAB as ${RELEASE_PACKAGE_NAME} (installs Android build template as part of export)..."
+	set_package_name "$RELEASE_PACKAGE_NAME"
 	godot --headless --path "$PROJECT" --verbose \
 		--install-android-build-template \
 		--export-release "$EXPORT_PRESET" "$PROJECT/build/android/UnicornArcade.aab"
 
-	echo "Exporting debug APK (install artifact)..."
+	echo "Exporting installable debug APK as ${DEBUG_PACKAGE_NAME}..."
+	set_package_name "$DEBUG_PACKAGE_NAME"
 	local preset="$PROJECT/export_presets.cfg"
 	sed -i 's/^gradle_build\/export_format=.*/gradle_build\/export_format=0/' "$preset"
 	sed -i 's|^export_path=.*|export_path="build/android/UnicornArcade-debug.apk"|' "$preset"
@@ -119,6 +143,8 @@ export_android() {
 		--export-debug "$EXPORT_PRESET" "$PROJECT/build/android/UnicornArcade-debug.apk"
 	sed -i 's/^gradle_build\/export_format=.*/gradle_build\/export_format=1/' "$preset"
 	sed -i 's|^export_path=.*|export_path="build/android/UnicornArcade.aab"|' "$preset"
+	restore_export_preset
+	trap - EXIT
 }
 
 install_godot
