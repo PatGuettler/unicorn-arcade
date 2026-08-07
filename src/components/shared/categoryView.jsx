@@ -46,7 +46,9 @@ const CategoryView = ({
                   data-testid={`game-card-${game.id}`}
                   className="bg-slate-900 border border-slate-800 p-4 rounded-2xl cursor-pointer hover:border-cyan-500/50 hover:shadow-[0_0_20px_rgba(6,182,212,0.1)] transition-all active:scale-[0.98] flex flex-col items-center text-center aspect-square justify-center"
                 >
-                  <div className="text-4xl mb-3">{game.icon}</div>
+                  <div className="text-4xl mb-3" data-testid="game-card-icon">
+                    {game.icon}
+                  </div>
                   <h3 className="font-bold text-white text-sm mb-1">
                     {game.title}
                   </h3>
