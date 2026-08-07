@@ -226,12 +226,13 @@ standalone_bundletool() {
 	local jar="${BUNDLETOOL_JAR:-$cache_dir/bundletool-all-${version}.jar}"
 	if [[ ! -s "$jar" ]]; then
 		mkdir -p "$cache_dir"
-		echo "Downloading official Bundletool ${version} for AAB validation..."
+		# Status must go to stderr: callers capture stdout as the jar path.
+		echo "Downloading official Bundletool ${version} for AAB validation..." >&2
 		curl -fsSL -o "$jar" "https://github.com/google/bundletool/releases/download/${version}/bundletool-all-${version}.jar"
 	fi
 	[[ -s "$jar" ]] || { echo "ERROR: standalone Bundletool download is empty" >&2; exit 1; }
 	java -jar "$jar" version >/dev/null || { echo "ERROR: standalone Bundletool is not executable" >&2; exit 1; }
-	echo "$jar"
+	printf '%s\n' "$jar"
 }
 
 validate_artifact() {
