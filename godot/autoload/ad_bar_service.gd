@@ -14,6 +14,7 @@ var _disclosure: Label
 var _overlay: CanvasLayer
 var _overlay_root: Control
 var _sdk_initialized := false
+var _sdk_initializing := false
 var _banner_logical_height := 60.0
 var _banner_requested := false
 
@@ -36,6 +37,7 @@ func _reload_config() -> void:
 		_config = _parse_json_file(EXAMPLE_PATH)
 	else:
 		_config = {}
+	_banner_logical_height = float(_config.get("banner_height_dp", 60.0))
 
 
 func _parse_json_file(path: String) -> Dictionary:
@@ -80,11 +82,12 @@ func sync_for_player(player_name: String = "") -> void:
 	_ensure_overlay()
 	_ensure_disclosure()
 	if _banner_requested and _ad_view != null:
+		_ad_view.show()
 		return
 	if _sdk_initialized:
 		_show_banner()
 	else:
-		_initialize_mobile_ads(_show_banner)
+		_initialize_mobile_ads()
 
 
 func detach() -> void:
@@ -125,11 +128,13 @@ func _ensure_overlay() -> void:
 	_overlay.add_child(_overlay_root)
 
 
-func _initialize_mobile_ads(on_ready: Callable = Callable()) -> void:
+func _initialize_mobile_ads() -> void:
 	if _sdk_initialized:
-		if on_ready.is_valid():
-			on_ready.call()
+		_show_banner_if_attached()
 		return
+	if _sdk_initializing:
+		return
+	_sdk_initializing = true
 
 	if not Engine.has_singleton("PoingGodotAdMob"):
 		# Native plugin missing from APK/AAB (common when android/bin AARs were not exported).
@@ -161,15 +166,18 @@ func _initialize_mobile_ads(on_ready: Callable = Callable()) -> void:
 
 	var listener := OnInitializationCompleteListener.new()
 	listener.on_initialization_complete = func(_status: InitializationStatus) -> void:
+		_sdk_initializing = false
 		_sdk_initialized = true
 		print("AdBarService: MobileAds initialized")
-		if on_ready.is_valid():
-			on_ready.call()
+		_show_banner_if_attached()
 
 	MobileAds.initialize(listener)
 
 
 func _show_banner() -> void:
+	if _ad_view != null:
+		_ad_view.show()
+		return
 	var unit_id := _banner_unit_id()
 	if unit_id.is_empty():
 		push_warning("AdBarService: android_banner_unit_id is missing in admob config")
@@ -194,6 +202,7 @@ func _show_banner() -> void:
 	ad_listener.on_ad_failed_to_load = func(error: LoadAdError) -> void:
 		_banner_requested = false
 		push_warning("AdBarService: banner failed: %s" % error.message)
+		_destroy_banner()
 
 	_ad_view.ad_listener = ad_listener
 	print("AdBarService: loading banner unit %s" % unit_id)
@@ -203,12 +212,23 @@ func _show_banner() -> void:
 func _on_banner_loaded() -> void:
 	if _ad_view == null:
 		return
+	# Loading creates the native view, but visibility is plugin/platform state.
+	# Explicitly show it so a prior hidden or background-created banner cannot
+	# remain invisible on Android.
 	_ad_view.show()
 	var px := float(_ad_view.get_height_in_pixels())
 	if px > 0.0:
 		_banner_logical_height = _pixels_to_viewport_y(px)
 	_ensure_disclosure()
 	print("AdBarService: banner loaded (height_px=%.0f)" % px)
+
+
+func _show_banner_if_attached() -> void:
+	if (
+		should_show_for_player_logged_in(AppState.player_name())
+		and _should_show_ads()
+	):
+		_show_banner()
 
 
 func _destroy_banner() -> void:

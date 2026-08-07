@@ -22,6 +22,7 @@ var page: VBoxContainer
 var status_label: Label
 var coin_label: Label
 var profile_category_filter := "All"
+var _page_generation := 0
 
 
 func _ready() -> void:
@@ -51,7 +52,10 @@ func _show_view(view: String) -> void:
 
 
 func _reset_page(use_meadow: bool = false) -> VBoxContainer:
+	_page_generation += 1
 	for child in get_children():
+		if child.name == "AdDisclosure":
+			continue
 		remove_child(child)
 		child.queue_free()
 	if use_meadow:
@@ -118,9 +122,18 @@ func _show_login() -> void:
 	tagline.add_theme_constant_override("outline_size", 0)
 	tagline.add_theme_font_size_override("font_size", 19)
 	tagline_plaque.add_child(tagline)
-	page.add_child(_build_sparkle_preview())
+	var name_prompt := Label.new()
+	name_prompt.name = "PlayerNamePrompt"
+	name_prompt.text = "WHAT SHOULD WE CALL YOU?"
+	name_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	name_prompt.add_theme_font_size_override("font_size", 22)
+	name_prompt.add_theme_color_override("font_color", StorybookUI.INK)
+	name_prompt.add_theme_color_override("font_outline_color", StorybookUI.CREAM)
+	name_prompt.add_theme_constant_override("outline_size", 3)
+	page.add_child(name_prompt)
 	var name_input := LineEdit.new()
-	name_input.placeholder_text = "Enter player name…"
+	name_input.name = "PlayerNameInput"
+	name_input.placeholder_text = "Tap here and enter your name"
 	name_input.custom_minimum_size = Vector2(0, 64)
 	name_input.add_theme_font_size_override("font_size", 21)
 	page.add_child(name_input)
@@ -132,14 +145,19 @@ func _show_login() -> void:
 			return
 		AppState.set_player_name(name_input.text)
 		AppState.shell_view = "home"
-		_show_home()
+		_show_view("home")
 	enter.pressed.connect(submit)
 	name_input.text_submitted.connect(func(_value: String) -> void: submit.call())
 	page.add_child(enter)
+	var preview := _build_sparkle_preview()
+	preview.name = "LoginCompanionPreview"
+	preview.custom_minimum_size.y = 210
+	page.add_child(preview)
 	var bottom := Control.new()
 	bottom.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page.add_child(bottom)
-	name_input.grab_focus()
+	# Leave the field unfocused. Android otherwise opens its keyboard before
+	# the child chooses to type and covers the lower half of the form.
 	_sync_ad_bar()
 
 
@@ -178,6 +196,7 @@ func _show_home() -> void:
 	var meadow_companions := Control.new()
 	meadow_companions.name = "OwnedMeadowCompanions"
 	meadow_companions.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	meadow_companions.z_index = 4
 	hero.add_child(meadow_companions)
 	meadow_companions.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_build_meadow_companions(meadow_companions)
@@ -200,8 +219,11 @@ func _show_home() -> void:
 	row.add_theme_constant_override("separation", 12)
 	page.add_child(row)
 	var profile := _make_button("PROFILE", StorybookUI.NAVY, 74)
+	profile.name = "ProfileButton"
 	profile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	profile.pressed.connect(func() -> void: _show_profile())
+	# Defer the screen replacement until the button event has completed. This
+	# keeps Android touch dispatch alive while the profile starts building.
+	profile.pressed.connect(func() -> void: _show_view.call_deferred("profile"))
 	row.add_child(profile)
 	var shop := _make_button("SHOP", StorybookUI.NAVY, 74)
 	shop.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -282,15 +304,39 @@ func _open_game(game: Dictionary) -> void:
 func _show_profile() -> void:
 	AppState.shell_view = "profile"
 	_reset_page()
+	var generation := _page_generation
 	_add_header("PROFILE", true, true, func() -> void: _show_home())
 	var content := _make_vertical_scroll("ProfileContent", 18)
+	var loading := Label.new()
+	loading.name = "ProfileLoading"
+	loading.text = "Opening your profile…"
+	loading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	loading.add_theme_font_size_override("font_size", 20)
+	loading.add_theme_color_override("font_color", MUTED)
+	content.add_child(loading)
+	_populate_profile.call_deferred(content, generation)
+
+
+func _populate_profile(content: VBoxContainer, generation: int) -> void:
+	if not _profile_page_is_current(content, generation):
+		return
+	var loading := content.get_node_or_null("ProfileLoading")
+	if is_instance_valid(loading):
+		loading.queue_free()
 	content.add_child(_build_profile_unicorn_banner())
 	content.add_child(_build_profile_stat_strip())
 	content.add_child(_profile_section_title("MAGIC RINGS"))
 	content.add_child(_build_profile_progress_rings())
+	await get_tree().process_frame
+	if not _profile_page_is_current(content, generation):
+		return
 	content.add_child(_profile_section_title("YOUR GAMES"))
 	content.add_child(_build_profile_category_chips())
-	content.add_child(_build_profile_game_grid())
+	var game_grid := _build_profile_game_grid_shell()
+	content.add_child(game_grid)
+	await _populate_profile_game_grid(game_grid, generation)
+	if not _profile_page_is_current(content, generation):
+		return
 	content.add_child(_profile_section_title("SETTINGS & LEARNING"))
 	content.add_child(_build_profile_settings())
 	var logout := _make_button("LOG OUT", Color("7c2948"), 60)
@@ -302,6 +348,15 @@ func _show_profile() -> void:
 	var bottom_pad := Control.new()
 	bottom_pad.custom_minimum_size.y = 24
 	content.add_child(bottom_pad)
+
+
+func _profile_page_is_current(content: Control, generation: int) -> bool:
+	return (
+		generation == _page_generation
+		and is_instance_valid(content)
+		and content.is_inside_tree()
+		and AppState.shell_view == "profile"
+	)
 
 
 func _build_profile_unicorn_banner() -> PanelContainer:
@@ -411,18 +466,27 @@ func _build_profile_category_chips() -> HFlowContainer:
 	return row
 
 
-func _build_profile_game_grid() -> GridContainer:
+func _build_profile_game_grid_shell() -> GridContainer:
 	var grid := GridContainer.new()
 	grid.name = "ProfileGameGrid"
 	grid.columns = 2
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	grid.add_theme_constant_override("h_separation", 10)
 	grid.add_theme_constant_override("v_separation", 10)
+	return grid
+
+
+func _populate_profile_game_grid(grid: GridContainer, generation: int) -> void:
 	var categories := ["Number", "Word", "Mystery", "Arcade"] if profile_category_filter == "All" else [profile_category_filter]
+	var added := 0
 	for category in categories:
 		for game in GameRegistry.games_in_category(category):
+			if not _profile_page_is_current(grid, generation):
+				return
 			grid.add_child(_build_profile_game_tile(game, category))
-	return grid
+			added += 1
+			if added % 4 == 0:
+				await get_tree().process_frame
 
 
 func _build_profile_game_tile(game: Dictionary, category: String) -> PanelContainer:
@@ -811,11 +875,11 @@ func _build_companion_preview(companion_id: String, presentation: String, minimu
 func _build_meadow_companions(layer: Control) -> void:
 	var equipped_id := AppState.equipped_companion()
 	var slots := [
-		{"x": 0.12, "y": 0.43, "w": 112.0, "h": 86.0},
-		{"x": 0.86, "y": 0.47, "w": 118.0, "h": 90.0},
-		{"x": 0.29, "y": 0.32, "w": 96.0, "h": 74.0},
-		{"x": 0.71, "y": 0.35, "w": 102.0, "h": 78.0},
-		{"x": 0.50, "y": 0.45, "w": 108.0, "h": 82.0},
+		{"x": 0.14, "y": 0.67, "w": 156.0, "h": 112.0},
+		{"x": 0.84, "y": 0.72, "w": 164.0, "h": 118.0},
+		{"x": 0.31, "y": 0.57, "w": 148.0, "h": 106.0},
+		{"x": 0.69, "y": 0.61, "w": 152.0, "h": 110.0},
+		{"x": 0.50, "y": 0.76, "w": 160.0, "h": 116.0},
 	]
 	var slot_index := 0
 	for owned_id in AppState.owned_companions():

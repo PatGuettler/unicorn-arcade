@@ -154,7 +154,8 @@ func _run() -> void:
 		mathtris.board[3][col] = ["1", "+", "1", "=", "2"][col]
 	for col in 5:
 		mathtris.board[11][col] = ["2", "+", "2", "=", "4"][col]
-	var bottom_match: Array = mathtris.call("_find_matches", [Vector2i(0, 11)])
+	var bottom_anchors: Array[Vector2i] = [Vector2i(0, 11)]
+	var bottom_match: Array = mathtris.call("_find_matches", bottom_anchors)
 	mathtris.call("_clear_matches", bottom_match, 100, true)
 	_check(mathtris.board[3][0] == "1", "Mathtris cascade clears only equations touched by falling tiles")
 	mathtris.board = mathtris.call("_make_board")
@@ -181,6 +182,7 @@ func _run() -> void:
 	_check(is_equal_approx(galaxy.player_x, 0.5), "Galaxy Unicorn centers the player for its opening wave")
 	galaxy.call("_spawn_enemy", false)
 	_check(float(galaxy.enemies[0]["speed"]) <= 0.00009, "Galaxy Unicorn's opening enemies use the gentle level-one speed curve")
+	_check(str(galaxy.enemies[0]["kind"]) in ["storm_cloud", "shadow_star", "enchanted_comet", "cursed_moon"], "Galaxy Unicorn spawns magical celestial threats instead of unrelated placeholder objects")
 	galaxy.enemies.clear()
 	galaxy.size = Vector2(720, 1280)
 	var galaxy_drag := InputEventScreenDrag.new()
@@ -285,22 +287,21 @@ func _run() -> void:
 	var moving_shadow = companion_preview.find_child("MeadowContactShadow", true, false) if is_instance_valid(companion_preview) else null
 	_check(is_instance_valid(idle_animator) and is_instance_valid(moving_shadow) and moving_shadow.get_parent() == idle_animator.model, "the companion and its contact shadow share one travel root")
 	_check(is_instance_valid(idle_animator) and idle_animator.animation_names() == PackedStringArray(["walk"]), "live unicorn previews expose only the Walk animation")
-	_check(is_instance_valid(idle_animator) and is_instance_valid(idle_animator.timer) and not idle_animator.timer.is_stopped() and idle_animator.timer.wait_time >= 10.0 and idle_animator.timer.wait_time <= 30.0, "live unicorn previews schedule Walk at the requested random interval")
+	_check(is_instance_valid(idle_animator) and is_instance_valid(idle_animator.timer) and not idle_animator.timer.is_stopped() and idle_animator.timer.wait_time >= 1.8 and idle_animator.timer.wait_time <= 4.5, "live unicorn previews alternate short natural pauses with roaming")
 	_check(is_instance_valid(idle_animator) and _skeletons_are_in_rest_pose(idle_animator.model), "unicorns use their neutral rig pose while standing instead of freezing a gait-contact frame")
 	if is_instance_valid(idle_animator):
 		idle_animator.play_random_animation_now()
 	_check(is_instance_valid(idle_animator) and idle_animator.last_animation_name == "walk", "Sparkle can immediately exercise its embedded Walk animation")
 	if is_instance_valid(idle_animator):
 		var walk_home_position: Vector3 = idle_animator.model.position
-		var walk_home_rotation: float = idle_animator.model.rotation.y
 		_check(idle_animator.play_animation_now("walk"), "authored walk clip can be selected deterministically")
-		idle_animator.walk_tween.custom_step(1.5)
-		_check(idle_animator.model.position.distance_to(walk_home_position) > 0.1 and not is_equal_approx(idle_animator.model.rotation.y, walk_home_rotation), "walking unicorn travels and pivots instead of walking in place")
+		idle_animator.walk_tween.custom_step(0.65)
+		_check(idle_animator.model.position.distance_to(walk_home_position) > 0.1 and is_equal_approx(idle_animator.model.position.x, walk_home_position.x), "walking unicorn travels visibly across the side-view meadow instead of walking toward the camera")
 		var walk_displacement: Vector3 = idle_animator.model.position - walk_home_position
 		var visual_forward: Vector3 = (idle_animator.model.basis * Vector3.BACK).normalized()
 		_check(visual_forward.dot(walk_displacement.normalized()) > 0.9, "walking unicorn faces its direction of travel instead of moving backward")
 		idle_animator.walk_tween.custom_step(10.0)
-		_check(idle_animator.model.position.is_equal_approx(walk_home_position) and is_equal_approx(idle_animator.model.rotation.y, walk_home_rotation), "walking unicorn returns to its exact display position and facing")
+		_check(not idle_animator.model.position.is_equal_approx(walk_home_position) and absf(idle_animator.model.position.z - walk_home_position.z) > 0.4 and is_equal_approx(idle_animator.model.position.x, walk_home_position.x), "walking unicorn reaches a new visible side-to-side meadow position without snapping home")
 		_check(idle_animator.animation_player.assigned_animation == idle_animator.walk_animation and not idle_animator.timer.is_stopped(), "walking route returns to its standing Walk pose and schedules the next route")
 	remove_child(room)
 	room.free()
@@ -401,6 +402,16 @@ func _run() -> void:
 	_check(is_instance_valid(welcome_text) and welcome_text.get_theme_font_size("font_size") >= 22 and welcome_text.get_theme_color("font_color") == StorybookUI.INK, "home welcome text is larger and dark enough to read against the meadow sky")
 	_check(is_instance_valid(companion_summary) and companion_summary.get_theme_font_size("font_size") >= 21 and companion_summary.get_theme_color("font_color").get_luminance() < 0.30, "home companion summary is larger and uses high-contrast dark teal text")
 	_check(is_instance_valid(coin_balance) and coin_balance.get_theme_font_size("font_size") >= 24 and coin_balance.get_theme_constant("outline_size") >= 3, "top star balance uses a larger outlined symbol and number")
+	var profile_button := shell.find_child("ProfileButton", true, false) as Button
+	var profile_button_found := is_instance_valid(profile_button)
+	if is_instance_valid(profile_button):
+		profile_button.emit_signal("pressed")
+	for _frame in 10:
+		await get_tree().process_frame
+	var profile_content := shell.find_child("ProfileContent", true, false)
+	var profile_grid := shell.find_child("ProfileGameGrid", true, false)
+	_check(profile_button_found and is_instance_valid(profile_content) and is_instance_valid(profile_grid) and profile_grid.get_child_count() == GameRegistry.all_games().size(), "profile button opens responsively and finishes its complete game history grid")
+	_check(shell.find_child("ProfileLoading", true, false) == null, "profile loading state clears after incremental construction")
 	shell.call("_show_dashboard")
 	await get_tree().process_frame
 	_check(shell.find_children("CategoryIcon", "ArcadePictogram", true, false).size() == 4, "all four game-category cards restore polished pictogram icons")
@@ -415,6 +426,16 @@ func _run() -> void:
 	_check(_ui_is_accessible(shell), "icon game grid meets readable text, contrast, and touch-target minimums")
 	remove_child(shell)
 	shell.free()
+	AppState.data["player"]["name"] = ""
+	var login_shell = MAIN_SCENE.instantiate()
+	add_child(login_shell)
+	await get_tree().process_frame
+	var login_prompt := login_shell.find_child("PlayerNamePrompt", true, false) as Label
+	var login_input := login_shell.find_child("PlayerNameInput", true, false) as LineEdit
+	_check(is_instance_valid(login_prompt) and is_instance_valid(login_input) and not login_input.has_focus(), "first launch clearly asks for a name without opening the Android keyboard")
+	_check(is_instance_valid(login_prompt) and is_instance_valid(login_input) and login_prompt.get_index() < login_input.get_index(), "the player-name instruction remains directly above its text field")
+	remove_child(login_shell)
+	login_shell.free()
 	AppState.data = shell_state
 	AppState.selected_game_id = original_game
 	AppState.selected_category = original_category

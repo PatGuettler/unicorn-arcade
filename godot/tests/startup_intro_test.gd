@@ -26,6 +26,7 @@ func _run() -> void:
 	await create_timer(0.35).timeout
 	_check(startup.get_node("Video").stream_position > 0.0, "startup video decoder advances")
 	_check(not startup.get_node("Poster").visible, "poster yields after video playback begins")
+	_check(not startup._threaded_load_attempted, "main-scene streaming waits until video playback finishes")
 	_check(
 		not startup._is_playback_complete(5.0, 5.04, false, false),
 		"stopped decoder does not finish before playback starts"

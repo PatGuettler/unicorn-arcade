@@ -98,7 +98,15 @@ func _build_companion(stage: Node3D) -> void:
 		var animator := UnicornIdleAnimatorScene.new()
 		animator.name = "IdleAnimator"
 		stage.add_child(animator)
-		animator.setup(travel_root)
+		var roam_radius := 1.15
+		if presentation_context == "meadow_background":
+			roam_radius = 1.65
+		elif presentation_context == "hero":
+			roam_radius = 0.85
+		animator.setup(travel_root, {
+			"seed": "%s:%s" % [companion_id, presentation_context],
+			"roam_radius": roam_radius,
+		})
 	else:
 		_pose_companion(model)
 	var camera := Camera3D.new()

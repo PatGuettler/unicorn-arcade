@@ -189,6 +189,7 @@ blob-report/
 # Godot generated/import/export state
 godot/.godot/
 godot/.import/
+.tools/
 godot/export/
 godot/builds/
 godot/android/*

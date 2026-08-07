@@ -5,11 +5,11 @@ const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 
 const ENEMIES := [
-	{"kind": "cloud", "hp": 1, "speed": 0.00035, "score": 10, "radius": 18.0},
-	{"kind": "bat", "hp": 1, "speed": 0.00050, "score": 15, "radius": 16.0, "zigzag": true},
-	{"kind": "rock", "hp": 2, "speed": 0.00028, "score": 25, "radius": 20.0},
-	{"kind": "skull", "hp": 2, "speed": 0.00040, "score": 30, "radius": 18.0},
-	{"kind": "boss", "hp": 8, "speed": 0.00015, "score": 100, "radius": 32.0, "boss": true},
+	{"kind": "storm_cloud", "hp": 1, "speed": 0.00035, "score": 10, "radius": 18.0},
+	{"kind": "shadow_star", "hp": 1, "speed": 0.00050, "score": 15, "radius": 16.0, "zigzag": true},
+	{"kind": "enchanted_comet", "hp": 2, "speed": 0.00028, "score": 25, "radius": 20.0},
+	{"kind": "cursed_moon", "hp": 2, "speed": 0.00040, "score": 30, "radius": 18.0},
+	{"kind": "eclipse_crown", "hp": 8, "speed": 0.00015, "score": 100, "radius": 32.0, "boss": true},
 ]
 
 var level := 1
@@ -108,7 +108,8 @@ func _start_level(for_level: int) -> void:
 	started_ms = Time.get_ticks_msec()
 	active = true
 	CompanionAbilityService.begin_level("galaxy_unicorn", level)
-	message_label.text = "Drag Sparkle left and right. Rainbow bolts fire automatically."
+	var companion_name := str(AppState.equipped_companion()).capitalize()
+	message_label.text = "Drag %s left and right. Rainbow bolts fire automatically." % companion_name
 	action_button.hide()
 	_update_hud()
 
@@ -261,18 +262,83 @@ func _draw() -> void:
 		draw_line(tip - Vector2(0, 8), tip - Vector2(0, 24), Color(0.99, 0.88, 0.28, alpha), 5.0)
 		draw_circle(tip - Vector2(0, 24), 3.5, Color(1.0, 1.0, 1.0, alpha))
 	for enemy in enemies:
-		var color: Color = {"cloud": Color("7b78a9"), "bat": Color("d866e7"), "rock": Color("9b7653"), "skull": Color("e8e4ff"), "boss": Color("6f4c91")}.get(enemy["kind"], Color.WHITE)
-		draw_circle(enemy["position"], float(enemy["radius"]), color)
-		var mark: String = {"cloud": "C", "bat": "B", "rock": "R", "skull": "S", "boss": "BOSS"}.get(enemy["kind"], "?")
-		draw_string(ThemeDB.fallback_font, enemy["position"] + Vector2(-float(enemy["radius"]), 5), mark, HORIZONTAL_ALIGNMENT_CENTER, float(enemy["radius"]) * 2.0, 13, Color("15102e"))
+		_draw_themed_enemy(enemy)
 		if int(enemy["max_hp"]) > 1:
 			var width := float(enemy["radius"]) * 1.6
 			draw_rect(Rect2(enemy["position"] + Vector2(-width / 2, -float(enemy["radius"]) - 9), Vector2(width, 4)), Color("24182f"))
 			draw_rect(Rect2(enemy["position"] + Vector2(-width / 2, -float(enemy["radius"]) - 9), Vector2(width * float(enemy["hp"]) / float(enemy["max_hp"]), 4)), Color("f472b6"))
 	for pickup in pickups:
-		draw_circle(pickup["position"], 14.0, Color("75f0c0") if pickup["kind"] == "heal" else Color("ffe45e"))
+		_draw_themed_pickup(pickup)
 	var player := Vector2(player_x * size.x, size.y * 0.88)
 	draw_circle(player + Vector2(0, 31), 20.0, Color(0.04, 0.02, 0.14, 0.46))
+
+
+func _draw_themed_enemy(enemy: Dictionary) -> void:
+	var center: Vector2 = enemy["position"]
+	var radius := float(enemy["radius"])
+	match str(enemy["kind"]):
+		"storm_cloud":
+			for cloud in [
+				[Vector2(-0.48, 0.10), 0.54], [Vector2(0.0, -0.14), 0.72],
+				[Vector2(0.52, 0.10), 0.50], [Vector2(0.0, 0.24), 0.76],
+			]:
+				draw_circle(center + cloud[0] * radius, float(cloud[1]) * radius, Color("8d86bd"))
+			draw_colored_polygon(PackedVector2Array([
+				center + Vector2(-0.08, 0.34) * radius,
+				center + Vector2(0.20, 0.34) * radius,
+				center + Vector2(0.02, 0.72) * radius,
+				center + Vector2(0.30, 0.72) * radius,
+				center + Vector2(-0.18, 1.18) * radius,
+			]), Color("ffe172"))
+		"shadow_star":
+			draw_colored_polygon(_star_points(center, radius, radius * 0.43, 5), Color("d866e7"))
+			draw_circle(center, radius * 0.24, Color("5a2b7c"))
+		"enchanted_comet":
+			for width in [12.0, 7.0, 3.0]:
+				draw_line(center + Vector2(-radius * 1.65, -radius * 0.70), center - Vector2(radius * 0.30, radius * 0.16), Color(0.45, 0.86, 1.0, 0.20 + width * 0.045), width)
+			draw_circle(center, radius, Color("79dcf2"))
+			draw_arc(center, radius * 0.70, 0.0, TAU, 24, Color("fff3d6"), 3.0)
+		"cursed_moon":
+			draw_circle(center, radius, Color("e8e4ff"))
+			draw_circle(center + Vector2(radius * 0.43, -radius * 0.18), radius * 0.82, Color("58417c"))
+			for crater in [Vector2(-0.46, -0.18), Vector2(-0.34, 0.38)]:
+				draw_circle(center + crater * radius, radius * 0.12, Color("aaa1d2"))
+		"eclipse_crown":
+			draw_circle(center, radius, Color("f3b7ff"))
+			draw_circle(center, radius * 0.72, Color("261240"))
+			draw_arc(center, radius * 0.88, 0.0, TAU, 32, Color("ffe172"), 4.0)
+			for angle in [-2.45, -1.85, -1.28, -0.70]:
+				var point := center + Vector2.from_angle(angle) * radius * 1.16
+				draw_colored_polygon(PackedVector2Array([
+					center + Vector2.from_angle(angle - 0.18) * radius * 0.78,
+					point,
+					center + Vector2.from_angle(angle + 0.18) * radius * 0.78,
+				]), Color("ffe172"))
+		_:
+			draw_colored_polygon(_star_points(center, radius, radius * 0.45, 5), Color("d866e7"))
+
+
+func _draw_themed_pickup(pickup: Dictionary) -> void:
+	var center: Vector2 = pickup["position"]
+	if pickup["kind"] == "heal":
+		draw_circle(center + Vector2(-6, -4), 7.5, Color("ff7faf"))
+		draw_circle(center + Vector2(6, -4), 7.5, Color("ff7faf"))
+		draw_colored_polygon(PackedVector2Array([
+			center + Vector2(-13, -2), center + Vector2(13, -2), center + Vector2(0, 15),
+		]), Color("ff7faf"))
+	else:
+		draw_circle(center, 17.0, Color(0.35, 0.88, 1.0, 0.25))
+		draw_colored_polygon(_star_points(center, 14.0, 6.0, 5), Color("ffe45e"))
+		draw_circle(center, 3.5, Color.WHITE)
+
+
+func _star_points(center: Vector2, outer_radius: float, inner_radius: float, points: int) -> PackedVector2Array:
+	var vertices := PackedVector2Array()
+	for index in points * 2:
+		var radius := outer_radius if index % 2 == 0 else inner_radius
+		var angle := -PI * 0.5 + float(index) * PI / float(points)
+		vertices.append(center + Vector2.from_angle(angle) * radius)
+	return vertices
 
 
 func _update_hud() -> void:

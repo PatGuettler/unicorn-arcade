@@ -1,11 +1,12 @@
 class_name UnicornIdleAnimator
 extends Node
 
-const MIN_IDLE_SECONDS := 10.0
-const MAX_IDLE_SECONDS := 30.0
-const WALK_DISTANCE := 1.15
-const WALK_LEG_SECONDS := 2.0
-const WALK_TURN_SECONDS := 0.32
+const MIN_IDLE_SECONDS := 1.8
+const MAX_IDLE_SECONDS := 4.5
+const DEFAULT_ROAM_RADIUS := 1.15
+const MIN_WALK_DISTANCE := 0.48
+const WALK_SPEED := 0.62
+const WALK_TURN_SECONDS := 0.28
 
 var model: Node3D
 var animation_player: AnimationPlayer
@@ -20,13 +21,18 @@ var rng := RandomNumberGenerator.new()
 var walk_tween: Tween
 var home_position := Vector3.ZERO
 var home_rotation_y := 0.0
+var roam_radius := DEFAULT_ROAM_RADIUS
 
 
-func setup(target: Node3D) -> void:
+func setup(target: Node3D, options: Dictionary = {}) -> void:
 	model = target
 	home_position = model.position
 	home_rotation_y = model.rotation.y
-	rng.randomize()
+	roam_radius = maxf(MIN_WALK_DISTANCE, float(options.get("roam_radius", DEFAULT_ROAM_RADIUS)))
+	var roaming_seed := str(options.get("seed", target.name))
+	# A stable seed gives every unicorn its own route without changing its
+	# behavior every time a page is rebuilt.
+	rng.seed = hash(roaming_seed)
 	animation_player = _find_animation_player(model)
 	timer = Timer.new()
 	timer.name = "WalkTimer"
@@ -90,22 +96,27 @@ func _start_walk() -> void:
 func _start_walk_journey() -> void:
 	if not is_instance_valid(model):
 		return
-	model.position = home_position
-	model.rotation.y = home_rotation_y
+	var current_offset := model.position.z - home_position.z
+	var destination_offset := rng.randf_range(-roam_radius, roam_radius)
+	var attempts := 0
+	while absf(destination_offset - current_offset) < MIN_WALK_DISTANCE and attempts < 6:
+		destination_offset = rng.randf_range(-roam_radius, roam_radius)
+		attempts += 1
+	if absf(destination_offset - current_offset) < MIN_WALK_DISTANCE:
+		destination_offset = -roam_radius if current_offset > 0.0 else roam_radius
+	var direction := signf(destination_offset - current_offset)
+	var destination := home_position + Vector3(0.0, 0.0, destination_offset)
+	var facing_rotation := home_rotation_y if direction > 0.0 else home_rotation_y + PI
+	var walk_seconds := maxf(0.65, absf(destination_offset - current_offset) / WALK_SPEED)
 	walk_tween = create_tween()
 	walk_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	walk_tween.tween_property(model, "rotation:y", home_rotation_y + PI / 2.0, WALK_TURN_SECONDS)
-	walk_tween.tween_property(model, "position", home_position + Vector3(WALK_DISTANCE, 0.0, 0.0), WALK_LEG_SECONDS)
-	walk_tween.tween_property(model, "rotation:y", home_rotation_y - PI / 2.0, WALK_TURN_SECONDS)
-	walk_tween.tween_property(model, "position", home_position, WALK_LEG_SECONDS)
-	walk_tween.tween_property(model, "rotation:y", home_rotation_y, WALK_TURN_SECONDS)
+	walk_tween.tween_property(model, "rotation:y", facing_rotation, WALK_TURN_SECONDS)
+	walk_tween.set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
+	walk_tween.tween_property(model, "position", destination, walk_seconds)
 	walk_tween.tween_callback(_finish_walk_journey)
 
 
 func _finish_walk_journey() -> void:
-	if is_instance_valid(model):
-		model.position = home_position
-		model.rotation.y = home_rotation_y
 	walk_tween = null
 	active_action = &""
 	_pose_standing()
@@ -116,9 +127,6 @@ func _cancel_walk_journey() -> void:
 	if walk_tween != null and walk_tween.is_valid():
 		walk_tween.kill()
 	walk_tween = null
-	if is_instance_valid(model):
-		model.position = home_position
-		model.rotation.y = home_rotation_y
 
 
 func _pose_standing() -> void:

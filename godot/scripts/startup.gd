@@ -37,7 +37,10 @@ func _process(_delta: float) -> void:
 	if not _playback_started and video.is_playing() and position > 0.0:
 		_playback_started = true
 		poster.hide()
-		_begin_main_scene_load()
+		# Do not stream the main scene while the Theora decoder is active. The
+		# scene contains several GLBs and texture-heavy screens; loading it in
+		# parallel starves lower-end Android devices and makes the intro stutter.
+		# The loading cover handles the short scene load after the visual ends.
 		# Once decoding starts, replace the startup timeout with a playback
 		# failsafe based on the real stream length.
 		playback_guard.start(maxf(length + VIDEO_FINISH_GRACE_SECONDS, 0.5))
