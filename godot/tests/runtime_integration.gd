@@ -180,7 +180,7 @@ func _run() -> void:
 	_check(galaxy.active and galaxy.target_kills == 10 and galaxy.lives == 3, "Galaxy Unicorn launches with the React target and lives")
 	_check(is_equal_approx(galaxy.player_x, 0.5), "Galaxy Unicorn centers the player for its opening wave")
 	galaxy.call("_spawn_enemy", false)
-	_check(float(galaxy.enemies[0]["speed"]) <= 0.000125, "Galaxy Unicorn's opening enemies use the gentle level-one speed curve")
+	_check(float(galaxy.enemies[0]["speed"]) <= 0.00009, "Galaxy Unicorn's opening enemies use the gentle level-one speed curve")
 	galaxy.enemies.clear()
 	galaxy.size = Vector2(720, 1280)
 	var galaxy_drag := InputEventScreenDrag.new()

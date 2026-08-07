@@ -47,7 +47,14 @@ static func galaxy_spawn_ms(level: int) -> int:
 
 
 static func galaxy_enemy_speed_scale(level: int) -> float:
-	return minf(1.35, 0.25 + float(maxi(1, level) - 1) * 0.075)
+	# Start leisurely, then ease up. Cap below the old React-equivalent pace so
+	# tall phone viewports stay readable deep into the run.
+	return minf(1.0, 0.16 + float(maxi(1, level) - 1) * 0.042)
+
+
+static func galaxy_fall_frame_factor() -> float:
+	# React multiplied by 60; on Godot's taller playfields that reads as a dive.
+	return 36.0
 
 
 static func mathtris_drop_ms(level: int, drops: int = 0, elapsed_seconds: int = 0) -> int:

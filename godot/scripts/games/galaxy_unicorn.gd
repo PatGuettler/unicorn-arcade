@@ -150,15 +150,16 @@ func _move_world(ms: float) -> void:
 	for flash in bolt_flashes:
 		flash["age"] = float(flash["age"]) + ms
 	bolt_flashes = bolt_flashes.filter(func(item: Dictionary) -> bool: return float(item["age"]) < float(item["life"]))
+	var fall_factor := Rules.galaxy_fall_frame_factor()
 	for enemy in enemies:
 		var enemy_position: Vector2 = enemy["position"]
-		enemy_position.y += float(enemy["speed"]) * size.y * (ms / 16.0) * 60.0
+		enemy_position.y += float(enemy["speed"]) * size.y * (ms / 16.0) * fall_factor
 		if enemy.get("zigzag", false):
 			enemy_position.x += sin(float(enemy["phase"]) + Time.get_ticks_msec() * 0.003) * 0.8
 		enemy["position"] = enemy_position
 	for pickup in pickups:
 		var pickup_position: Vector2 = pickup["position"]
-		pickup_position.y += 0.0002 * size.y * (ms / 16.0) * 60.0
+		pickup_position.y += 0.0002 * size.y * (ms / 16.0) * fall_factor
 		pickup["position"] = pickup_position
 
 
