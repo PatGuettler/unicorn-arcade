@@ -40,6 +40,8 @@ func _process(delta: float) -> void:
 		last_level = -1
 		was_active = false
 		inactivity_seconds = 0.0
+		# Keep AdMob banner attached when leaving main.tscn for a game scene.
+		AdBarService.sync_for_player(AppState.player_name())
 		if _is_game_scene(scene):
 			_attach_scene.call_deferred(scene)
 		return

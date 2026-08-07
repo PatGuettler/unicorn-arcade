@@ -165,18 +165,20 @@ This checkpoint exposes the complete 22-game registry plus the companion/decor m
 ## Kid-safe ad bar (AdMob)
 
 - **Poing AdMob plugin** (`addons/admob`, enable in Project → Plugins). Android export requires **Use Gradle Build** (see `export_presets.cfg`).
+- **Android binaries** (`addons/admob/android/bin/`, gitignored): install once via the AdMob Manager in the editor, or let CI download `android-template-v4.7.1.zip` from Poing releases before export. Without these AARs, device builds have no native AdMob plugin and the ad bar never appears.
 - Manifest App ID: **Project → Project Settings → AdMob → Android App ID** (matches `android_app_id` in config).
-- Runtime: autoload `AdBarService` + `scripts/main.gd` (no ads on login). Copy `config/admob.example.json` → `config/admob.json`, set `ads_enabled: true` and banner unit ID for device testing (test ID first).
+- Runtime: autoload `AdBarService` (persistent overlay) + `scripts/main.gd` / `GameExperience` (no ads on login). Copy `config/admob.example.json` → `config/admob.json`, set `ads_enabled: true` and banner unit ID for device testing (test ID first).
 - Production banner unit: `ca-app-pub-2846735043546429/2606475202` after QA. Play package: `com.grapegames.wlarcade`.
 
 ## CI / Play internal testing
 
 Pushes to **`godot-port`** run [`.github/workflows/deploy-android.yml`](../.github/workflows/deploy-android.yml):
 
-1. Builds a signed **AAB** and uploads to Play **internal** track (`com.grapegames.wlarcade`).
-2. Publishes a **debug APK** as a GitHub Actions **artifact** (`UnicornArcade-debug-apk`) — download from the workflow run and sideload on your phone.
+1. Downloads Poing AdMob Android AARs, writes `config/admob.json` (`ads_enabled: true`, Google **test** banner).
+2. Builds a signed **AAB** and uploads to Play **internal** track (`com.grapegames.wlarcade`).
+3. Publishes a **debug APK** as a GitHub Actions **artifact** (`UnicornArcade-debug-apk`) — download from the workflow run and sideload on your phone.
 
-Uses the same secrets as before (`ANDROID_KEYSTORE_BASE64`, `KEY_ALIAS`, `KEYSTORE_PASSWORD`, `SERVICE_ACCOUNT_JSON`). CI writes `config/admob.json` with the Google **test** banner and `ads_enabled: true`.
+Uses the same secrets as before (`ANDROID_KEYSTORE_BASE64`, `KEY_ALIAS`, `KEYSTORE_PASSWORD`, `SERVICE_ACCOUNT_JSON`).
 
 To install from Play instead of sideloading: add your Google account as an **internal tester** for the app in Play Console, then open the internal testing link after a green workflow run.
 

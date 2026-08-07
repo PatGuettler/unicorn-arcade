@@ -85,6 +85,7 @@ install_godot() {
 write_admob_config() {
 	local enabled="${ADMOB_ADS_ENABLED:-true}"
 	local banner="${ADMOB_BANNER_UNIT_ID:-ca-app-pub-3940256099942544/6300978111}"
+	mkdir -p "$PROJECT/config"
 	cat >"$PROJECT/config/admob.json" <<EOF
 {
   "ads_enabled": ${enabled},
@@ -97,6 +98,36 @@ write_admob_config() {
   "banner_height_dp": 60
 }
 EOF
+}
+
+# Poing AdMob AARs live under addons/admob/android/bin (gitignored). Without them,
+# Godot export skips the native plugin and device builds never show banners.
+install_admob_android_binaries() {
+	local plugin_version="${ADMOB_PLUGIN_VERSION:-v5.0.0}"
+	local godot_tag="v${GODOT_VERSION}"
+	local zip_name="android-template-${godot_tag}.zip"
+	local url="https://github.com/poingstudios/godot-admob-plugin/releases/download/${plugin_version}/${zip_name}"
+	local cache="${ADMOB_CACHE_DIR:-$HOME/.cache/unicorn-arcade/admob}"
+	local bin_dir="$PROJECT/addons/admob/android/bin"
+	local marker="$bin_dir/ads/libs/poing-godot-admob-ads-release.aar"
+
+	if [[ -f "$marker" && -f "$bin_dir/package.gd" ]]; then
+		echo "AdMob Android binaries already present ($(du -sh "$bin_dir" | cut -f1))"
+		return 0
+	fi
+
+	mkdir -p "$cache" "$bin_dir"
+	if [[ ! -f "$cache/$zip_name" ]]; then
+		echo "Downloading AdMob Android template ${zip_name} (${plugin_version})..."
+		curl -fsSL -o "$cache/$zip_name" "$url"
+	fi
+	echo "Extracting AdMob Android binaries into $bin_dir..."
+	unzip -qo "$cache/$zip_name" -d "$bin_dir"
+	if [[ ! -f "$marker" || ! -f "$bin_dir/package.gd" ]]; then
+		echo "ERROR: AdMob Android binaries missing after extract (expected $marker)" >&2
+		exit 1
+	fi
+	echo "AdMob Android binaries installed ($(du -sh "$bin_dir" | cut -f1))"
 }
 
 # Match main Capacitor CI: versionCode = run number, versionName = "1.<run_number>".
@@ -120,6 +151,7 @@ export_android() {
 	PRESET_BACKUP="$(mktemp)"
 	cp "$PRESET_PATH" "$PRESET_BACKUP"
 	trap restore_export_preset EXIT
+	install_admob_android_binaries
 	write_admob_config
 	bump_version
 	configure_godot_android_paths
@@ -130,6 +162,12 @@ export_android() {
 		godot --headless --path "$PROJECT" --import
 	else
 		echo "Found existing .godot/imported cache; run with FORCE_GODOT_IMPORT=1 to re-import."
+	fi
+
+	local ads_aar="$PROJECT/addons/admob/android/bin/ads/libs/poing-godot-admob-ads-release.aar"
+	if [[ ! -f "$ads_aar" ]]; then
+		echo "ERROR: Refusing to export without AdMob AAR at $ads_aar" >&2
+		exit 1
 	fi
 
 	echo "Exporting Play release AAB as ${RELEASE_PACKAGE_NAME} (installs Android build template as part of export)..."

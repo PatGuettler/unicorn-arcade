@@ -41,6 +41,13 @@ jobs:
           restore-keys: |
             gradle-${{ runner.os }}-
 
+      # Poing AdMob AARs are gitignored; CI downloads android-template-v${GODOT_VERSION}.zip
+      - name: Cache AdMob Android binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/unicorn-arcade/admob
+          key: admob-android-${{ env.GODOT_VERSION }}-v5.0.0
+
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
