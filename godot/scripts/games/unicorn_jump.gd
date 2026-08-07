@@ -13,6 +13,7 @@ const STONE_FINISH = preload("res://assets/games/unicorn_jump/jump_stone_finish_
 const PATH_WIDTH := 520.0
 const BASE_STONE_SIZE := Vector2(150.0, 101.0)
 const BASE_ROW_HEIGHT := 132.0
+const BASE_TOP_CLEARANCE := 88.0
 
 var level := 1
 var level_data: Array[int] = []
@@ -147,13 +148,18 @@ func _rebuild_path() -> void:
 	connector_lines.clear()
 	var stone_size := BASE_STONE_SIZE * zoom
 	var row_height := BASE_ROW_HEIGHT * zoom
-	for index in range(level_data.size(), -1, -1):
+	var top_clearance := Control.new()
+	top_clearance.name = "TrailTopClearance"
+	top_clearance.custom_minimum_size.y = BASE_TOP_CLEARANCE * zoom
+	top_clearance.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	path_box.add_child(top_clearance)
+	for index in range(level_data.size() + 1):
 		var row := Control.new()
 		row.name = "TrailRow%d" % index
 		row.custom_minimum_size = Vector2(PATH_WIDTH, row_height)
 		var center_x := _stone_center_x(index)
-		if index > 0:
-			var next_center_x := _stone_center_x(index - 1)
+		if index < level_data.size():
+			var next_center_x := _stone_center_x(index + 1)
 			var connector := Line2D.new()
 			connector.name = "TrailConnector%d" % index
 			connector.width = 8.0 * zoom
@@ -167,7 +173,7 @@ func _rebuild_path() -> void:
 				Vector2(next_center_x, row_height * 1.36),
 			])
 			row.add_child(connector)
-			connector_lines.push_front(connector)
+			connector_lines.push_back(connector)
 		var button := TextureButton.new()
 		button.name = "JumpStone%d" % index
 		button.custom_minimum_size = stone_size
@@ -193,7 +199,7 @@ func _rebuild_path() -> void:
 		button.add_child(value_label)
 		row.add_child(button)
 		path_box.add_child(row)
-		node_buttons.push_front(button)
+		node_buttons.push_back(button)
 
 
 func _update_path() -> void:
@@ -231,9 +237,24 @@ func _update_path() -> void:
 		var connector := connector_lines[connector_index]
 		connector.default_color = Color("f2a5d4") if connector_index <= current_index else Color("9788d8")
 	await get_tree().process_frame
-	var reversed_index := level_data.size() - current_index
-	var desired := maxf(0.0, reversed_index * BASE_ROW_HEIGHT * zoom - scroller.size.y * 0.42)
+	var current_row_top := BASE_TOP_CLEARANCE * zoom + current_index * BASE_ROW_HEIGHT * zoom
+	var desired := maxf(0.0, current_row_top - scroller.size.y * 0.20)
 	scroller.scroll_vertical = int(desired)
+
+
+func _insert_non_obstructing_dialog(dialog: Control) -> void:
+	var layout := scroller.get_parent() as VBoxContainer
+	if layout == null:
+		add_child(dialog)
+		return
+	layout.add_child(dialog)
+	layout.move_child(dialog, scroller.get_index())
+	dialog.tree_exited.connect(_restore_path_after_dialog)
+	_update_path.call_deferred()
+
+
+func _restore_path_after_dialog() -> void:
+	_update_path.call_deferred()
 
 
 func _attach_active_companion(button: TextureButton) -> void:

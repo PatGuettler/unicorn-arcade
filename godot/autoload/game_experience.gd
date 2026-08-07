@@ -532,7 +532,7 @@ func _show_profile_overlay() -> void:
 
 
 func _maybe_show_tutorial(force_replay: bool) -> void:
-	if attached_game_id.is_empty() or not is_instance_valid(attached_scene) or attached_scene.has_node("GuidedTutorialOverlay"):
+	if attached_game_id.is_empty() or not is_instance_valid(attached_scene) or _scene_has_dialog("GuidedTutorialOverlay"):
 		return
 	var raw_level := _scene_int(attached_scene, "level", 1)
 	var tutorial_level := clampi(raw_level, 1, 3)
@@ -540,13 +540,13 @@ func _maybe_show_tutorial(force_replay: bool) -> void:
 		if not bool(AppState.setting("tutorials_enabled", true)) or raw_level > 3 or AppState.tutorial_complete(attached_game_id, tutorial_level):
 			return
 	var lessons: Array[String] = TutorialCatalog.lessons(attached_game_id, tutorial_level)
-	var overlay := _modal_backdrop("GuidedTutorialOverlay")
+	var dialog := _create_game_dialog("GuidedTutorialOverlay", 0.07, 0.93, 0.20, 0.80)
+	var overlay := dialog["owner"] as Control
+	var card := dialog["card"] as PanelContainer
 	overlay.set_meta("lessons", lessons)
 	overlay.set_meta("step", 0)
 	overlay.set_meta("game_id", attached_game_id)
 	overlay.set_meta("tutorial_level", tutorial_level)
-	attached_scene.add_child(overlay)
-	var card := _modal_card(overlay, 0.07, 0.93, 0.20, 0.80)
 	var stack := VBoxContainer.new()
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	stack.add_theme_constant_override("separation", 18)
@@ -596,11 +596,11 @@ func _advance_tutorial(overlay: Control) -> void:
 
 
 func _show_notice(title: String, copy: String) -> void:
-	if not is_instance_valid(attached_scene) or attached_scene.has_node("CompanionAbilityNotice"):
+	if not is_instance_valid(attached_scene) or _scene_has_dialog("CompanionAbilityNotice"):
 		return
-	var overlay := _modal_backdrop("CompanionAbilityNotice")
-	attached_scene.add_child(overlay)
-	var card := _modal_card(overlay, 0.10, 0.90, 0.30, 0.70)
+	var dialog := _create_game_dialog("CompanionAbilityNotice", 0.10, 0.90, 0.30, 0.70)
+	var overlay := dialog["owner"] as Control
+	var card := dialog["card"] as PanelContainer
 	card.name = "AbilityNoticeCard"
 	var stack := VBoxContainer.new()
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -628,6 +628,27 @@ func _show_notice(title: String, copy: String) -> void:
 	StorybookUI.apply_game_action(close, 220)
 	close.pressed.connect(overlay.queue_free)
 	stack.add_child(close)
+
+
+func _scene_has_dialog(node_name: String) -> bool:
+	return is_instance_valid(attached_scene) and attached_scene.find_child(node_name, true, false) != null
+
+
+func _create_game_dialog(node_name: String, left: float, right: float, top: float, bottom: float) -> Dictionary:
+	if attached_scene.has_method("_insert_non_obstructing_dialog"):
+		var owner := MarginContainer.new()
+		owner.name = node_name
+		owner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		owner.add_theme_constant_override("margin_left", 4)
+		owner.add_theme_constant_override("margin_right", 4)
+		var card := PanelContainer.new()
+		card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), StorybookUI.GOLD, 24))
+		owner.add_child(card)
+		attached_scene.call("_insert_non_obstructing_dialog", owner)
+		return {"owner": owner, "card": card}
+	var overlay := _modal_backdrop(node_name)
+	attached_scene.add_child(overlay)
+	return {"owner": overlay, "card": _modal_card(overlay, left, right, top, bottom)}
 
 
 func _modal_backdrop(node_name: String) -> ColorRect:
