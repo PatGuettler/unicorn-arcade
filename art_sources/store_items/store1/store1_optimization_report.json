@@ -1,0 +1,94 @@
+{
+  "objects": [
+    {
+      "catalog_id": "arcade",
+      "source_polygons": 124176,
+      "optimized_polygons": 29999,
+      "vertices": 16686,
+      "ratio": 0.241585
+    },
+    {
+      "catalog_id": "chair",
+      "source_polygons": 97604,
+      "optimized_polygons": 27999,
+      "vertices": 17251,
+      "ratio": 0.286863
+    },
+    {
+      "catalog_id": "lamp",
+      "source_polygons": 57822,
+      "optimized_polygons": 22000,
+      "vertices": 11631,
+      "ratio": 0.380478
+    },
+    {
+      "catalog_id": "plant",
+      "source_polygons": 135815,
+      "optimized_polygons": 34999,
+      "vertices": 21364,
+      "ratio": 0.257696
+    },
+    {
+      "catalog_id": "rug",
+      "source_polygons": 72334,
+      "optimized_polygons": 18000,
+      "vertices": 9808,
+      "ratio": 0.248846
+    },
+    {
+      "catalog_id": "trophy",
+      "source_polygons": 62510,
+      "optimized_polygons": 18000,
+      "vertices": 10585,
+      "ratio": 0.287954
+    }
+  ],
+  "textures": [
+    {
+      "name": "base_color",
+      "source_size": [
+        4096,
+        4096
+      ],
+      "optimized_size": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "emissive",
+      "source_size": [
+        2048,
+        2048
+      ],
+      "optimized_size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "metallic_roughness",
+      "source_size": [
+        2048,
+        2048
+      ],
+      "optimized_size": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "normal",
+      "source_size": [
+        4096,
+        4096
+      ],
+      "optimized_size": [
+        2048,
+        2048
+      ]
+    }
+  ],
+  "source_total_polygons": 550261,
+  "optimized_total_polygons": 150997
+}

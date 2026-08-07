@@ -1,0 +1,260 @@
+{
+  "sheet": 12,
+  "source": "C:\\Users\\Tak\\Downloads\\Meshy_AI_Cute_Halloween_Crew_0802230431_texture.glb",
+  "source_bytes": 26357300,
+  "source_sha256": "33418048a0da46f37fd29db96f790cfea497bc59d9f00b9a3d7ab8f9021698f4",
+  "grid_bounds_min": [
+    -0.7197949886322021,
+    -0.44543299078941345,
+    -0.9507539868354797
+  ],
+  "grid_bounds_max": [
+    0.7178679704666138,
+    0.4466870129108429,
+    0.9485989809036255
+  ],
+  "grid_thresholds": {
+    "row_x": [
+      -0.017374001443386078,
+      -0.04665050050243735,
+      0.09150849655270576
+    ],
+    "left_z": [
+      -0.3191724866628647,
+      0.37342649698257446
+    ],
+    "right_z": [
+      -0.2469394952058792,
+      0.3104439973831177
+    ]
+  },
+  "items": [
+    {
+      "catalog_id": "hall_ghost",
+      "cell": "top_left",
+      "source_vertices": 7198,
+      "source_polygons": 43782,
+      "optimized_vertices": 7198,
+      "optimized_polygons": 11999,
+      "source_origin": [
+        -0.35725900530815125,
+        0.01588749885559082,
+        0.3983219861984253
+      ],
+      "source_dimensions": [
+        0.501401960849762,
+        0.4622989892959595,
+        0.5502769947052002
+      ],
+      "normalization_scale": 2.8167632209127356,
+      "final_bounds_min": [
+        -0.7061653137207031,
+        -0.6510933637619019,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7061653733253479,
+        0.6510933637619019,
+        1.5499999523162842
+      ],
+      "removed_components": []
+    },
+    {
+      "catalog_id": "hall_skull",
+      "cell": "top_right",
+      "source_vertices": 7571,
+      "source_polygons": 105234,
+      "optimized_vertices": 7571,
+      "optimized_polygons": 11999,
+      "source_origin": [
+        0.3551560044288635,
+        0.12487450987100601,
+        0.3887780010700226
+      ],
+      "source_dimensions": [
+        0.5666919946670532,
+        0.643625020980835,
+        0.510085940361023
+      ],
+      "normalization_scale": 2.4082345301584445,
+      "final_bounds_min": [
+        -0.6823636293411255,
+        -0.7750000357627869,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6823636293411255,
+        0.7750000357627869,
+        1.2284066677093506
+      ],
+      "removed_components": []
+    },
+    {
+      "catalog_id": "hall_web",
+      "cell": "middle_left",
+      "source_vertices": 8662,
+      "source_polygons": 64640,
+      "optimized_vertices": 8662,
+      "optimized_polygons": 12000,
+      "source_origin": [
+        -0.37167850136756897,
+        -0.10287050157785416,
+        -0.2852729856967926
+      ],
+      "source_dimensions": [
+        0.5804670453071594,
+        0.0961730033159256,
+        0.6338039636611938
+      ],
+      "normalization_scale": 2.445551130741378,
+      "final_bounds_min": [
+        -0.7097809314727783,
+        -0.11759799718856812,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7097808718681335,
+        0.11759799718856812,
+        1.5500000715255737
+      ],
+      "removed_components": []
+    },
+    {
+      "catalog_id": "hall_spider",
+      "cell": "middle_right",
+      "source_vertices": 8495,
+      "source_polygons": 105164,
+      "optimized_vertices": 8495,
+      "optimized_polygons": 12000,
+      "source_origin": [
+        0.353005975484848,
+        -0.05447399616241455,
+        -0.17770999670028687
+      ],
+      "source_dimensions": [
+        0.7297239899635315,
+        0.7819179892539978,
+        0.40981999039649963
+      ],
+      "normalization_scale": 1.982305077133222,
+      "final_bounds_min": [
+        -0.7232677340507507,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7232677936553955,
+        0.7749999761581421,
+        0.8123882412910461
+      ],
+      "removed_components": []
+    },
+    {
+      "catalog_id": "hall_bat",
+      "cell": "bottom_left",
+      "source_vertices": 7798,
+      "source_polygons": 95718,
+      "optimized_vertices": 7798,
+      "optimized_polygons": 12000,
+      "source_origin": [
+        -0.3424049913883209,
+        -0.12094949930906296,
+        -0.9064329862594604
+      ],
+      "source_dimensions": [
+        0.7547799944877625,
+        0.2914150059223175,
+        0.5533609986305237
+      ],
+      "normalization_scale": 2.0535785411905625,
+      "final_bounds_min": [
+        -0.7750000357627869,
+        -0.29922178387641907,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7750000357627869,
+        0.29922181367874146,
+        1.136370301246643
+      ],
+      "removed_components": []
+    },
+    {
+      "catalog_id": "hall_alien",
+      "cell": "bottom_right",
+      "source_vertices": 7253,
+      "source_polygons": 65896,
+      "optimized_vertices": 7253,
+      "optimized_polygons": 12000,
+      "source_origin": [
+        0.32701751589775085,
+        -0.12492150068283081,
+        -0.9507539868354797
+      ],
+      "source_dimensions": [
+        0.3579710125923157,
+        0.34542298316955566,
+        0.6345850229263306
+      ],
+      "normalization_scale": 2.442541100091391,
+      "final_bounds_min": [
+        -0.4371795058250427,
+        -0.4218549132347107,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.43717944622039795,
+        0.4218549132347107,
+        1.5500000715255737
+      ],
+      "removed_components": []
+    }
+  ],
+  "textures": [
+    {
+      "name": "base_color",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "emissive",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "metallic_roughness",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "normal",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    }
+  ],
+  "optimized_glb_bytes": 8696496
+}

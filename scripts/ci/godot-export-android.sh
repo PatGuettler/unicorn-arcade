@@ -1,0 +1,195 @@
+#!/usr/bin/env bash
+# Export Godot Android release (AAB) + debug APK. Run from repo root on Ubuntu CI or locally.
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+PROJECT="$ROOT/godot"
+GODOT_VERSION="${GODOT_VERSION:-4.7.1}"
+GODOT_CHANNEL="${GODOT_CHANNEL:-stable}"
+GODOT_TAG="${GODOT_VERSION}-${GODOT_CHANNEL}"
+EXPORT_PRESET="${EXPORT_PRESET:-Android Alpha}"
+VERSION_CODE="${VERSION_CODE:-1}"
+RELEASE_PACKAGE_NAME="${RELEASE_PACKAGE_NAME:-com.grapegames.wlarcade}"
+DEBUG_PACKAGE_NAME="${DEBUG_PACKAGE_NAME:-com.guettler.unicornarcade}"
+
+PRESET_PATH=""
+PRESET_BACKUP=""
+
+restore_export_preset() {
+	if [[ -n "$PRESET_BACKUP" && -f "$PRESET_BACKUP" && -n "$PRESET_PATH" ]]; then
+		cp "$PRESET_BACKUP" "$PRESET_PATH"
+		rm -f "$PRESET_BACKUP"
+	fi
+}
+
+export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+if [[ -z "${ANDROID_SDK_ROOT}" ]]; then
+	echo "ANDROID_SDK_ROOT or ANDROID_HOME must be set" >&2
+	exit 1
+fi
+
+configure_godot_android_paths() {
+	local settings_dir="$HOME/.config/godot"
+	mkdir -p "$settings_dir"
+	local settings_file="$settings_dir/editor_settings-4.tres"
+	local java_home="${JAVA_HOME:-}"
+	if [[ -z "$java_home" ]] && command -v java >/dev/null 2>&1; then
+		java_home="$(readlink -f "$(command -v java)" | sed 's|/bin/java||')"
+	fi
+	cat >"$settings_file" <<EOF
+[gd_resource type="EditorSettings" format=3]
+
+[resource]
+export/android/android_sdk_path = "${ANDROID_SDK_ROOT}"
+export/android/java_sdk_path = "${java_home}"
+EOF
+}
+
+start_adb_server() {
+	local adb_bin="${ANDROID_SDK_ROOT}/platform-tools/adb"
+	if [[ -x "$adb_bin" ]]; then
+		"$adb_bin" start-server >/dev/null 2>&1 || true
+	elif command -v adb >/dev/null 2>&1; then
+		adb start-server >/dev/null 2>&1 || true
+	fi
+}
+
+install_godot() {
+	if command -v godot >/dev/null 2>&1; then
+		return 0
+	fi
+	local cache="$HOME/.cache/unicorn-arcade/godot"
+	mkdir -p "$cache"
+	local zip="Godot_v${GODOT_TAG}_linux.x86_64.zip"
+	local tpz="Godot_v${GODOT_TAG}_export_templates.tpz"
+	if [[ ! -f "$cache/$zip" ]]; then
+		curl -fsSL -o "$cache/$zip" \
+			"https://github.com/godotengine/godot/releases/download/${GODOT_TAG}/${zip}"
+	fi
+	if [[ ! -f "$cache/$tpz" ]]; then
+		curl -fsSL -o "$cache/$tpz" \
+			"https://github.com/godotengine/godot/releases/download/${GODOT_TAG}/${tpz}"
+	fi
+	unzip -qo "$cache/$zip" -d "$cache"
+	install -m 755 "$cache/Godot_v${GODOT_TAG}_linux.x86_64" "$HOME/.local/bin/godot"
+	local template_dir="${GODOT_VERSION}.stable"
+	if [[ -f "$PROJECT/android/.build_version" ]]; then
+		template_dir="$(tr -d '\r\n' <"$PROJECT/android/.build_version")"
+	fi
+	mkdir -p "$HOME/.local/share/godot/export_templates/${template_dir}"
+	unzip -qo "$cache/$tpz" -d "$cache/templates_unpack"
+	cp -a "$cache/templates_unpack/templates/." \
+		"$HOME/.local/share/godot/export_templates/${template_dir}/"
+}
+
+write_admob_config() {
+	local enabled="${ADMOB_ADS_ENABLED:-true}"
+	local banner="${ADMOB_BANNER_UNIT_ID:-ca-app-pub-3940256099942544/6300978111}"
+	mkdir -p "$PROJECT/config"
+	cat >"$PROJECT/config/admob.json" <<EOF
+{
+  "ads_enabled": ${enabled},
+  "android_app_id": "ca-app-pub-2846735043546429~3696195593",
+  "android_banner_unit_id": "${banner}",
+  "child_directed": true,
+  "tag_for_under_age_of_consent": true,
+  "max_ad_content_rating": "G",
+  "show_on_login": false,
+  "banner_height_dp": 60
+}
+EOF
+}
+
+# Poing AdMob AARs live under addons/admob/android/bin (gitignored). Without them,
+# Godot export skips the native plugin and device builds never show banners.
+install_admob_android_binaries() {
+	local plugin_version="${ADMOB_PLUGIN_VERSION:-v5.0.0}"
+	local godot_tag="v${GODOT_VERSION}"
+	local zip_name="android-template-${godot_tag}.zip"
+	local url="https://github.com/poingstudios/godot-admob-plugin/releases/download/${plugin_version}/${zip_name}"
+	local cache="${ADMOB_CACHE_DIR:-$HOME/.cache/unicorn-arcade/admob}"
+	local bin_dir="$PROJECT/addons/admob/android/bin"
+	local marker="$bin_dir/ads/libs/poing-godot-admob-ads-release.aar"
+
+	if [[ -f "$marker" && -f "$bin_dir/package.gd" ]]; then
+		echo "AdMob Android binaries already present ($(du -sh "$bin_dir" | cut -f1))"
+		return 0
+	fi
+
+	mkdir -p "$cache" "$bin_dir"
+	if [[ ! -f "$cache/$zip_name" ]]; then
+		echo "Downloading AdMob Android template ${zip_name} (${plugin_version})..."
+		curl -fsSL -o "$cache/$zip_name" "$url"
+	fi
+	echo "Extracting AdMob Android binaries into $bin_dir..."
+	unzip -qo "$cache/$zip_name" -d "$bin_dir"
+	if [[ ! -f "$marker" || ! -f "$bin_dir/package.gd" ]]; then
+		echo "ERROR: AdMob Android binaries missing after extract (expected $marker)" >&2
+		exit 1
+	fi
+	echo "AdMob Android binaries installed ($(du -sh "$bin_dir" | cut -f1))"
+}
+
+# Match main Capacitor CI: versionCode = run number, versionName = "1.<run_number>".
+bump_version() {
+	local preset="$PROJECT/export_presets.cfg"
+	local version_name="${VERSION_NAME:-1.${VERSION_CODE}}"
+	sed -i "s/^version\\/code=.*/version\\/code=${VERSION_CODE}/" "$preset"
+	sed -i "s/^version\\/name=.*/version\\/name=\"${version_name}\"/" "$preset"
+	echo "Android versionCode=${VERSION_CODE} versionName=${version_name}"
+}
+
+set_package_name() {
+	local package_name="$1"
+	local preset="$PROJECT/export_presets.cfg"
+	sed -i "s|^package/unique_name=.*|package/unique_name=\"${package_name}\"|" "$preset"
+}
+
+export_android() {
+	mkdir -p "$PROJECT/build/android"
+	PRESET_PATH="$PROJECT/export_presets.cfg"
+	PRESET_BACKUP="$(mktemp)"
+	cp "$PRESET_PATH" "$PRESET_BACKUP"
+	trap restore_export_preset EXIT
+	install_admob_android_binaries
+	write_admob_config
+	bump_version
+	configure_godot_android_paths
+	start_adb_server
+
+	echo "Importing project assets (skipped on cache hit if fast)..."
+	if [[ ! -d "$PROJECT/.godot/imported" ]] || [[ "${FORCE_GODOT_IMPORT:-0}" == "1" ]]; then
+		godot --headless --path "$PROJECT" --import
+	else
+		echo "Found existing .godot/imported cache; run with FORCE_GODOT_IMPORT=1 to re-import."
+	fi
+
+	local ads_aar="$PROJECT/addons/admob/android/bin/ads/libs/poing-godot-admob-ads-release.aar"
+	if [[ ! -f "$ads_aar" ]]; then
+		echo "ERROR: Refusing to export without AdMob AAR at $ads_aar" >&2
+		exit 1
+	fi
+
+	echo "Exporting Play release AAB as ${RELEASE_PACKAGE_NAME} (installs Android build template as part of export)..."
+	set_package_name "$RELEASE_PACKAGE_NAME"
+	godot --headless --path "$PROJECT" --verbose \
+		--install-android-build-template \
+		--export-release "$EXPORT_PRESET" "$PROJECT/build/android/UnicornArcade.aab"
+
+	echo "Exporting installable debug APK as ${DEBUG_PACKAGE_NAME}..."
+	set_package_name "$DEBUG_PACKAGE_NAME"
+	local preset="$PROJECT/export_presets.cfg"
+	sed -i 's/^gradle_build\/export_format=.*/gradle_build\/export_format=0/' "$preset"
+	sed -i 's|^export_path=.*|export_path="build/android/UnicornArcade-debug.apk"|' "$preset"
+	godot --headless --path "$PROJECT" --verbose \
+		--export-debug "$EXPORT_PRESET" "$PROJECT/build/android/UnicornArcade-debug.apk"
+	sed -i 's/^gradle_build\/export_format=.*/gradle_build\/export_format=1/' "$preset"
+	sed -i 's|^export_path=.*|export_path="build/android/UnicornArcade.aab"|' "$preset"
+	restore_export_preset
+	trap - EXIT
+}
+
+install_godot
+export_android
+echo "Done: $PROJECT/build/android/UnicornArcade.aab"
+echo "Done: $PROJECT/build/android/UnicornArcade-debug.apk"

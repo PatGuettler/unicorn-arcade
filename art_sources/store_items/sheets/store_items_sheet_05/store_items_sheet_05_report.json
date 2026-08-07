@@ -1,0 +1,269 @@
+{
+  "sheet": 5,
+  "source": "C:\\Users\\Tak\\Downloads\\Meshy_AI_Pastel_Whimsy_Toy_Col_0802212503_texture.glb",
+  "source_bytes": 45615328,
+  "source_sha256": "1c637bda1a1fa0726dfb545f80d3a8e95d557407bc76b9cf60c4aa675ae74f29",
+  "grid_bounds_min": [
+    -0.8134509921073914,
+    -0.8512849807739258,
+    -0.9504740238189697
+  ],
+  "grid_bounds_max": [
+    0.8114169836044312,
+    0.8543919920921326,
+    0.9478049874305725
+  ],
+  "grid_thresholds": {
+    "row_x": [
+      -0.07568,
+      -0.05726,
+      0.02622
+    ],
+    "left_z": [
+      -0.62421,
+      0.24476
+    ],
+    "right_z": [
+      -0.35,
+      0.25463
+    ]
+  },
+  "items": [
+    {
+      "catalog_id": "rug_welcome",
+      "cell": "top_left",
+      "source_vertices": 4470,
+      "source_polygons": 202256,
+      "optimized_vertices": 4470,
+      "optimized_polygons": 7000,
+      "source_origin": [
+        -0.4531570076942444,
+        0.4218845069408417,
+        0.3991149961948395
+      ],
+      "source_dimensions": [
+        0.720587968826294,
+        0.5546750426292419,
+        0.26718100905418396
+      ],
+      "normalization_scale": 2.1510212035938743,
+      "final_bounds_min": [
+        -0.7750000357627869,
+        -0.5965588092803955,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7750000953674316,
+        0.5965589284896851,
+        0.5747120380401611
+      ],
+      "removed_components": []
+    },
+    {
+      "catalog_id": "rug_persian",
+      "cell": "top_right",
+      "source_vertices": 5836,
+      "source_polygons": 264574,
+      "optimized_vertices": 5836,
+      "optimized_polygons": 7000,
+      "source_origin": [
+        0.3234420120716095,
+        0.36440300941467285,
+        0.434253990650177
+      ],
+      "source_dimensions": [
+        0.7638760209083557,
+        0.5576779842376709,
+        0.5135509967803955
+      ],
+      "normalization_scale": 2.0291250904261044,
+      "final_bounds_min": [
+        -0.7749999761581421,
+        -0.5657991766929626,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7749999761581421,
+        0.5657991766929626,
+        1.0420591831207275
+      ],
+      "removed_components": []
+    },
+    {
+      "catalog_id": "rug_bear",
+      "cell": "middle_left",
+      "source_vertices": 4315,
+      "source_polygons": 68700,
+      "optimized_vertices": 4315,
+      "optimized_polygons": 6999,
+      "source_origin": [
+        -0.3823944926261902,
+        -0.0017160028219223022,
+        -0.41075199842453003
+      ],
+      "source_dimensions": [
+        0.8044309616088867,
+        0.5728139877319336,
+        0.5011559724807739
+      ],
+      "normalization_scale": 1.9268278745760261,
+      "final_bounds_min": [
+        -0.7750000357627869,
+        -0.5518569946289062,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7750000357627869,
+        0.5518569946289062,
+        0.9656413197517395
+      ],
+      "removed_components": []
+    },
+    {
+      "catalog_id": "rug_magic",
+      "cell": "middle_right",
+      "source_vertices": 4763,
+      "source_polygons": 140836,
+      "optimized_vertices": 4763,
+      "optimized_polygons": 7000,
+      "source_origin": [
+        0.3821659982204437,
+        0.4024989902973175,
+        -0.4460659921169281
+      ],
+      "source_dimensions": [
+        0.8585019707679749,
+        0.9037860035896301,
+        0.5210710167884827
+      ],
+      "normalization_scale": 1.7150077494492684,
+      "final_bounds_min": [
+        -0.7361688017845154,
+        -0.7750000357627869,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7361688017845154,
+        0.7750000357627869,
+        0.8936408758163452
+      ],
+      "removed_components": []
+    },
+    {
+      "catalog_id": "rug_puzzle",
+      "cell": "bottom_left",
+      "source_vertices": 7182,
+      "source_polygons": 228890,
+      "optimized_vertices": 7182,
+      "optimized_polygons": 7000,
+      "source_origin": [
+        -0.3443315029144287,
+        -0.438960999250412,
+        -0.907263994216919
+      ],
+      "source_dimensions": [
+        0.6812230348587036,
+        0.8246479630470276,
+        0.06806302070617676
+      ],
+      "normalization_scale": 1.8795899213439364,
+      "final_bounds_min": [
+        -0.640209972858429,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.640209972858429,
+        0.7750000357627869,
+        0.12793056666851044
+      ],
+      "removed_components": []
+    },
+    {
+      "catalog_id": "pet_cat_blk",
+      "cell": "bottom_right",
+      "source_vertices": 10373,
+      "source_polygons": 66446,
+      "optimized_vertices": 10373,
+      "optimized_polygons": 17999,
+      "source_origin": [
+        0.34462597966194153,
+        -0.20838598906993866,
+        -0.9504740238189697
+      ],
+      "source_dimensions": [
+        0.7581740021705627,
+        0.941025972366333,
+        0.6734360456466675
+      ],
+      "normalization_scale": 1.6471383846104928,
+      "final_bounds_min": [
+        -0.21512117981910706,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6244087219238281,
+        -0.07633664458990097,
+        1.10924232006073
+      ],
+      "removed_components": [
+        {
+          "vertices": 313,
+          "center": [
+            -0.5949388742446899,
+            0.7390580773353577,
+            0.912688136100769
+          ]
+        }
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "name": "base_color",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "emissive",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "metallic_roughness",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "normal",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    }
+  ],
+  "optimized_glb_bytes": 8868976
+}

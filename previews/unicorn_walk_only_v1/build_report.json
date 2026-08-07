@@ -1,0 +1,575 @@
+{
+  "asset_set": "unicorn_walk_only_v1",
+  "animation_contract": [
+    "Walk"
+  ],
+  "fps": 24,
+  "frame_range": [
+    1,
+    25
+  ],
+  "variants": {
+    "sparkle": {
+      "output_file": "godot/assets/characters/unicorns/unicorn_sparkle_v1.glb",
+      "output_bytes": 37373372,
+      "output_sha256": "9B05CA4A65FF8FC6BB783528BE8D177605BCB39F32A3581040406C7E0B5CD589",
+      "armature_count": 1,
+      "bone_count": 38,
+      "skinned_mesh_count": 1,
+      "helper_meshes": [
+        "Icosphere"
+      ],
+      "actions": [
+        "Walk"
+      ],
+      "action_ranges": {
+        "Walk": [
+          1.0,
+          25.0
+        ]
+      },
+      "embedded_images": {
+        "sparkle_base_color": [
+          4096,
+          4096
+        ],
+        "sparkle_emissive": [
+          2048,
+          2048
+        ],
+        "sparkle_metallic_roughness": [
+          2048,
+          2048
+        ],
+        "sparkle_normal": [
+          4096,
+          4096
+        ]
+      },
+      "passes": true,
+      "helper_note": "Blender's glTF importer recreates one unskinned Icosphere as a shared custom-bone display shape; it is not runtime character geometry.",
+      "variant": "sparkle",
+      "source_file": "sparkle.glb",
+      "source_bytes": 38091824,
+      "source_sha256": "FC92A397FDEE8208431A8221BBD249202DFC59A89D5D11B4711D1CF8C424E912",
+      "motion_map": {
+        "tail": [
+          "Bone_009",
+          "Bone_008",
+          "Bone_007",
+          "Bone_006",
+          "Bone_005"
+        ],
+        "front_left": [
+          "Bone_028",
+          "Bone_027",
+          "Bone_026",
+          "Bone_025",
+          "Bone_024"
+        ],
+        "front_right": [
+          "Bone_033",
+          "Bone_032",
+          "Bone_031",
+          "Bone_030",
+          "Bone_029"
+        ],
+        "hind_left": [
+          "Bone_014",
+          "Bone_013",
+          "Bone_012",
+          "Bone_011",
+          "Bone_010"
+        ],
+        "hind_right": [
+          "Bone_019",
+          "Bone_018",
+          "Bone_017",
+          "Bone_016",
+          "Bone_015"
+        ]
+      },
+      "preview_frames": [
+        "previews/unicorn_walk_only_v1/sparkle_walk_frame_01.png",
+        "previews/unicorn_walk_only_v1/sparkle_walk_frame_07.png",
+        "previews/unicorn_walk_only_v1/sparkle_walk_frame_13.png",
+        "previews/unicorn_walk_only_v1/sparkle_walk_frame_19.png",
+        "previews/unicorn_walk_only_v1/sparkle_walk_side_frame_01.png",
+        "previews/unicorn_walk_only_v1/sparkle_walk_side_frame_07.png",
+        "previews/unicorn_walk_only_v1/sparkle_walk_side_frame_13.png",
+        "previews/unicorn_walk_only_v1/sparkle_walk_side_frame_19.png"
+      ],
+      "visual_review_required": true
+    },
+    "rainbow": {
+      "output_file": "godot/assets/characters/unicorns/unicorn_rainbow_v1.glb",
+      "output_bytes": 36917124,
+      "output_sha256": "79A1FB03A55289E9D8CD8F67770DBFC84DD7257B3E50AFB92321EE8F293DD4CC",
+      "armature_count": 1,
+      "bone_count": 42,
+      "skinned_mesh_count": 1,
+      "helper_meshes": [
+        "Icosphere"
+      ],
+      "actions": [
+        "Walk"
+      ],
+      "action_ranges": {
+        "Walk": [
+          1.0,
+          25.0
+        ]
+      },
+      "embedded_images": {
+        "rainbow_base_color": [
+          4096,
+          4096
+        ],
+        "rainbow_emissive": [
+          2048,
+          2048
+        ],
+        "rainbow_metallic_roughness": [
+          2048,
+          2048
+        ],
+        "rainbow_normal": [
+          4096,
+          4096
+        ]
+      },
+      "passes": true,
+      "helper_note": "Blender's glTF importer recreates one unskinned Icosphere as a shared custom-bone display shape; it is not runtime character geometry.",
+      "variant": "rainbow",
+      "source_file": "rainbow.glb",
+      "source_bytes": 37630440,
+      "source_sha256": "5AFFC31161245FA89CF8D2E626A602A29A8BD693E4AE6C7216365BE1A381856D",
+      "motion_map": {
+        "tail": [
+          "Bone_009",
+          "Bone_008",
+          "Bone_007",
+          "Bone_006",
+          "Bone_005"
+        ],
+        "front_left": [
+          "Bone_031",
+          "Bone_030",
+          "Bone_029",
+          "Bone_028",
+          "Bone_027",
+          "Bone_026"
+        ],
+        "front_right": [
+          "Bone_037",
+          "Bone_036",
+          "Bone_035",
+          "Bone_034",
+          "Bone_033",
+          "Bone_032"
+        ],
+        "hind_left": [
+          "Bone_015",
+          "Bone_014",
+          "Bone_013",
+          "Bone_012",
+          "Bone_011",
+          "Bone_010"
+        ],
+        "hind_right": [
+          "Bone_021",
+          "Bone_020",
+          "Bone_019",
+          "Bone_018",
+          "Bone_017",
+          "Bone_016"
+        ]
+      },
+      "preview_frames": [
+        "previews/unicorn_walk_only_v1/rainbow_walk_frame_01.png",
+        "previews/unicorn_walk_only_v1/rainbow_walk_frame_07.png",
+        "previews/unicorn_walk_only_v1/rainbow_walk_frame_13.png",
+        "previews/unicorn_walk_only_v1/rainbow_walk_frame_19.png",
+        "previews/unicorn_walk_only_v1/rainbow_walk_side_frame_01.png",
+        "previews/unicorn_walk_only_v1/rainbow_walk_side_frame_07.png",
+        "previews/unicorn_walk_only_v1/rainbow_walk_side_frame_13.png",
+        "previews/unicorn_walk_only_v1/rainbow_walk_side_frame_19.png"
+      ],
+      "visual_review_required": true
+    },
+    "star": {
+      "output_file": "godot/assets/characters/unicorns/unicorn_star_v1.glb",
+      "output_bytes": 40521308,
+      "output_sha256": "EE11F70324502880BA36302266A96F856B08A7F302B0AED9DFD362C796CDEC84",
+      "armature_count": 1,
+      "bone_count": 45,
+      "skinned_mesh_count": 1,
+      "helper_meshes": [
+        "Icosphere"
+      ],
+      "actions": [
+        "Walk"
+      ],
+      "action_ranges": {
+        "Walk": [
+          1.0,
+          25.0
+        ]
+      },
+      "embedded_images": {
+        "star_base_color": [
+          4096,
+          4096
+        ],
+        "star_emissive": [
+          2048,
+          2048
+        ],
+        "star_metallic_roughness": [
+          2048,
+          2048
+        ],
+        "star_normal": [
+          4096,
+          4096
+        ]
+      },
+      "passes": true,
+      "helper_note": "Blender's glTF importer recreates one unskinned Icosphere as a shared custom-bone display shape; it is not runtime character geometry.",
+      "variant": "star",
+      "source_file": "star.glb",
+      "source_bytes": 41230752,
+      "source_sha256": "40F7267F4ED2B82246ADD4408C3E2566F8D4CE5C9AF1F7CC5F422401DF35622B",
+      "motion_map": {
+        "tail": [
+          "Bone_010",
+          "Bone_009",
+          "Bone_008",
+          "Bone_007",
+          "Bone_006",
+          "Bone_005"
+        ],
+        "front_left": [
+          "Bone_032",
+          "Bone_031",
+          "Bone_030",
+          "Bone_029",
+          "Bone_028",
+          "Bone_027"
+        ],
+        "front_right": [
+          "Bone_038",
+          "Bone_037",
+          "Bone_036",
+          "Bone_035",
+          "Bone_034",
+          "Bone_033"
+        ],
+        "hind_left": [
+          "Bone_016",
+          "Bone_015",
+          "Bone_014",
+          "Bone_013",
+          "Bone_012",
+          "Bone_011"
+        ],
+        "hind_right": [
+          "Bone_022",
+          "Bone_021",
+          "Bone_020",
+          "Bone_019",
+          "Bone_018",
+          "Bone_017"
+        ]
+      },
+      "preview_frames": [
+        "previews/unicorn_walk_only_v1/star_walk_frame_01.png",
+        "previews/unicorn_walk_only_v1/star_walk_frame_07.png",
+        "previews/unicorn_walk_only_v1/star_walk_frame_13.png",
+        "previews/unicorn_walk_only_v1/star_walk_frame_19.png",
+        "previews/unicorn_walk_only_v1/star_walk_side_frame_01.png",
+        "previews/unicorn_walk_only_v1/star_walk_side_frame_07.png",
+        "previews/unicorn_walk_only_v1/star_walk_side_frame_13.png",
+        "previews/unicorn_walk_only_v1/star_walk_side_frame_19.png"
+      ],
+      "visual_review_required": true
+    },
+    "cloud": {
+      "output_file": "godot/assets/characters/unicorns/unicorn_cloud_v1.glb",
+      "output_bytes": 34059128,
+      "output_sha256": "4D962C893BE39D688A54EFBE39A06A4F3A95CE28756B428130AA6AF081649843",
+      "armature_count": 1,
+      "bone_count": 43,
+      "skinned_mesh_count": 1,
+      "helper_meshes": [
+        "Icosphere"
+      ],
+      "actions": [
+        "Walk"
+      ],
+      "action_ranges": {
+        "Walk": [
+          1.0,
+          25.0
+        ]
+      },
+      "embedded_images": {
+        "cloud_base_color": [
+          4096,
+          4096
+        ],
+        "cloud_emissive": [
+          2048,
+          2048
+        ],
+        "cloud_metallic_roughness": [
+          2048,
+          2048
+        ],
+        "cloud_normal": [
+          4096,
+          4096
+        ]
+      },
+      "passes": true,
+      "helper_note": "Blender's glTF importer recreates one unskinned Icosphere as a shared custom-bone display shape; it is not runtime character geometry.",
+      "variant": "cloud",
+      "source_file": "cloud.glb",
+      "source_bytes": 39760624,
+      "source_sha256": "7360B2B8D61091320E8F30B015EBF0FDE8238B09750574A4F732A8185EA88903",
+      "motion_map": {
+        "tail": [
+          "Bone_023",
+          "Bone_022",
+          "Bone_021",
+          "Bone_020",
+          "Bone_019"
+        ],
+        "front_left": [
+          "Bone_013",
+          "Bone_012",
+          "Bone_011",
+          "Bone_010",
+          "Bone_009"
+        ],
+        "front_right": [
+          "Bone_018",
+          "Bone_017",
+          "Bone_016",
+          "Bone_015",
+          "Bone_014"
+        ],
+        "hind_left": [
+          "Bone_028",
+          "Bone_027",
+          "Bone_026",
+          "Bone_025",
+          "Bone_024"
+        ],
+        "hind_right": [
+          "Bone_033",
+          "Bone_032",
+          "Bone_031",
+          "Bone_030",
+          "Bone_029"
+        ]
+      },
+      "preview_frames": [
+        "previews/unicorn_walk_only_v1/cloud_walk_frame_01.png",
+        "previews/unicorn_walk_only_v1/cloud_walk_frame_07.png",
+        "previews/unicorn_walk_only_v1/cloud_walk_frame_13.png",
+        "previews/unicorn_walk_only_v1/cloud_walk_frame_19.png",
+        "previews/unicorn_walk_only_v1/cloud_walk_side_frame_01.png",
+        "previews/unicorn_walk_only_v1/cloud_walk_side_frame_07.png",
+        "previews/unicorn_walk_only_v1/cloud_walk_side_frame_13.png",
+        "previews/unicorn_walk_only_v1/cloud_walk_side_frame_19.png"
+      ],
+      "visual_review_required": true
+    },
+    "dream": {
+      "output_file": "godot/assets/characters/unicorns/unicorn_dreamer_v1.glb",
+      "output_bytes": 41033304,
+      "output_sha256": "DB486E59F2D5379BF84EE70B15CDA06B1105CFC7F3BF9919603C9DAD3959DB1E",
+      "armature_count": 1,
+      "bone_count": 38,
+      "skinned_mesh_count": 1,
+      "helper_meshes": [
+        "Icosphere"
+      ],
+      "actions": [
+        "Walk"
+      ],
+      "action_ranges": {
+        "Walk": [
+          1.0,
+          25.0
+        ]
+      },
+      "embedded_images": {
+        "dream_base_color": [
+          4096,
+          4096
+        ],
+        "dream_emissive": [
+          2048,
+          2048
+        ],
+        "dream_metallic_roughness": [
+          2048,
+          2048
+        ],
+        "dream_normal": [
+          4096,
+          4096
+        ]
+      },
+      "passes": true,
+      "helper_note": "Blender's glTF importer recreates one unskinned Icosphere as a shared custom-bone display shape; it is not runtime character geometry.",
+      "variant": "dream",
+      "source_file": "dream.glb",
+      "source_bytes": 41748456,
+      "source_sha256": "29F41F80A661568D3D4D47C4321B08026AFD3A1C12C7342CD3803C69BE70B0F0",
+      "motion_map": {
+        "tail": [
+          "Bone_009",
+          "Bone_008",
+          "Bone_007",
+          "Bone_006",
+          "Bone_005"
+        ],
+        "front_left": [
+          "Bone_028",
+          "Bone_027",
+          "Bone_026",
+          "Bone_025",
+          "Bone_024"
+        ],
+        "front_right": [
+          "Bone_033",
+          "Bone_032",
+          "Bone_031",
+          "Bone_030",
+          "Bone_029"
+        ],
+        "hind_left": [
+          "Bone_014",
+          "Bone_013",
+          "Bone_012",
+          "Bone_011",
+          "Bone_010"
+        ],
+        "hind_right": [
+          "Bone_019",
+          "Bone_018",
+          "Bone_017",
+          "Bone_016",
+          "Bone_015"
+        ]
+      },
+      "preview_frames": [
+        "previews/unicorn_walk_only_v1/dream_walk_frame_01.png",
+        "previews/unicorn_walk_only_v1/dream_walk_frame_07.png",
+        "previews/unicorn_walk_only_v1/dream_walk_frame_13.png",
+        "previews/unicorn_walk_only_v1/dream_walk_frame_19.png",
+        "previews/unicorn_walk_only_v1/dream_walk_side_frame_01.png",
+        "previews/unicorn_walk_only_v1/dream_walk_side_frame_07.png",
+        "previews/unicorn_walk_only_v1/dream_walk_side_frame_13.png",
+        "previews/unicorn_walk_only_v1/dream_walk_side_frame_19.png"
+      ],
+      "visual_review_required": true
+    },
+    "mystic": {
+      "output_file": "godot/assets/characters/unicorns/unicorn_mystic_v1.glb",
+      "output_bytes": 64071332,
+      "output_sha256": "D21CC39B4F5DA7A80C3ED18015D4C5BF3179A281A1C06B91B00AA54915031E03",
+      "armature_count": 1,
+      "bone_count": 45,
+      "skinned_mesh_count": 1,
+      "helper_meshes": [
+        "Icosphere"
+      ],
+      "actions": [
+        "Walk"
+      ],
+      "action_ranges": {
+        "Walk": [
+          1.0,
+          25.0
+        ]
+      },
+      "embedded_images": {
+        "mystic_baked_basecolor": [
+          4096,
+          4096
+        ],
+        "mystic_baked_emit": [
+          4096,
+          4096
+        ],
+        "mystic_baked_metallicroughness": [
+          4096,
+          4096
+        ],
+        "mystic_normal": [
+          4096,
+          4096
+        ]
+      },
+      "passes": true,
+      "helper_note": "Blender's glTF importer recreates one unskinned Icosphere as a shared custom-bone display shape; it is not runtime character geometry.",
+      "variant": "mystic",
+      "source_file": "mystic.glb",
+      "source_bytes": 64438592,
+      "source_sha256": "9BD561FD51E3B0F3A91365488576BD2B5FE0F968854FCB91BE6583FFDFEE628E",
+      "motion_map": {
+        "tail": [
+          "Bone_008",
+          "Bone_007",
+          "Bone_006",
+          "Bone_005",
+          "Bone_004"
+        ],
+        "front_left": [
+          "Bone_035",
+          "Bone_034",
+          "Bone_033",
+          "Bone_032",
+          "Bone_031"
+        ],
+        "front_right": [
+          "Bone_040",
+          "Bone_039",
+          "Bone_038",
+          "Bone_037",
+          "Bone_036"
+        ],
+        "hind_left": [
+          "Bone_016",
+          "Bone_015",
+          "Bone_014",
+          "Bone_013",
+          "Bone_012"
+        ],
+        "hind_right": [
+          "Bone_021",
+          "Bone_020",
+          "Bone_019",
+          "Bone_018",
+          "Bone_017"
+        ]
+      },
+      "preview_frames": [
+        "previews/unicorn_walk_only_v1/mystic_walk_frame_01.png",
+        "previews/unicorn_walk_only_v1/mystic_walk_frame_07.png",
+        "previews/unicorn_walk_only_v1/mystic_walk_frame_13.png",
+        "previews/unicorn_walk_only_v1/mystic_walk_frame_19.png",
+        "previews/unicorn_walk_only_v1/mystic_walk_side_frame_01.png",
+        "previews/unicorn_walk_only_v1/mystic_walk_side_frame_07.png",
+        "previews/unicorn_walk_only_v1/mystic_walk_side_frame_13.png",
+        "previews/unicorn_walk_only_v1/mystic_walk_side_frame_19.png"
+      ],
+      "visual_review_required": true
+    }
+  },
+  "passes": true
+}

@@ -1,0 +1,254 @@
+{
+  "sheet": 6,
+  "source": "C:\\Users\\Tak\\Downloads\\Meshy_AI_Pet_Parade_0802212309_texture.glb",
+  "source_bytes": 34188844,
+  "source_sha256": "b1a96aa546b0f3c2bb440ad3e9ebc24122f8a69f88fea003429489c0f90896a4",
+  "grid_bounds_min": [
+    -0.7038329839706421,
+    -0.4302769899368286,
+    -0.9508330225944519
+  ],
+  "grid_bounds_max": [
+    0.7039530277252197,
+    0.4289399981498718,
+    0.9488509893417358
+  ],
+  "grid_thresholds": {
+    "row_x": [
+      0.0005974993109703064,
+      0.013588499277830124,
+      0.08546550013124943
+    ],
+    "left_z": [
+      -0.5338094979524612,
+      0.2594600021839142
+    ],
+    "right_z": [
+      -0.4572395086288452,
+      0.2730780094861984
+    ]
+  },
+  "items": [
+    {
+      "catalog_id": "pet_cat_org",
+      "cell": "top_left",
+      "source_vertices": 10816,
+      "source_polygons": 91150,
+      "optimized_vertices": 10816,
+      "optimized_polygons": 17999,
+      "source_origin": [
+        -0.3368630111217499,
+        0.18014800548553467,
+        0.2639960050582886
+      ],
+      "source_dimensions": [
+        0.4402860105037689,
+        0.4975839853286743,
+        0.6848549842834473
+      ],
+      "normalization_scale": 2.263252857277136,
+      "final_bounds_min": [
+        -0.49823927879333496,
+        -0.5630792379379272,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.49823933839797974,
+        0.5630792379379272,
+        1.5500000715255737
+      ]
+    },
+    {
+      "catalog_id": "pet_dog_dog",
+      "cell": "top_right",
+      "source_vertices": 11002,
+      "source_polygons": 97764,
+      "optimized_vertices": 11002,
+      "optimized_polygons": 17999,
+      "source_origin": [
+        0.3554679751396179,
+        0.16555750370025635,
+        0.2821980118751526
+      ],
+      "source_dimensions": [
+        0.47510597109794617,
+        0.4731069803237915,
+        0.6527079939842224
+      ],
+      "normalization_scale": 2.3747219496096252,
+      "final_bounds_min": [
+        -0.5641222596168518,
+        -0.5617488026618958,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.5641223192214966,
+        0.5617488026618958,
+        1.5500000715255737
+      ]
+    },
+    {
+      "catalog_id": "pet_dog_pud",
+      "cell": "middle_left",
+      "source_vertices": 11706,
+      "source_polygons": 185448,
+      "optimized_vertices": 11706,
+      "optimized_polygons": 17999,
+      "source_origin": [
+        -0.33088698983192444,
+        -0.04508700221776962,
+        -0.4377399981021881
+      ],
+      "source_dimensions": [
+        0.4601699709892273,
+        0.5598099827766418,
+        0.728024959564209
+      ],
+      "normalization_scale": 2.1290478844678895,
+      "final_bounds_min": [
+        -0.48986193537712097,
+        -0.5959311127662659,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.48986193537712097,
+        0.5959311127662659,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "pet_dog_ser",
+      "cell": "middle_right",
+      "source_vertices": 11439,
+      "source_polygons": 143586,
+      "optimized_vertices": 11439,
+      "optimized_polygons": 18000,
+      "source_origin": [
+        0.4159660041332245,
+        0.044598013162612915,
+        -0.4397670030593872
+      ],
+      "source_dimensions": [
+        0.5759740471839905,
+        0.7357620000839233,
+        0.7037249803543091
+      ],
+      "normalization_scale": 2.1066594901927553,
+      "final_bounds_min": [
+        -0.606690526008606,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6066905856132507,
+        0.7749999761581421,
+        1.482508897781372
+      ]
+    },
+    {
+      "catalog_id": "pet_paw",
+      "cell": "bottom_left",
+      "source_vertices": 4078,
+      "source_polygons": 70616,
+      "optimized_vertices": 4078,
+      "optimized_polygons": 6999,
+      "source_origin": [
+        -0.33589500188827515,
+        -0.1147570013999939,
+        -0.9417359828948975
+      ],
+      "source_dimensions": [
+        0.7358759641647339,
+        0.11927599459886551,
+        0.3118569850921631
+      ],
+      "normalization_scale": 2.1063332347854966,
+      "final_bounds_min": [
+        -0.7750000357627869,
+        -0.12561748921871185,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7750000953674316,
+        0.12561750411987305,
+        0.6568747162818909
+      ]
+    },
+    {
+      "catalog_id": "pet_fish",
+      "cell": "bottom_right",
+      "source_vertices": 10293,
+      "source_polygons": 114686,
+      "optimized_vertices": 10293,
+      "optimized_polygons": 18000,
+      "source_origin": [
+        0.3978314995765686,
+        -0.16769999265670776,
+        -0.9508330225944519
+      ],
+      "source_dimensions": [
+        0.5178869962692261,
+        0.5251539945602417,
+        0.4761210083961487
+      ],
+      "normalization_scale": 2.9515152051693967,
+      "final_bounds_min": [
+        -0.7642756700515747,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.7642756700515747,
+        0.7749999761581421,
+        1.4052784442901611
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "name": "base_color",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "emissive",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "metallic_roughness",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "normal",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    }
+  ],
+  "optimized_glb_bytes": 9133876
+}

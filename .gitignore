@@ -185,3 +185,19 @@ captures/
 playwright-report/
 test-results/
 blob-report/
+
+# Godot generated/import/export state
+godot/.godot/
+godot/.import/
+.tools/
+godot/export/
+godot/builds/
+godot/android/*
+!godot/android/.build_version
+godot/config/admob.json
+godot/export_credentials.cfg
+godot/build/
+
+# Blender disposable state
+*.blend1
+*.blend2

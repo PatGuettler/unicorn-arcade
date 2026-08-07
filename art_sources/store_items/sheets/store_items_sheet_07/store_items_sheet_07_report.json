@@ -1,0 +1,254 @@
+{
+  "sheet": 7,
+  "source": "C:\\Users\\Tak\\Downloads\\Meshy_AI_Playful_Critter_Parad_0802212413_texture.glb",
+  "source_bytes": 40859492,
+  "source_sha256": "b908071d75b2f291b905e3f7b3f4504f9d800b94e3619253fdf6a69cd3325864",
+  "grid_bounds_min": [
+    -0.5884060263633728,
+    -0.5694820284843445,
+    -0.9507489800453186
+  ],
+  "grid_bounds_max": [
+    0.5895289778709412,
+    0.5707700252532959,
+    0.9487000107765198
+  ],
+  "grid_thresholds": {
+    "row_x": [
+      -0.05498250154778361,
+      -0.06546400033403188,
+      -0.0033954977989196777
+    ],
+    "left_z": [
+      -0.36162449419498444,
+      0.319070503115654
+    ],
+    "right_z": [
+      -0.3181360065937042,
+      0.28889700025320053
+    ]
+  },
+  "items": [
+    {
+      "catalog_id": "pet_hamster",
+      "cell": "top_left",
+      "source_vertices": 11921,
+      "source_polygons": 186546,
+      "optimized_vertices": 11921,
+      "optimized_polygons": 18000,
+      "source_origin": [
+        -0.3520885109901428,
+        0.1296050101518631,
+        0.34032800793647766
+      ],
+      "source_dimensions": [
+        0.47263503074645996,
+        0.7260379791259766,
+        0.5726059675216675
+      ],
+      "normalization_scale": 2.1348745445326847,
+      "final_bounds_min": [
+        -0.5045082569122314,
+        -0.7750000357627869,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.5045082569122314,
+        0.7750000357627869,
+        1.2224419116973877
+      ]
+    },
+    {
+      "catalog_id": "pet_mouse",
+      "cell": "top_right",
+      "source_vertices": 11033,
+      "source_polygons": 89376,
+      "optimized_vertices": 11033,
+      "optimized_polygons": 18000,
+      "source_origin": [
+        0.2543190121650696,
+        0.2764510214328766,
+        0.33371099829673767
+      ],
+      "source_dimensions": [
+        0.4970259964466095,
+        0.5391539931297302,
+        0.6149890422821045
+      ],
+      "normalization_scale": 2.520370109763667,
+      "final_bounds_min": [
+        -0.6263447403907776,
+        -0.6794338226318359,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.6263446807861328,
+        0.6794337630271912,
+        1.5499999523162842
+      ]
+    },
+    {
+      "catalog_id": "pet_chick",
+      "cell": "middle_left",
+      "source_vertices": 11582,
+      "source_polygons": 130330,
+      "optimized_vertices": 11582,
+      "optimized_polygons": 18000,
+      "source_origin": [
+        -0.338035523891449,
+        0.059017494320869446,
+        -0.29862698912620544
+      ],
+      "source_dimensions": [
+        0.41752901673316956,
+        0.7201210260391235,
+        0.5964399576187134
+      ],
+      "normalization_scale": 2.1524159744723104,
+      "final_bounds_min": [
+        -0.4493480324745178,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.4493480920791626,
+        0.7749999761581421,
+        1.2837868928909302
+      ]
+    },
+    {
+      "catalog_id": "pet_frog",
+      "cell": "middle_right",
+      "source_vertices": 11280,
+      "source_polygons": 106724,
+      "optimized_vertices": 11280,
+      "optimized_polygons": 17999,
+      "source_origin": [
+        0.2471340000629425,
+        0.19356201589107513,
+        -0.29923000931739807
+      ],
+      "source_dimensions": [
+        0.49758201837539673,
+        0.7544159889221191,
+        0.5433130264282227
+      ],
+      "normalization_scale": 2.0545693924310657,
+      "final_bounds_min": [
+        -0.5111584067344666,
+        -0.7750000357627869,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.5111584067344666,
+        0.7750000357627869,
+        1.116274356842041
+      ]
+    },
+    {
+      "catalog_id": "pet_turtle",
+      "cell": "bottom_left",
+      "source_vertices": 11287,
+      "source_polygons": 162946,
+      "optimized_vertices": 11287,
+      "optimized_polygons": 18000,
+      "source_origin": [
+        -0.3242790102958679,
+        -0.16214801371097565,
+        -0.9506499767303467
+      ],
+      "source_dimensions": [
+        0.5044679641723633,
+        0.8146680593490601,
+        0.5260279774665833
+      ],
+      "normalization_scale": 1.9026154053940552,
+      "final_bounds_min": [
+        -0.47990426421165466,
+        -0.7750000357627869,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.47990432381629944,
+        0.7750000357627869,
+        1.0008289813995361
+      ]
+    },
+    {
+      "catalog_id": "pet_dragon",
+      "cell": "bottom_right",
+      "source_vertices": 13341,
+      "source_polygons": 179544,
+      "optimized_vertices": 13341,
+      "optimized_polygons": 17999,
+      "source_origin": [
+        0.32739150524139404,
+        0.07249100506305695,
+        -0.9507489800453186
+      ],
+      "source_dimensions": [
+        0.5242749452590942,
+        0.7350460290908813,
+        0.6137069463729858
+      ],
+      "normalization_scale": 2.108711480173655,
+      "final_bounds_min": [
+        -0.5527723431587219,
+        -0.7749999761581421,
+        0.0
+      ],
+      "final_bounds_max": [
+        0.5527722835540771,
+        0.7749999761581421,
+        1.2941309213638306
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "name": "base_color",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "emissive",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "metallic_roughness",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "normal",
+      "source": [
+        2048,
+        2048
+      ],
+      "optimized": [
+        2048,
+        2048
+      ]
+    }
+  ],
+  "optimized_glb_bytes": 9986036
+}

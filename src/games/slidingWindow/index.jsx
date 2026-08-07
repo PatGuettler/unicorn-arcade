@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { ZoomIn, ZoomOut } from "lucide-react";
 import { useGameViewport } from "../../hooks/gameViewport";
 import VictoryModal from "../../components/shared/victoryModal";
 import GlobalHeader from "../../components/shared/globalHeader";
@@ -251,23 +250,6 @@ const SlidingWindowGame = ({
         hintCost={hintCost}
         isFreeHint={level === 1}
       />
-
-      <div className="absolute bottom-safe right-4 z-40 flex flex-col gap-2 pointer-events-auto">
-        <button
-          type="button"
-          onClick={() => viewport.applyZoom(0.2)}
-          className="p-3 min-w-[48px] min-h-[48px] bg-slate-800 rounded-full text-cyan-400 border border-slate-600 hover:bg-slate-700"
-        >
-          <ZoomIn />
-        </button>
-        <button
-          type="button"
-          onClick={() => viewport.applyZoom(-0.2)}
-          className="p-3 min-w-[48px] min-h-[48px] bg-slate-800 rounded-full text-slate-400 border border-slate-600 hover:bg-slate-700"
-        >
-          <ZoomOut />
-        </button>
-      </div>
 
       <div
         ref={containerRef}
