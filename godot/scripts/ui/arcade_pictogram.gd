@@ -70,6 +70,7 @@ func _draw_symbol() -> void:
 		"size_line_up": _size_bars()
 		"chain_link": _links()
 		"galaxy_unicorn": _galaxy_ship()
+		"comet_math_rescue": _comet_math()
 		_: _spark(Vector2.ZERO, 18, accent)
 
 
@@ -248,6 +249,13 @@ func _galaxy_ship() -> void:
 	draw_colored_polygon(PackedVector2Array([Vector2(0, -29), Vector2(-18, 17), Vector2(0, 10), Vector2(18, 17)]), accent)
 	draw_circle(Vector2(0, -8), 7, Color("d9f5ff"))
 	for offset in [-7, 0, 7]: draw_line(Vector2(offset, 16), Vector2(offset - 6, 34), [PINK, GOLD, CYAN][int((offset + 7) / 7)], 4, true)
+
+
+func _comet_math() -> void:
+	draw_circle(Vector2(8, -7), 20, Color("72dff2"))
+	draw_line(Vector2(-31, 28), Vector2(-4, 4), Color("d98af5"), 9, true)
+	draw_line(Vector2(-33, 28), Vector2(-5, 2), GOLD, 3, true)
+	_glyph("=", Vector2(7, 5), 18, Color("172143"), 24)
 
 
 func _spark(center: Vector2, radius: float, color: Color) -> void:

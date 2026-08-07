@@ -76,6 +76,21 @@ func play_animation_now(requested: String) -> bool:
 	return true
 
 
+func set_motion_state(walking: bool) -> void:
+	if not is_instance_valid(animation_player) or walk_animation == &"":
+		return
+	if is_instance_valid(timer):
+		timer.stop()
+	_cancel_walk_journey()
+	if walking:
+		active_action = walk_animation
+		last_animation_name = "walk"
+		animation_player.play(walk_animation, 0.12)
+	else:
+		active_action = &""
+		_pose_standing()
+
+
 func _collect_animations() -> void:
 	available_animations.clear()
 	for animation_name in animation_player.get_animation_list():

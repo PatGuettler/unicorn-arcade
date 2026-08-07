@@ -64,7 +64,7 @@ func generate_problem(for_level: int, rng: RandomNumberGenerator = null) -> Dict
 	else:
 		var choice := rng.randf()
 		if choice < 0.4:
-			operation = "x"
+			operation = "×"
 			num1 = rng.randi_range(2, 11)
 			num2 = rng.randi_range(2, 11)
 			answer = num1 * num2
@@ -125,6 +125,26 @@ func _submit(card: Button) -> void:
 		action_button.text = "Retry"
 		action_button.show()
 		_set_cards_enabled(false)
+
+
+func can_retry_failure() -> bool:
+	return not active and is_instance_valid(action_button) and action_button.text == "Retry"
+
+
+func retry_failure() -> void:
+	if can_retry_failure():
+		_start_level(level)
+
+
+func _show_hint() -> void:
+	if not active:
+		return
+	for card in cards:
+		card.modulate = Color("ffe172") if bool(card.get_meta("correct", false)) else Color.WHITE
+	message_label.text = "The glowing card completes the equation."
+
+func can_show_hint() -> bool:
+	return active
 
 
 func _card_input(event: InputEvent, card: Button) -> void:
@@ -209,6 +229,11 @@ func _build_ui() -> void:
 	StorybookUI.apply_game_action(action_button, 160)
 	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Level" else level))
 	root.add_child(action_button)
+	var hint := Button.new()
+	StorybookUI.apply_game_action(hint, 140)
+	hint.text = "Hint"
+	hint.pressed.connect(func() -> void: if AppState.spend_hint(level): _show_hint())
+	root.add_child(hint)
 	var back := Button.new()
 	StorybookUI.apply_game_action(back, 170)
 	back.text = "Number Games"

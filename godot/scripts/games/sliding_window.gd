@@ -33,6 +33,7 @@ var rival_marker: Control
 var player_bar: ProgressBar
 var rival_bar: ProgressBar
 var lanes: Control
+var layout_generation := 0
 
 
 func _ready() -> void:
@@ -59,6 +60,7 @@ func _process(delta: float) -> void:
 
 
 func _start_level(for_level: int) -> void:
+	layout_generation += 1
 	level = for_level
 	var bounds := Rules.sliding_bounds(level)
 	var rng := RandomNumberGenerator.new()
@@ -109,6 +111,7 @@ func _choose(absolute_index: int) -> void:
 
 
 func _fail(reason: String) -> void:
+	layout_generation += 1
 	active = false
 	message_label.text = reason
 	action_button.text = "Retry"
@@ -117,13 +120,26 @@ func _fail(reason: String) -> void:
 	_update_race_bars()
 
 
+func can_show_hint() -> bool:
+	return active
+
+
 func _show_hint() -> void:
-	if not active or not AppState.spend_hint(level):
+	if not active:
 		return
 	var maximum := _window_maximum()
 	for index in value_buttons.size():
 		value_buttons[index].modulate = Color("ffe172") if _index_is_in_window(index) and level_data[index] == maximum else Color.WHITE
 	message_label.text = "The gold node is your current maximum."
+
+
+func can_retry_failure() -> bool:
+	return not active and is_instance_valid(action_button) and action_button.text == "Retry"
+
+
+func retry_failure() -> void:
+	if can_retry_failure():
+		_start_level(level)
 
 
 func _index_is_in_window(absolute_index: int) -> bool:
@@ -264,7 +280,7 @@ func _update_window() -> void:
 		value_buttons[index].modulate = Color.WHITE
 		_style_track_node(value_buttons[index], _index_is_in_window(index), index < window_pos)
 	_update_race_bars()
-	_layout_overlays.call_deferred()
+	_layout_overlays.call_deferred(layout_generation)
 	_center_window.call_deferred()
 
 
@@ -288,7 +304,7 @@ func _update_rival() -> void:
 			panel.add_theme_stylebox_override("panel", StorybookUI.button_style(Color("1a1230"), Color("5a4060"), 2, 14, 1))
 			label.add_theme_color_override("font_color", Color("8a7394"))
 	_update_race_bars()
-	_layout_overlays.call_deferred()
+	_layout_overlays.call_deferred(layout_generation)
 
 
 func _update_race_bars() -> void:
@@ -319,10 +335,11 @@ func _style_track_node(button: Button, in_window: bool, collected: bool) -> void
 		button.add_theme_stylebox_override("disabled", StorybookUI.button_style(Color("101933"), Color("46516c"), 2, 14, 1))
 
 
-func _layout_overlays() -> void:
-	if value_buttons.is_empty() or rival_nodes.is_empty():
+func _layout_overlays(generation: int) -> void:
+	# Deferred rather than awaiting a frame: freed scenes never retain a suspended
+	# instance coroutine while a route change is in progress.
+	if generation != layout_generation or not is_inside_tree() or not is_instance_valid(lanes) or value_buttons.is_empty() or rival_nodes.is_empty():
 		return
-	await get_tree().process_frame
 	_place_window(player_window_frame, value_buttons, window_pos)
 	_place_window(rival_window_frame, rival_nodes, opponent_pos)
 	_place_marker(player_marker, value_buttons, window_pos, -112.0)

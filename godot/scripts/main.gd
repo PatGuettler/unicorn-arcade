@@ -17,6 +17,7 @@ const PENNY_TEXTURE_PATH := "res://assets/games/currency/penny.png"
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 const ArcadePictogramScene = preload("res://scripts/ui/arcade_pictogram.gd")
 const ProgressRingScene = preload("res://scripts/ui/progress_ring.gd")
+const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
 
 var page: VBoxContainer
 var status_label: Label
@@ -137,6 +138,23 @@ func _show_login() -> void:
 	name_input.custom_minimum_size = Vector2(0, 64)
 	name_input.add_theme_font_size_override("font_size", 21)
 	page.add_child(name_input)
+	var profiles := AppState.profile_names()
+	if not profiles.is_empty():
+		var choose_label := Label.new()
+		choose_label.text = "OR PICK A SAVED PROFILE"
+		choose_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		choose_label.add_theme_font_size_override("font_size", 15)
+		page.add_child(choose_label)
+		var choices := HBoxContainer.new()
+		choices.alignment = BoxContainer.ALIGNMENT_CENTER
+		choices.add_theme_constant_override("separation", 8)
+		page.add_child(choices)
+		for profile_name in profiles:
+			var profile_button := _make_button(profile_name.to_upper(), StorybookUI.NAVY, 52)
+			profile_button.pressed.connect(func() -> void:
+				if AppState.select_profile(profile_name): _show_view("home")
+			)
+			choices.add_child(profile_button)
 	var enter := _make_button("ENTER ARCADE", StorybookUI.NAVY, 68)
 	enter.disabled = true
 	name_input.text_changed.connect(func(value: String) -> void: enter.disabled = value.strip_edges().is_empty())
@@ -656,6 +674,14 @@ func _profile_section_title(value: String) -> Label:
 
 
 func _add_header(title: String, show_back: bool, show_home: bool, back_action: Callable = Callable()) -> void:
+	# Dashboard/category/profile share the exact shell header used by Alley/Room.
+	# Home keeps its illustrated sign as its intentional identity treatment.
+	if not title.is_empty():
+		var action := back_action if show_back and back_action.is_valid() else Callable(self, "_show_home")
+		var shared := UnicornHeader.build(title, "BACK" if show_back else "HOME", action, _show_home)
+		page.add_child(shared)
+		coin_label = shared.find_child("SharedCoinBalance", true, false) as Label
+		return
 	var header := GridContainer.new()
 	header.name = "CenteredHeader"
 	header.columns = 3

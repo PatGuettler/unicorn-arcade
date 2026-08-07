@@ -19,6 +19,7 @@ restore_export_preset() {
 	if [[ -n "$PRESET_BACKUP" && -f "$PRESET_BACKUP" && -n "$PRESET_PATH" ]]; then
 		cp "$PRESET_BACKUP" "$PRESET_PATH"
 		rm -f "$PRESET_BACKUP"
+		git -C "$ROOT" diff --exit-code -- godot/export_presets.cfg
 	fi
 }
 
@@ -145,6 +146,60 @@ set_package_name() {
 	sed -i "s|^package/unique_name=.*|package/unique_name=\"${package_name}\"|" "$preset"
 }
 
+build_legacy_profile_bridge() {
+	local bridge="$PROJECT/android/legacy_profile_bridge"
+	local output="$PROJECT/android/plugins"
+	local godot_aar
+	[[ -d "$bridge" ]] || { echo "ERROR: legacy bridge source missing" >&2; exit 1; }
+	# The generated custom template owns the matching Godot Java API AAR.
+	godot --headless --path "$PROJECT" --install-android-build-template
+	godot_aar="$(find "$PROJECT/android/build/libs/release" -name 'godot-lib*.aar' -type f | head -1)"
+	[[ -n "$godot_aar" && -f "$godot_aar" ]] || { echo "ERROR: generated Godot library AAR missing" >&2; exit 1; }
+	mkdir -p "$output"
+	GODOT_ANDROID_LIBRARY_AAR="$godot_aar" LEGACY_BRIDGE_OUTPUT_DIR="$output" \
+		"$PROJECT/android/build/gradlew" -p "$bridge" copyReleaseAar
+	[[ -s "$output/legacy_profile_bridge.aar" ]] || { echo "ERROR: legacy bridge AAR was not built" >&2; exit 1; }
+}
+
+set_export_format() {
+	local format="$1"
+	local preset="$PROJECT/export_presets.cfg"
+	sed -i "s/^gradle_build\/export_format=.*/gradle_build\/export_format=${format}/" "$preset"
+}
+
+standalone_bundletool() {
+	local version="${BUNDLETOOL_VERSION:-1.16.0}"
+	local cache_dir="${BUNDLETOOL_CACHE_DIR:-$HOME/.cache/unicorn-arcade/bundletool}"
+	local jar="${BUNDLETOOL_JAR:-$cache_dir/bundletool-all-${version}.jar}"
+	if [[ ! -s "$jar" ]]; then
+		mkdir -p "$cache_dir"
+		echo "Downloading official Bundletool ${version} for AAB validation..."
+		curl -fsSL -o "$jar" "https://github.com/google/bundletool/releases/download/${version}/bundletool-all-${version}.jar"
+	fi
+	[[ -s "$jar" ]] || { echo "ERROR: standalone Bundletool download is empty" >&2; exit 1; }
+	java -jar "$jar" version >/dev/null || { echo "ERROR: standalone Bundletool is not executable" >&2; exit 1; }
+	echo "$jar"
+}
+
+validate_artifact() {
+	local artifact="$1" package_name="$2" expected_code="$3" expected_name="$4"
+	[[ -s "$artifact" ]] || { echo "ERROR: missing Android artifact $artifact" >&2; exit 1; }
+	if [[ "$artifact" == *.apk ]]; then
+		local apkanalyzer="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/apkanalyzer"
+		[[ -x "$apkanalyzer" ]] || apkanalyzer="$(find "${ANDROID_SDK_ROOT}/cmdline-tools" -name apkanalyzer -type f | head -1)"
+		[[ -x "$apkanalyzer" ]] || { echo "ERROR: apkanalyzer is required for APK metadata validation" >&2; exit 1; }
+		[[ "$("$apkanalyzer" manifest application-id "$artifact")" == "$package_name" ]] || { echo "ERROR: APK package mismatch" >&2; exit 1; }
+		[[ "$("$apkanalyzer" manifest version-code "$artifact")" == "$expected_code" ]] || { echo "ERROR: APK versionCode mismatch" >&2; exit 1; }
+		[[ "$("$apkanalyzer" manifest version-name "$artifact")" == "$expected_name" ]] || { echo "ERROR: APK versionName mismatch" >&2; exit 1; }
+	else
+		local bundletool
+		bundletool="$(standalone_bundletool)"
+		[[ "$(java -jar "$bundletool" dump manifest --bundle="$artifact" --xpath=/manifest/@package)" == "$package_name" ]] || { echo "ERROR: AAB package mismatch" >&2; exit 1; }
+		[[ "$(java -jar "$bundletool" dump manifest --bundle="$artifact" --xpath=/manifest/@android:versionCode)" == "$expected_code" ]] || { echo "ERROR: AAB versionCode mismatch" >&2; exit 1; }
+		[[ "$(java -jar "$bundletool" dump manifest --bundle="$artifact" --xpath=/manifest/@android:versionName)" == "$expected_name" ]] || { echo "ERROR: AAB versionName mismatch" >&2; exit 1; }
+	fi
+}
+
 export_android() {
 	mkdir -p "$PROJECT/build/android"
 	PRESET_PATH="$PROJECT/export_presets.cfg"
@@ -152,8 +207,10 @@ export_android() {
 	cp "$PRESET_PATH" "$PRESET_BACKUP"
 	trap restore_export_preset EXIT
 	install_admob_android_binaries
+	build_legacy_profile_bridge
 	write_admob_config
 	bump_version
+	set_export_format 1
 	configure_godot_android_paths
 	start_adb_server
 
@@ -172,18 +229,21 @@ export_android() {
 
 	echo "Exporting Play release AAB as ${RELEASE_PACKAGE_NAME} (installs Android build template as part of export)..."
 	set_package_name "$RELEASE_PACKAGE_NAME"
+	set_export_format 1
 	godot --headless --path "$PROJECT" --verbose \
 		--install-android-build-template \
 		--export-release "$EXPORT_PRESET" "$PROJECT/build/android/UnicornArcade.aab"
+	validate_artifact "$PROJECT/build/android/UnicornArcade.aab" "$RELEASE_PACKAGE_NAME" "$VERSION_CODE" "${VERSION_NAME:-1.${VERSION_CODE}}"
 
 	echo "Exporting installable debug APK as ${DEBUG_PACKAGE_NAME}..."
 	set_package_name "$DEBUG_PACKAGE_NAME"
 	local preset="$PROJECT/export_presets.cfg"
-	sed -i 's/^gradle_build\/export_format=.*/gradle_build\/export_format=0/' "$preset"
+	set_export_format 0
 	sed -i 's|^export_path=.*|export_path="build/android/UnicornArcade-debug.apk"|' "$preset"
 	godot --headless --path "$PROJECT" --verbose \
 		--export-debug "$EXPORT_PRESET" "$PROJECT/build/android/UnicornArcade-debug.apk"
-	sed -i 's/^gradle_build\/export_format=.*/gradle_build\/export_format=1/' "$preset"
+	validate_artifact "$PROJECT/build/android/UnicornArcade-debug.apk" "$DEBUG_PACKAGE_NAME" "$VERSION_CODE" "${VERSION_NAME:-1.${VERSION_CODE}}"
+	set_export_format 1
 	sed -i 's|^export_path=.*|export_path="build/android/UnicornArcade.aab"|' "$preset"
 	restore_export_preset
 	trap - EXIT

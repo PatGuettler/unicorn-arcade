@@ -23,6 +23,7 @@ const GAMES := [
 	{"id": "size_line_up", "title": "Size Line-Up", "category": "Mystery", "scene": "res://scenes/games/word_game.tscn"},
 	{"id": "chain_link", "title": "Chain Link", "category": "Mystery", "scene": "res://scenes/games/word_game.tscn"},
 	{"id": "galaxy_unicorn", "title": "Galaxy Unicorn", "category": "Arcade", "scene": "res://scenes/games/galaxy_unicorn.tscn"},
+	{"id": "comet_math_rescue", "title": "Comet Math Rescue", "category": "Arcade", "scene": "res://scenes/games/comet_math_rescue.tscn"},
 ]
 
 

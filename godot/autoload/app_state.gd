@@ -5,6 +5,7 @@ const RoomRules = preload("res://scripts/room_rules.gd")
 
 signal state_changed
 signal coins_changed(coins: int)
+signal save_failed(message: String)
 
 var data: Dictionary = {}
 var selected_game_id := ""
@@ -14,7 +15,28 @@ var active_room_companion := "sparkle"
 
 
 func _ready() -> void:
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	data = SaveService.load_state()
+
+
+func _notification(what: int) -> void:
+	if (what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT) and SaveService.has_active_profile():
+		_save_and_emit()
+
+
+func profile_names() -> Array[String]:
+	return SaveService.profile_names()
+
+
+func select_profile(display_name: String) -> bool:
+	var selected := SaveService.select_profile(display_name)
+	if selected.is_empty():
+		return false
+	data = selected
+	shell_view = "home"
+	state_changed.emit()
+	coins_changed.emit(coins())
+	return true
 
 
 func coins() -> int:
@@ -34,14 +56,26 @@ func player_name() -> String:
 
 
 func set_player_name(value: String) -> void:
-	data["player"]["name"] = value.strip_edges()
+	var requested := value.strip_edges()
+	if player_name().is_empty():
+		var created := SaveService.create_profile(requested)
+		if not created.is_empty():
+			data = created
+			state_changed.emit()
+			coins_changed.emit(coins())
+			return
+	data["player"]["name"] = requested
 	_save_and_emit()
 
 
 func logout() -> void:
-	data["player"]["name"] = ""
+	# Signing out must not erase the selected profile's display name or progress.
+	if not SaveService.deactivate_profile():
+		push_error("Unicorn Arcade logout save failed: %s" % SaveService.last_error)
+	data = SaveService.default_profile()
 	shell_view = "home"
-	_save_and_emit()
+	state_changed.emit()
+	coins_changed.emit(coins())
 
 
 func current_level(game_id: String) -> int:
@@ -239,6 +273,8 @@ func complete_level(game_id: String, level: int, elapsed_ms: int) -> int:
 
 
 func _save_and_emit() -> void:
-	SaveService.save_state(data)
+	if not SaveService.save_state(data):
+		push_error("Unicorn Arcade save failed: %s" % SaveService.last_error)
+		save_failed.emit(SaveService.last_error)
 	state_changed.emit()
 	coins_changed.emit(coins())

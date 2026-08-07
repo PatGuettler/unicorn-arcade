@@ -142,6 +142,42 @@ func _choose_node(index: int) -> void:
 		_set_nodes_enabled(true)
 
 
+func can_retry_failure() -> bool:
+	return not active and is_instance_valid(action_button) and action_button.text == "Retry"
+
+
+func retry_failure() -> void:
+	if can_retry_failure():
+		_start_level(level)
+
+
+func _show_hint() -> void:
+	if not active or current_index >= level_data.size():
+		return
+	var expected := current_index + level_data[current_index]
+	if expected >= 0 and expected < node_buttons.size():
+		var stone := node_buttons[expected]
+		var start := node_buttons[current_index].get_global_rect().get_center()
+		var finish := stone.get_global_rect().get_center()
+		var arc := Line2D.new()
+		arc.name = "CountedLandingArc"
+		arc.width = 9.0
+		arc.default_color = Color("ffe172")
+		arc.joint_mode = Line2D.LINE_JOINT_ROUND
+		arc.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		arc.end_cap_mode = Line2D.LINE_CAP_ROUND
+		var lift := maxf(68.0, absf(finish.x - start.x) * 0.23)
+		arc.points = PackedVector2Array([_fx_local(start), _fx_local((start + finish) * 0.5 + Vector2(0, -lift)), _fx_local(finish)])
+		fx_layer.add_child(arc)
+		var tween := arc.create_tween()
+		tween.tween_property(arc, "modulate:a", 0.0, 1.8).set_delay(0.55)
+		tween.tween_callback(arc.queue_free)
+		status_label.text = "Follow the rainbow arc and count each landing."
+
+func can_show_hint() -> bool:
+	return active and current_index >= 0 and current_index < level_data.size()
+
+
 func _rebuild_path() -> void:
 	companion_preview = null
 	for child in path_box.get_children():
@@ -227,10 +263,12 @@ func _update_path() -> void:
 			button.texture_normal = STONE_VISITED
 			value_label.text = "✓"
 			value_label.add_theme_color_override("font_color", Color("3a2868"))
+			value_label.text = ""
 		elif index == level_data.size():
 			button.texture_normal = STONE_FINISH
 			value_label.text = "★"
 			value_label.add_theme_color_override("font_color", Color("50315d"))
+			value_label.text = ""
 		else:
 			button.texture_normal = _normal_stone_texture(index)
 			value_label.text = ""
@@ -423,6 +461,11 @@ func _build_ui() -> void:
 		get_tree().change_scene_to_file("res://scenes/main.tscn")
 	)
 	actions.add_child(back)
+	var hint := _action_button("Hint")
+	hint.pressed.connect(func() -> void:
+		if AppState.spend_hint(level): _show_hint()
+	)
+	actions.add_child(hint)
 
 
 func _action_button(label_text: String) -> Button:

@@ -11,6 +11,7 @@ const JUMP_SCENE = preload("res://scenes/games/unicorn_jump.tscn")
 const SLIDING_SCENE = preload("res://scenes/games/sliding_window.tscn")
 const MATHTRIS_SCENE = preload("res://scenes/games/mathtris.tscn")
 const GALAXY_SCENE = preload("res://scenes/games/galaxy_unicorn.tscn")
+const COMET_SCENE = preload("res://scenes/games/comet_math_rescue.tscn")
 const MARKET_SCENE = preload("res://scenes/meta/marketplace.tscn")
 const ALLEY_SCENE = preload("res://scenes/meta/unicorn_alley.tscn")
 const ROOM_SCENE = preload("res://scenes/meta/room_editor.tscn")
@@ -171,6 +172,7 @@ func _run() -> void:
 	mathtris.active = true
 	mathtris.call("_spawn_wave")
 	_check(not mathtris.active and mathtris.falling.is_empty(), "a blocked Mathtris spawn tops out without an orphan box")
+	_mathtris_companion_power_contract(mathtris)
 	remove_child(mathtris)
 	mathtris.free()
 	var galaxy = GALAXY_SCENE.instantiate()
@@ -194,6 +196,19 @@ func _run() -> void:
 	_check(galaxy.call("_segment_hits_circle", Vector2(576, 1000), Vector2(576, 300), Vector2(576, 650), 26.0), "Galaxy Unicorn fast bolts use swept collision instead of tunneling through targets")
 	remove_child(galaxy)
 	galaxy.free()
+	var comet = COMET_SCENE.instantiate()
+	add_child(comet)
+	await get_tree().process_frame
+	comet.size = Vector2(720, 1280)
+	comet.call("_update_comet_positions")
+	_check(comet.active and comet.lane_buttons.size() == 3 and comet.target_rescues > 0, "Comet Math Rescue launches a three-lane Rescue mission")
+	_check(_ui_is_accessible(comet), "Comet Math Rescue meets readable text, contrast, and touch-target minimums")
+	comet.call("_show_hint")
+	_check(comet.hint_ms > 0.0 and not comet.wave_resolved, "Comet Math Rescue hint highlights without resolving its wave")
+	comet.selected_lane = comet.correct_lane
+	_check(comet.call("_resolve_wave") and comet.rescues == 1 and comet.score > 0, "Comet Math Rescue resolves only the selected correct lane")
+	remove_child(comet)
+	comet.free()
 	var market = MARKET_SCENE.instantiate()
 	add_child(market)
 	await get_tree().process_frame
@@ -306,7 +321,7 @@ func _run() -> void:
 	remove_child(room)
 	room.free()
 	var original_data := AppState.data.duplicate(true)
-	AppState.data = SaveService.default_state()
+	AppState.data = SaveService.default_profile()
 	AppState.data["player"]["name"] = "Runtime Test"
 	_check(AppState.buy_companion("rainbow") and AppState.coins() == 500, "companion adoption deducts the exact catalog price")
 	_check(AppState.equip_companion("rainbow") and AppState.equipped_companion() == "rainbow", "owned companions can be equipped")
@@ -505,6 +520,46 @@ func _find_wrong_choice(game_id: String, game: Node, answer: String) -> String:
 			if str(item["label"]) != answer:
 				return str(item["label"])
 	return "__wrong__"
+
+
+func _mathtris_fixture(game: Node, cells_to_fill: Array[Vector2i]) -> void:
+	game.board = game.call("_make_board")
+	game.falling.clear()
+	game.active = true
+	game.equation_charge = 3
+	game.score = 0
+	game.level = 1
+	game.slow_until_ms = 0
+	for cell in cells_to_fill:
+		game.board[cell.y][cell.x] = "1"
+
+
+func _mathtris_companion_power_contract(game: Node) -> void:
+	# Every original power consumes a three-clear charge only after its real action succeeds.
+	_mathtris_fixture(game, [])
+	for col in 5:
+		game.board[11][col] = ["1", "+", "1", "=", "2"][col]
+	_check(game.call("apply_companion_power", "sparkle") and game.equation_charge == 0 and game.score == 400, "Mathtris Sparkle clears exact hits for 80 points each without normal-match scoring")
+	_mathtris_fixture(game, [Vector2i(0, 13), Vector2i(1, 13)])
+	_check(game.call("apply_companion_power", "rainbow") and game.board[13][0] == "" and game.equation_charge == 0, "Mathtris Rainbow clears the occupied bottom row after three clears")
+	_mathtris_fixture(game, [Vector2i(3, 8), Vector2i(3, 10)])
+	_check(game.call("apply_companion_power", "star") and game.board[8][3] == "" and game.equation_charge == 0, "Mathtris Star clears the fullest occupied column after three clears")
+	_mathtris_fixture(game, [])
+	_check(game.call("apply_companion_power", "cloud") and game.slow_until_ms > Time.get_ticks_msec() and game.equation_charge == 0, "Mathtris Cloud slows falling for eighteen seconds after three clears")
+	_mathtris_fixture(game, [])
+	for col in 5:
+		game.board[10][col] = ["1", "+", "1", "=", "3"][col]
+	_check(game.call("apply_companion_power", "dream") and game.equation_charge == 0 and game.score == 600, "Mathtris Dream clears exact repaired hits for 120 points each without normal-match scoring")
+	_mathtris_fixture(game, [Vector2i(0, 10), Vector2i(7, 13)])
+	_check(game.call("apply_companion_power", "mystic") and game.call("_find_equations").is_empty() and game.equation_charge == 0, "Mathtris Mystic clears every settled tile after three clears")
+	for companion_id in ["sparkle", "rainbow", "star", "cloud", "dream", "mystic"]:
+		_mathtris_fixture(game, [Vector2i(0, 13)])
+		game.equation_charge = 2
+		var score_before: int = game.score
+		_check(not game.call("apply_companion_power", companion_id) and game.equation_charge == 2 and game.score == score_before, "Mathtris %s cannot spend a power before three clears" % companion_id)
+	for companion_id in ["rainbow", "star", "dream", "mystic"]:
+		_mathtris_fixture(game, [])
+		_check(not game.call("apply_companion_power", companion_id) and game.equation_charge == 3 and game.score == 0, "Mathtris %s keeps its charge when the board cannot use it" % companion_id)
 
 
 func _skeletons_are_in_rest_pose(node: Node) -> bool:

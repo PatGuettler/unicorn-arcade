@@ -27,6 +27,7 @@ const LESSONS := {
 	"size_line_up": [["Read all words.", "Tap the shortest first.", "Continue shortest to longest."], ["Count letters, not font size.", "The line grows in order.", "A wrong length ends the try."], ["Count equal-looking words carefully.", "Plan the full order.", "Use your companion once."]],
 	"chain_link": [["Read the starting word.", "Find its final letter.", "Choose a word starting with it."], ["The chosen word makes the next link.", "Check first and last letters.", "Keep the chain unbroken."], ["Long chains need attention.", "Say the connecting letter aloud.", "Your companion can help once."]],
 	"galaxy_unicorn": [["Drag to move your equipped unicorn.", "Rainbow bolts fire automatically.", "Line up with enemies."], ["Avoid enemies reaching your unicorn.", "Collect useful pickups.", "Defeat the required number."], ["Bosses take several hits.", "Later levels speed up gradually.", "Use your companion once."]],
+	"comet_math_rescue": [["Read the equation banner.", "Drag or tap a comet lane.", "Your rainbow bolt checks that lane."], ["Only the selected comet resolves each wave.", "Correct answers fill the Rescue meter.", "Wrong answers cost a shield heart."], ["Comets descend more quickly later.", "Division answers are always whole numbers.", "Mystic can safely rescue one wave."]],
 }
 
 

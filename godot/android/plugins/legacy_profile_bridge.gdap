@@ -1,0 +1,9 @@
+[config]
+name="LegacyProfileBridge"
+binary_type="local"
+binary="legacy_profile_bridge.aar"
+
+[dependencies]
+local=[]
+remote=[]
+custom_maven_repos=[]
