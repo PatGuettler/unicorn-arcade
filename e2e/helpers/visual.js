@@ -5,18 +5,9 @@ export const screenShotOptions = {
   animations: "disabled",
   caret: "hide",
   scale: "css",
-  // Slightly looser than 0.05: emoji + pixel-art header icons still differ a few
-  // percent between local Linux and ubuntu-latest Chromium font stacks.
-  maxDiffPixelRatio: 0.1,
+  maxDiffPixelRatio: 0.05,
   threshold: 0.25,
 };
-
-/** Regions that vary by OS font/emoji/pixel scaling and should not fail CI. */
-export const defaultMaskSelectors = [
-  '[data-testid="header-home"]',
-  '[data-testid^="game-card-"] [data-testid="game-card-icon"]',
-  '[data-testid^="game-card-"] .text-4xl',
-];
 
 /**
  * Call before navigation (e.g. alongside seedTestUser).
@@ -53,13 +44,9 @@ export async function stabilizeForScreenshot(page) {
 export async function expectAppScreenshot(page, name, options = {}) {
   await stabilizeForScreenshot(page);
   const target = page.locator(".h-app").first();
-  const maskSelectors = [
-    ...defaultMaskSelectors,
-    ...(options.maskSelectors ?? []),
-  ];
-  const masks = maskSelectors
-    .map((sel) => page.locator(sel))
-    .filter((locator) => locator);
+  // Prefer CSS stabilization (data-visual-test) over Playwright masks. Masks bake
+  // magenta into baselines and amplify tiny layout shifts between local and CI.
+  const masks = (options.maskSelectors ?? []).map((sel) => page.locator(sel));
   await expect(target).toHaveScreenshot(name, {
     ...screenShotOptions,
     ...(options.maxDiffPixelRatio != null

@@ -83,6 +83,44 @@ html[data-visual-test] *::after {
   transition: none !important;
 }
 
+/* Keep scroll gutters identical across local vs CI Chromium */
+html[data-visual-test] .app-scroll,
+html[data-visual-test] [data-scroll-root="true"] {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  scrollbar-gutter: auto !important;
+}
+html[data-visual-test] .app-scroll::-webkit-scrollbar,
+html[data-visual-test] [data-scroll-root="true"]::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/*
+ * Replace OS-dependent emoji / pixel-art header icons with flat placeholders.
+ * Avoids Playwright magenta masks, which amplify 1px layout drift in CI.
+ */
+html[data-visual-test] [data-testid="header-home"] {
+  background: #334155 !important;
+  border-radius: 0.75rem !important;
+}
+html[data-visual-test] [data-testid="header-home"] img {
+  opacity: 0 !important;
+}
+html[data-visual-test] [data-testid="game-card-icon"] {
+  display: block !important;
+  width: 2.5rem !important;
+  height: 2.5rem !important;
+  margin-bottom: 0.75rem !important;
+  overflow: hidden !important;
+  color: transparent !important;
+  font-size: 0 !important;
+  line-height: 0 !important;
+  background: #334155 !important;
+  border-radius: 0.5rem !important;
+}
+
 /* Pan/zoom game surfaces only — not on body (breaks button taps on iOS) */
 .game-surface {
   touch-action: none;
