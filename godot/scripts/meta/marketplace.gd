@@ -17,6 +17,7 @@ const MUTED := Color("aab7e8")
 const DECOR_PAGE_SIZE := 10000
 
 var root: VBoxContainer
+var filters: VBoxContainer
 var content: VBoxContainer
 var catalog_scroll: ScrollContainer
 var category_scroll: ScrollContainer
@@ -82,27 +83,45 @@ func _build_shell() -> void:
 	message_label.add_theme_color_override("font_color", YELLOW)
 	message_label.custom_minimum_size.y = 24
 	root.add_child(message_label)
+	# Keep search/chips outside the list scroll. Nested ScrollContainers on Android
+	# steal vertical drag and make the decor catalog feel locked.
+	filters = VBoxContainer.new()
+	filters.name = "MarketplaceFilters"
+	filters.add_theme_constant_override("separation", 10)
+	root.add_child(filters)
 	catalog_scroll = ScrollContainer.new()
 	catalog_scroll.name = "MarketplaceScroll"
+	catalog_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	catalog_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	catalog_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	catalog_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	catalog_scroll.scroll_deadzone = 20
-	catalog_scroll.follow_focus = true
+	catalog_scroll.scroll_deadzone = 12
+	catalog_scroll.follow_focus = false
+	catalog_scroll.clip_contents = true
 	root.add_child(catalog_scroll)
 	content = VBoxContainer.new()
+	content.name = "MarketplaceCatalog"
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.mouse_filter = Control.MOUSE_FILTER_PASS
 	content.add_theme_constant_override("separation", 10)
 	catalog_scroll.add_child(content)
+	catalog_scroll.resized.connect(_fit_catalog_width)
 	_update_coins()
 
 
 func _clear_content() -> void:
 	for child in content.get_children():
 		child.queue_free()
+	for child in filters.get_children():
+		child.queue_free()
+	category_scroll = null
 	message_label.text = ""
 	_update_coins()
+
+
+func _fit_catalog_width() -> void:
+	if is_instance_valid(content) and is_instance_valid(catalog_scroll):
+		content.custom_minimum_size.x = catalog_scroll.size.x
 
 
 func _show_companions() -> void:
@@ -170,14 +189,16 @@ func _show_decor() -> void:
 	search.add_theme_constant_override("outline_size", 2)
 	StorybookUI.apply_line_edit(search)
 	search.text_submitted.connect(_apply_decor_search)
-	content.add_child(search)
+	filters.add_child(search)
 	category_scroll = ScrollContainer.new()
 	category_scroll.name = "DecorCategoryScroll"
 	category_scroll.custom_minimum_size.y = 66
+	category_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	category_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	category_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	category_scroll.scroll_deadzone = 20
-	content.add_child(category_scroll)
+	category_scroll.scroll_deadzone = 12
+	category_scroll.follow_focus = false
+	filters.add_child(category_scroll)
 	var category_row := HBoxContainer.new()
 	category_row.name = "DecorCategoryChips"
 	category_row.add_theme_constant_override("separation", 8)
@@ -312,6 +333,10 @@ func _input(event: InputEvent) -> void:
 		if absf(drag.relative.y) <= absf(drag.relative.x):
 			return
 		catalog_dragging = true
+		# Drop LineEdit focus so the list can take over the gesture.
+		var focused := get_viewport().gui_get_focus_owner()
+		if focused != null and focused is LineEdit:
+			focused.release_focus()
 	elif event is InputEventScreenTouch and not (event as InputEventScreenTouch).pressed:
 		if catalog_dragging or category_dragging:
 			catalog_dragging = false

@@ -465,8 +465,14 @@ func _show_bag() -> void:
 	count_label.add_theme_color_override("font_color", MUTED)
 	content.add_child(count_label)
 	var scroll := ScrollContainer.new()
+	scroll.name = "FurnitureBagScroll"
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.scroll_deadzone = 12
+	scroll.follow_focus = false
+	scroll.clip_contents = true
 	content.add_child(scroll)
 	bag_grid = GridContainer.new()
 	bag_grid.name = "BagGrid"
@@ -475,6 +481,10 @@ func _show_bag() -> void:
 	bag_grid.add_theme_constant_override("h_separation", 7)
 	bag_grid.add_theme_constant_override("v_separation", 7)
 	scroll.add_child(bag_grid)
+	scroll.resized.connect(func() -> void:
+		if is_instance_valid(bag_grid):
+			bag_grid.custom_minimum_size.x = scroll.size.x
+	)
 	_rebuild_bag_grid(count_label)
 
 
