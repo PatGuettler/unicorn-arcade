@@ -9,6 +9,7 @@ var level := 1
 var target := 0
 var total := 0
 var started_ms := 0
+var failed := false
 var target_label: Label
 var total_label: Label
 var message_label: Label
@@ -39,10 +40,13 @@ func _start_round() -> void:
 	else:
 		target = rng.randi_range(100, 499)
 	total = 0
+	failed = false
 	started_ms = Time.get_ticks_msec()
 	target_label.text = "Make %s" % _money(target)
 	total_label.text = _money(total)
 	message_label.text = "Tap coins. Exact wins; overshoot ends the round."
+	for button in coin_buttons:
+		button.modulate = Color.WHITE
 	_set_buttons_enabled(true)
 
 
@@ -55,8 +59,34 @@ func _add_coin(value: int) -> void:
 		level += 1
 		_set_buttons_enabled(false)
 	elif total > target:
+		failed = true
 		message_label.text = "Too much—try this level again."
 		_set_buttons_enabled(false)
+
+
+func can_retry_failure() -> bool:
+	return failed
+
+
+func retry_failure() -> void:
+	if failed:
+		_start_round()
+
+
+func _show_hint() -> void:
+	if total >= target:
+		return
+	var remaining := target - total
+	var best := 1
+	for value in COINS.values():
+		if int(value) <= remaining and int(value) > best:
+			best = int(value)
+	for button in coin_buttons:
+		button.modulate = Color("ffe172") if int(button.get_meta("coin_value", 0)) == best else Color.WHITE
+	message_label.text = "%s is the biggest coin that still fits." % _money(best)
+
+func can_show_hint() -> bool:
+	return not failed and total < target
 
 
 func _build_ui() -> void:
@@ -109,6 +139,7 @@ func _build_ui() -> void:
 		button.setup(coin_name, COINS[coin_name], COIN_SIZES[coin_name])
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		button.pressed.connect(_add_coin.bind(COINS[coin_name]))
+		button.set_meta("coin_value", COINS[coin_name])
 		grid.add_child(button)
 		coin_buttons.append(button)
 	var actions := HBoxContainer.new()
@@ -120,6 +151,11 @@ func _build_ui() -> void:
 	StorybookUI.apply_game_action(retry, 210)
 	retry.pressed.connect(_start_round)
 	actions.add_child(retry)
+	var hint := Button.new()
+	StorybookUI.apply_game_action(hint, 120)
+	hint.text = "Hint"
+	hint.pressed.connect(func() -> void: if AppState.spend_hint(level): _show_hint())
+	actions.add_child(hint)
 	var back := Button.new()
 	back.text = "Number Games"
 	back.custom_minimum_size = Vector2(210, 58)

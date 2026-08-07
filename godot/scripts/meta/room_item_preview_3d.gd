@@ -78,6 +78,12 @@ func set_display_yaw(degrees: float) -> void:
 		display_rotation_root.rotation_degrees.y = display_yaw_degrees
 
 
+func set_motion_state(walking: bool) -> void:
+	var animator := find_child("IdleAnimator", true, false)
+	if is_instance_valid(animator) and animator.has_method("set_motion_state"):
+		animator.call("set_motion_state", walking)
+
+
 func _build_companion(stage: Node3D) -> void:
 	var companion_id := item_id.trim_prefix("companion_")
 	if not CHARACTER_SCENES.has(companion_id):

@@ -57,6 +57,18 @@ static func galaxy_fall_frame_factor() -> float:
 	return 36.0
 
 
+static func comet_target(level: int) -> int:
+	return 4 + mini(8, maxi(1, level))
+
+
+static func comet_decision_ms(level: int) -> int:
+	return maxi(2600, 6200 - (maxi(1, level) - 1) * 260)
+
+
+static func comet_correct_score(level: int, remaining_ratio: float) -> int:
+	return 100 + maxi(1, level) * 15 + roundi(clampf(remaining_ratio, 0.0, 1.0) * 50.0)
+
+
 static func mathtris_drop_ms(level: int, drops: int = 0, elapsed_seconds: int = 0) -> int:
 	var value: int
 	if level <= 10:

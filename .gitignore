@@ -194,6 +194,18 @@ godot/export/
 godot/builds/
 godot/android/*
 !godot/android/.build_version
+!godot/android/legacy_profile_bridge/
+!godot/android/legacy_profile_bridge/**
+# Keep the native bridge's build definition and Kotlin source, never its local
+# Gradle state or generated Android artifacts (the preceding re-include wins
+# over the repository-wide Android ignore rules).
+godot/android/legacy_profile_bridge/.gradle/
+godot/android/legacy_profile_bridge/.kotlin/
+godot/android/legacy_profile_bridge/build/
+godot/android/legacy_profile_bridge/local.properties
+godot/android/legacy_profile_bridge/.idea/
+godot/android/legacy_profile_bridge/*.iml
+godot/addons/legacy_profile_bridge/*.aar
 godot/config/admob.json
 godot/export_credentials.cfg
 godot/build/

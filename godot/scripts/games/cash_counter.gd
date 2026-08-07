@@ -80,11 +80,12 @@ func _add_bill(value: int) -> void:
 		_set_buttons_enabled(false)
 
 
+func can_show_hint() -> bool:
+	return active
+
+
 func _show_hint() -> void:
 	if not active:
-		return
-	if not AppState.spend_hint(level):
-		message_label.text = "Not enough coins for a hint."
 		return
 	var remaining := target - total
 	var best := 0

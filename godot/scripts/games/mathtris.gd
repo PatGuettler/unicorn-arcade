@@ -24,6 +24,8 @@ var rng := RandomNumberGenerator.new()
 var swipe_cell := Vector2i(-1, -1)
 var swipe_start := Vector2.ZERO
 var swipe_consumed := false
+var equation_charge := 0
+var slow_until_ms := 0
 
 
 func _ready() -> void:
@@ -37,7 +39,7 @@ func _process(delta: float) -> void:
 		return
 	fall_accumulator += delta * 1000.0 * CompanionAbilityService.time_scale()
 	var elapsed := (Time.get_ticks_msec() - started_ms) / 1000
-	var interval := Rules.mathtris_drop_ms(level, drops_placed, elapsed)
+	var interval := Rules.mathtris_drop_ms(level, drops_placed, elapsed) * (2 if Time.get_ticks_msec() < slow_until_ms else 1)
 	if fall_accumulator >= interval:
 		fall_accumulator = 0.0
 		_step_falling()
@@ -97,6 +99,8 @@ func _start_game() -> void:
 	started_ms = Time.get_ticks_msec()
 	last_spawn_col = -1
 	selected = Vector2i(-1, -1)
+	equation_charge = 0
+	slow_until_ms = 0
 	board = _make_board()
 	_seed_bottom_pile()
 	falling.clear()
@@ -293,6 +297,7 @@ func _clear_matches(matches: Array[Dictionary], points_per_cell: int, allow_casc
 	if matches.is_empty():
 		return
 	var hits := _hits_from_matches(matches)
+	equation_charge = mini(3, equation_charge + matches.size())
 	var shown_tokens: Array[String] = []
 	shown_tokens.assign(matches[0]["tokens"])
 	message_label.text = "%s — TRUE!" % " ".join(shown_tokens)
@@ -351,8 +356,183 @@ func _activate_mystic_ability() -> void:
 	_refresh()
 
 
+func apply_companion_power(companion_id: String) -> bool:
+	if not active or not can_use_companion_power():
+		return false
+	match companion_id:
+		"sparkle":
+			var matches := _find_matches()
+			if matches.is_empty():
+				var repair := _find_best_equation_fix(2)
+				if repair.is_empty():
+					repair = _most_filled_segment()
+				if repair.is_empty():
+					return false
+				_apply_equation_kit(repair["cells"], repair["kit"])
+				matches = _find_matches(repair["cells"])
+			if matches.is_empty():
+				return false
+			_clear_power_hits(_hits_from_matches([matches[0]]), 80)
+			message_label.text = "Sparkle cleared a true equation!"
+		"rainbow":
+			var swept := 0
+			for col in COLS:
+				if board[ROWS - 1][col] != "":
+					board[ROWS - 1][col] = ""
+					swept += 1
+			if swept == 0:
+				return false
+			score += swept * 35
+			_apply_gravity()
+			message_label.text = "Rainbow swept the bottom row!"
+		"star":
+			var fullest := 0
+			var count := -1
+			for col in COLS:
+				var occupied := 0
+				for row in ROWS: occupied += 1 if board[row][col] != "" else 0
+				if occupied > count: count = occupied; fullest = col
+			if count <= 0:
+				return false
+			for row in ROWS: board[row][fullest] = ""
+			score += count * 45
+			_apply_gravity()
+			message_label.text = "Star cleared the fullest column!"
+		"cloud":
+			slow_until_ms = Time.get_ticks_msec() + 18000
+			score += 50
+			message_label.text = "Cloud slowed falling tiles for 18 seconds!"
+		"dream":
+			var repair := _find_best_equation_fix(1)
+			if repair.is_empty():
+				return false
+			_apply_equation_kit(repair["cells"], repair["kit"])
+			var repaired := _find_matches(repair["cells"])
+			if repaired.is_empty():
+				return false
+			_clear_power_hits(_hits_from_matches(repaired), 120)
+			message_label.text = "Dream repaired a near-equation."
+		"mystic":
+			var cleared := 0
+			for row in ROWS:
+				for col in COLS:
+					if board[row][col] != "":
+						board[row][col] = ""
+						cleared += 1
+			if cleared == 0:
+				return false
+			score += 400 + cleared * 25
+			_apply_gravity()
+			message_label.text = "Mystic cleared the whole board!"
+		_: return false
+	equation_charge = 0
+	_refresh()
+	return true
+
+
+func _equation_kits() -> Array[Array]:
+	var allowed: Array[String] = []
+	for token in Rules.mathtris_allowed(level):
+		if token.is_valid_int():
+			allowed.append(token)
+	var kits: Array[Array] = []
+	for left in allowed:
+		for operator in ["+", "-"]:
+			if not operator in Rules.mathtris_allowed(level):
+				continue
+			for right in allowed:
+				for result in allowed:
+					var kit: Array[String] = [left, operator, right, "=", result]
+					if Rules.equation_valid(kit):
+						kits.append(kit)
+	return kits
+
+
+func _segments() -> Array[Array]:
+	var result: Array[Array] = []
+	for row in ROWS:
+		for start_col in range(COLS - 4):
+			var horizontal: Array[Vector2i] = []
+			for offset in 5:
+				horizontal.append(Vector2i(start_col + offset, row))
+			result.append(horizontal)
+	for col in COLS:
+		for start_row in range(ROWS - 4):
+			var vertical: Array[Vector2i] = []
+			for offset in 5:
+				vertical.append(Vector2i(col, start_row + offset))
+			result.append(vertical)
+	return result
+
+
+func _find_best_equation_fix(max_wrong: int) -> Dictionary:
+	var best: Dictionary = {}
+	var best_score := -1
+	for segment in _segments():
+		for kit in _equation_kits():
+			var wrong := 0
+			var empty := 0
+			var matches := 0
+			for index in 5:
+				var cell: Vector2i = segment[index]
+				var value: String = board[cell.y][cell.x]
+				if value == "":
+					empty += 1
+				elif value == kit[index]:
+					matches += 1
+				else:
+					wrong += 1
+			if wrong <= max_wrong and empty <= 2 and matches >= 2:
+				var candidate_score := matches * 10 - wrong * 3 - empty
+				if candidate_score > best_score:
+					best_score = candidate_score
+					best = {"cells": segment, "kit": kit}
+	return best
+
+
+func _most_filled_segment() -> Dictionary:
+	var best: Dictionary = {}
+	var most_filled := -1
+	var kits := _equation_kits()
+	if kits.is_empty():
+		return best
+	for segment in _segments():
+		var filled := 0
+		for cell in segment:
+			if board[cell.y][cell.x] != "":
+				filled += 1
+		if filled > most_filled:
+			most_filled = filled
+			best = {"cells": segment, "kit": kits[0]}
+	return best
+
+
+func _apply_equation_kit(segment: Array, kit: Array) -> void:
+	for index in 5:
+		var cell: Vector2i = segment[index]
+		board[cell.y][cell.x] = str(kit[index])
+
+
+func _clear_power_hits(hits: Array[Vector2i], points_per_hit: int) -> bool:
+	if hits.is_empty():
+		return false
+	for hit in hits:
+		board[hit.y][hit.x] = ""
+	score += hits.size() * points_per_hit
+	_apply_gravity()
+	return true
+
+
+func can_use_companion_power() -> bool:
+	return active and equation_charge >= 3
+
+
+func can_show_hint() -> bool:
+	return active
+
+
 func _show_hint() -> void:
-	if not active or not AppState.spend_hint(level):
+	if not active:
 		return
 	var example := "1 + 1 = 2"
 	if "3" in Rules.mathtris_allowed(level):

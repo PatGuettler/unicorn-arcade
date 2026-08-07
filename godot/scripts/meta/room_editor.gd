@@ -4,6 +4,7 @@ const Catalog = preload("res://scripts/meta_catalog.gd")
 const Rules = preload("res://scripts/room_rules.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
+const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -35,11 +36,38 @@ var selection_toolbar: HBoxContainer
 var bag_overlay: Control
 var bag_grid: GridContainer
 var bag_category := "all"
+var roaming_actor: RoomItemPreview3D
+var roam_target := Vector2.ZERO
+var roam_pause := 0.0
+var roam_rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	roam_rng.randomize()
 	companion_id = AppState.active_room_companion
 	_build_editor()
+
+
+func _process(delta: float) -> void:
+	if not is_instance_valid(roaming_actor) or not is_instance_valid(room_canvas):
+		return
+	if not dragging_id.is_empty() or not selected_id.is_empty() or is_instance_valid(bag_overlay) or AppState.setting("reduced_motion", false):
+		return
+	roam_pause -= delta
+	if roam_target == Vector2.ZERO or roam_pause <= 0.0:
+		roam_target = _safe_roam_target()
+		roam_pause = roam_rng.randf_range(2.4, 5.5)
+		roaming_actor.set_motion_state(roaming_actor.position.distance_to(roam_target) >= 4.0)
+	elif roaming_actor.position.distance_to(roam_target) < 4.0:
+		roaming_actor.set_motion_state(false)
+		return
+	var before := roaming_actor.position
+	roaming_actor.position = roaming_actor.position.move_toward(roam_target, delta * 42.0)
+	if roaming_actor.position.distance_to(roam_target) < 4.0:
+		roaming_actor.set_motion_state(false)
+	roaming_actor.z_index = int(roaming_actor.position.y)
+	if roaming_actor.position.x != before.x:
+		roaming_actor.scale.x = absf(roaming_actor.scale.x) * (1.0 if roaming_actor.position.x > before.x else -1.0)
 
 
 func _input(event: InputEvent) -> void:
@@ -85,23 +113,7 @@ func _build_editor() -> void:
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 14)
 	root.add_theme_constant_override("separation", 7)
 	add_child(root)
-	var header := HBoxContainer.new()
-	root.add_child(header)
-	var alley := Button.new()
-	alley.text = "< ALLEY"
-	alley.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/unicorn_alley.tscn"))
-	header.add_child(alley)
-	var title := Label.new()
-	title.text = "%s'S ROOM" % str(definition.get("name", companion_id)).to_upper()
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", Color(str(definition.get("color", "f26fa7"))))
-	header.add_child(title)
-	var home := Button.new()
-	home.text = "HOME"
-	home.pressed.connect(func() -> void: AppState.shell_view = "home"; get_tree().change_scene_to_file("res://scenes/main.tscn"))
-	header.add_child(home)
+	root.add_child(UnicornHeader.build("%s'S ROOM" % str(definition.get("name", companion_id)).to_upper(), "ALLEY", func() -> void: get_tree().change_scene_to_file("res://scenes/meta/unicorn_alley.tscn"), func() -> void: AppState.shell_view = "home"; get_tree().change_scene_to_file("res://scenes/main.tscn")))
 	var tools := HBoxContainer.new()
 	tools.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(tools)
@@ -134,6 +146,7 @@ func _build_editor() -> void:
 	room_canvas.add_child(room_bg)
 	for item in local_items:
 		_create_item_button(item)
+	_create_roaming_actor()
 	room_canvas.resized.connect(_position_items)
 	room_stage.resized.connect(_fit_room_canvas.bind(room_stage, room_texture.get_size()))
 	_fit_room_canvas.call_deferred(room_stage, room_texture.get_size())
@@ -178,6 +191,8 @@ func _create_item_button(item: Dictionary) -> void:
 	_apply_item_button_style(button, str(definition.get("category", "cozy")), str(item.get("instance_id", "")) == selected_id)
 	button.gui_input.connect(_item_input.bind(str(item.get("instance_id", "")), button))
 	room_canvas.add_child(button)
+	if item_id == "companion_%s" % companion_id:
+		button.hide() # Actor below owns the room-scale presentation; this remains its saved home anchor.
 	var art := RoomItemPreviewScene.new()
 	art.name = "RoomItemPreview3D"
 	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -185,6 +200,33 @@ func _create_item_button(item: Dictionary) -> void:
 	art.set_display_yaw(float(item.get("rotation", 0)))
 	button.add_child(art)
 	item_buttons[str(item.get("instance_id", ""))] = button
+
+
+func _create_roaming_actor() -> void:
+	if not is_instance_valid(room_canvas): return
+	roaming_actor = RoomItemPreviewScene.new()
+	roaming_actor.name = "RoamingRoomCompanion"
+	roaming_actor.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	roaming_actor.custom_minimum_size = Vector2(148, 116)
+	roaming_actor.size = roaming_actor.custom_minimum_size
+	roaming_actor.setup({"id": "companion_%s" % companion_id, "category": "companions", "animate": true, "presentation": "marketplace"})
+	room_canvas.add_child(roaming_actor)
+	var home := _local_item("room_companion_%s" % companion_id)
+	roaming_actor.position = Vector2(float(home.get("x", 50.0)) * room_canvas.size.x / 100.0, float(home.get("y", 65.0)) * room_canvas.size.y / 100.0) - roaming_actor.size * 0.5
+	roam_target = roaming_actor.position
+
+
+func _safe_roam_target() -> Vector2:
+	var padding := Vector2(80, 92)
+	for attempt in 10:
+		var candidate := Vector2(roam_rng.randf_range(padding.x, maxf(padding.x, room_canvas.size.x - padding.x)), roam_rng.randf_range(room_canvas.size.y * 0.48, maxf(room_canvas.size.y * 0.48, room_canvas.size.y - padding.y))) - roaming_actor.size * 0.5
+		var rect := Rect2(candidate, roaming_actor.size)
+		var blocked := false
+		for instance_id in item_buttons:
+			var placed := item_buttons[instance_id] as Button
+			if is_instance_valid(placed) and placed.visible and rect.grow(18).intersects(placed.get_rect()): blocked = true; break
+		if not blocked: return candidate
+	return roaming_actor.position
 
 
 func _position_items() -> void:
@@ -239,6 +281,16 @@ func _clear_selection() -> void:
 		_apply_item_button_style(item_buttons[instance_id], str(definition.get("category", "cozy")), false)
 	if is_instance_valid(status_label):
 		status_label.text = "%d decorations placed. Tap an item for controls." % local_items.size()
+
+
+func close_top_overlay() -> bool:
+	if is_instance_valid(bag_overlay):
+		_close_bag()
+		return true
+	if not selected_id.is_empty():
+		_clear_selection()
+		return true
+	return false
 
 
 func _move_dragged(instance_id: String, local_position: Vector2, button: Button) -> void:

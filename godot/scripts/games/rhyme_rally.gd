@@ -34,6 +34,7 @@ var round_index := 0
 var target_rounds := 0
 var challenge: Dictionary = {}
 var started_ms := 0
+var failed := false
 var prompt_label: Label
 var progress_label: Label
 var message_label: Label
@@ -52,6 +53,7 @@ func _ready() -> void:
 
 func _start_level() -> void:
 	round_index = 0
+	failed = false
 	target_rounds = target_for_level(level)
 	started_ms = Time.get_ticks_msec()
 	message_label.text = "Pick the word that rhymes. One wrong answer ends the level."
@@ -69,10 +71,12 @@ func _show_round() -> void:
 	for index in option_buttons.size():
 		option_buttons[index].text = options[index]
 		option_buttons[index].disabled = false
+		option_buttons[index].modulate = Color.WHITE
 
 
 func _pick(answer: String) -> void:
 	if answer != challenge["answer"]:
+		failed = true
 		message_label.text = "Pick the word that rhymes! Try this level again."
 		_set_enabled(false)
 		return
@@ -84,6 +88,26 @@ func _pick(answer: String) -> void:
 		_set_enabled(false)
 	else:
 		_show_round()
+
+
+func can_retry_failure() -> bool:
+	return failed
+
+
+func retry_failure() -> void:
+	if failed:
+		_start_level()
+
+
+func _show_hint() -> void:
+	if failed:
+		return
+	for button in option_buttons:
+		button.modulate = Color("ffe172") if button.text == str(challenge.get("answer", "")) else Color.WHITE
+	message_label.text = "The glowing word rhymes with %s." % str(challenge.get("prompt", ""))
+
+func can_show_hint() -> bool:
+	return not failed and not challenge.is_empty()
 
 
 func _build_ui() -> void:
@@ -149,6 +173,11 @@ func _build_ui() -> void:
 	retry.text = "Retry / Next"
 	retry.pressed.connect(_start_level)
 	actions.add_child(retry)
+	var hint := Button.new()
+	StorybookUI.apply_game_action(hint, 120)
+	hint.text = "Hint"
+	hint.pressed.connect(func() -> void: if AppState.spend_hint(level): _show_hint())
+	actions.add_child(hint)
 	var back := Button.new()
 	StorybookUI.apply_game_action(back, 160)
 	back.text = "Word Games"

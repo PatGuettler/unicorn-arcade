@@ -4,6 +4,7 @@ const Catalog = preload("res://scripts/meta_catalog.gd")
 const Rules = preload("res://scripts/room_rules.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
+const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -52,22 +53,9 @@ func _build_shell() -> void:
 	root = VBoxContainer.new()
 	root.add_theme_constant_override("separation", 10)
 	margin.add_child(root)
-	var header := HBoxContainer.new()
+	var header := UnicornHeader.build("MARKETPLACE", "HOME", _go_home, _go_home)
 	root.add_child(header)
-	var back := Button.new()
-	back.text = "< HOME"
-	back.pressed.connect(_go_home)
-	header.add_child(back)
-	var title := Label.new()
-	title.text = "MARKETPLACE"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.add_theme_font_size_override("font_size", 25)
-	title.add_theme_color_override("font_color", PINK)
-	header.add_child(title)
-	coin_label = Label.new()
-	coin_label.add_theme_color_override("font_color", YELLOW)
-	header.add_child(coin_label)
+	coin_label = header.find_child("SharedCoinBalance", true, false) as Label
 	var tabs := HBoxContainer.new()
 	root.add_child(tabs)
 	var companions := _button("COMPANIONS", PANEL, 50)

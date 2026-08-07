@@ -80,6 +80,13 @@ func consume_mystic_move() -> bool:
 	return true
 
 
+func consume_active_power() -> bool:
+	if used:
+		return false
+	_use()
+	return true
+
+
 func reward_bonus(base_reward: int) -> int:
 	if companion_id() != "rainbow" or used:
 		return 0

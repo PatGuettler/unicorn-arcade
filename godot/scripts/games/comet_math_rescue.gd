@@ -1,0 +1,346 @@
+extends Control
+
+const Rules = preload("res://scripts/games/gameplay_rules.gd")
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
+const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+
+const LANES := 3
+const START_Y := 220.0
+
+var level := 1
+var target_rescues := 0
+var rescues := 0
+var score := 0
+var lives := 3
+var active := false
+var selected_lane := 1
+var correct_lane := 0
+var current_problem: Dictionary = {}
+var wave_elapsed_ms := 0.0
+var decision_ms := 0.0
+var wave_resolved := false
+var feedback_ms := 0.0
+var hint_ms := 0.0
+var started_ms := 0
+var rng := RandomNumberGenerator.new()
+var lane_buttons: Array[Button] = []
+var equation_label: Label
+var meter_label: Label
+var status_label: Label
+var action_button: Button
+var player_preview: RoomItemPreview3D
+var bolt_lane := -1
+var bolt_ms := 0.0
+
+
+func _ready() -> void:
+	rng.randomize()
+	mouse_filter = Control.MOUSE_FILTER_STOP
+	level = AppState.current_level("comet_math_rescue")
+	_build_ui()
+	_start_level(level)
+
+
+static func generate_problem(for_level: int, generator: RandomNumberGenerator) -> Dictionary:
+	var operation := "+"
+	if for_level >= 10:
+		operation = ["+", "-", "x", "/"][generator.randi_range(0, 3)]
+	elif for_level >= 7:
+		operation = "x"
+	elif for_level >= 4:
+		operation = "-"
+	var left := 0
+	var right := 0
+	var answer := 0
+	match operation:
+		"+":
+			left = generator.randi_range(1, 4 + mini(8, for_level))
+			right = generator.randi_range(1, 4 + mini(8, for_level))
+			answer = left + right
+		"-":
+			right = generator.randi_range(1, 3 + mini(7, for_level))
+			left = right + generator.randi_range(0, 4 + mini(8, for_level))
+			answer = left - right
+		"x":
+			left = generator.randi_range(2, 3 + mini(6, for_level / 2))
+			right = generator.randi_range(2, 3 + mini(5, for_level / 2))
+			answer = left * right
+		"/":
+			right = generator.randi_range(2, 3 + mini(6, for_level / 2))
+			answer = generator.randi_range(2, 3 + mini(7, for_level / 2))
+			left = right * answer
+	var answers: Array[int] = [answer]
+	var step := maxi(1, mini(8, 1 + for_level / 3))
+	for offset in [-2, -1, 1, 2, 3]:
+		var distractor := maxi(0, answer + offset * step)
+		if distractor != answer and not distractor in answers:
+			answers.append(distractor)
+		if answers.size() == LANES:
+			break
+	while answers.size() < LANES:
+		var fallback := answer + answers.size() * step + 1
+		if not fallback in answers:
+			answers.append(fallback)
+	# Do not use Array.shuffle(): it draws from Godot's global RNG and would make
+	# a supplied seeded generator only partly deterministic.
+	for index in range(answers.size() - 1, 0, -1):
+		var swap_index := generator.randi_range(0, index)
+		var swap := answers[index]
+		answers[index] = answers[swap_index]
+		answers[swap_index] = swap
+	return {"left": left, "right": right, "operation": operation, "answer": answer, "answers": answers, "correct_index": answers.find(answer)}
+
+
+static func display_operation(operation: String) -> String:
+	return "×" if operation == "x" else ("÷" if operation == "/" else operation)
+
+
+func _process(delta: float) -> void:
+	if not active:
+		return
+	var ms := delta * 1000.0 * CompanionAbilityService.time_scale()
+	if feedback_ms > 0.0:
+		feedback_ms -= ms
+		bolt_ms = maxf(0.0, bolt_ms - ms)
+		if feedback_ms <= 0.0 and active:
+			_spawn_wave()
+		queue_redraw()
+		return
+	wave_elapsed_ms += ms
+	hint_ms = maxf(0.0, hint_ms - ms)
+	bolt_ms = maxf(0.0, bolt_ms - ms)
+	_update_comet_positions()
+	if wave_elapsed_ms >= decision_ms:
+		_resolve_wave()
+	queue_redraw()
+
+
+func _input(event: InputEvent) -> void:
+	if not active or wave_resolved:
+		return
+	if event is InputEventScreenTouch and event.pressed:
+		_select_lane(_lane_for_x(event.position.x))
+		get_viewport().set_input_as_handled()
+	elif event is InputEventScreenDrag:
+		_select_lane(_lane_for_x(event.position.x))
+		get_viewport().set_input_as_handled()
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
+		_select_lane(_lane_for_x(event.position.x))
+	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
+		_select_lane(_lane_for_x(event.position.x))
+
+
+func _start_level(for_level: int) -> void:
+	level = maxi(1, for_level)
+	target_rescues = Rules.comet_target(level)
+	rescues = 0
+	score = 0
+	lives = 3
+	selected_lane = 1
+	started_ms = Time.get_ticks_msec()
+	active = true
+	CompanionAbilityService.begin_level("comet_math_rescue", level)
+	action_button.hide()
+	status_label.text = "Drag or tap a lane. Your rainbow bolt checks that comet."
+	_spawn_wave()
+
+
+func _spawn_wave() -> void:
+	if not active:
+		return
+	current_problem = generate_problem(level, rng)
+	correct_lane = int(current_problem["correct_index"])
+	wave_elapsed_ms = 0.0
+	decision_ms = Rules.comet_decision_ms(level)
+	wave_resolved = false
+	feedback_ms = 0.0
+	bolt_lane = -1
+	equation_label.text = "%d %s %d = ?" % [int(current_problem["left"]), display_operation(str(current_problem["operation"])), int(current_problem["right"])]
+	for lane in LANES:
+		lane_buttons[lane].text = str((current_problem["answers"] as Array)[lane])
+		lane_buttons[lane].tooltip_text = "Comet lane %d, answer %s" % [lane + 1, lane_buttons[lane].text]
+		lane_buttons[lane].disabled = false
+	_update_comet_positions()
+	_update_hud()
+
+
+func _select_lane(lane: int) -> void:
+	if not active or wave_resolved:
+		return
+	selected_lane = clampi(lane, 0, LANES - 1)
+	status_label.text = "Rainbow sight locked on lane %d." % (selected_lane + 1)
+	_update_comet_positions()
+
+
+func _resolve_wave(force_correct := false) -> bool:
+	if not active or wave_resolved or current_problem.is_empty():
+		return false
+	wave_resolved = true
+	for button in lane_buttons:
+		button.disabled = true
+	if force_correct:
+		selected_lane = correct_lane
+	bolt_lane = selected_lane
+	bolt_ms = 520.0
+	var correct := selected_lane == correct_lane
+	if correct:
+		var remaining := clampf(1.0 - wave_elapsed_ms / maxf(1.0, decision_ms), 0.0, 1.0)
+		var gained := Rules.comet_correct_score(level, remaining)
+		score += gained
+		rescues += 1
+		status_label.text = "Correct! Rescue star gained: +%d score." % gained
+	else:
+		lives -= 1
+		status_label.text = "Not this comet. Shield lost — %d shield hearts left." % lives
+	if lives <= 0:
+		active = false
+		action_button.text = "Retry"
+		action_button.show()
+		status_label.text = "Three comets slipped through. Retry this rescue mission."
+	elif rescues >= target_rescues:
+		active = false
+		var reward := AppState.complete_level("comet_math_rescue", level, Time.get_ticks_msec() - started_ms)
+		action_button.text = "Next Mission"
+		action_button.show()
+		status_label.text = "Rescue complete! +%d coins" % reward
+	else:
+		feedback_ms = 650.0 if not AppState.setting("reduced_motion", false) else 1.0
+	_update_hud()
+	queue_redraw()
+	return correct
+
+
+func _mystic_rescue() -> bool:
+	if not active or wave_resolved:
+		return false
+	return _resolve_wave(true)
+
+
+func can_show_hint() -> bool:
+	return active and not wave_resolved and not current_problem.is_empty()
+
+
+func _show_hint() -> void:
+	if not can_show_hint():
+		return
+	hint_ms = 1500.0
+	status_label.text = "Hint: the glowing comet solves the equation. Choose lane %d." % (correct_lane + 1)
+	_update_comet_positions()
+
+
+func can_retry_failure() -> bool:
+	return not active and is_instance_valid(action_button) and action_button.text == "Retry"
+
+
+func retry_failure() -> void:
+	if can_retry_failure():
+		_start_level(level)
+
+
+func _lane_for_x(x: float) -> int:
+	return clampi(int(floor(x / maxf(1.0, size.x / LANES))), 0, LANES - 1)
+
+
+func _update_hud() -> void:
+	meter_label.text = "RESCUE %d / %d     SHIELDS %d     SCORE %d" % [rescues, target_rescues, lives, score]
+
+
+func _update_comet_positions() -> void:
+	var progress := clampf(wave_elapsed_ms / maxf(1.0, decision_ms), 0.0, 1.0)
+	var y := START_Y + progress * maxf(180.0, size.y * 0.46)
+	for lane in LANES:
+		var button := lane_buttons[lane]
+		button.size = Vector2(maxf(112.0, size.x / LANES - 20.0), 76.0)
+		button.position = Vector2((lane + 0.5) * size.x / LANES - button.size.x * 0.5, y)
+		var selected := lane == selected_lane
+		var hinted := hint_ms > 0.0 and lane == correct_lane
+		button.modulate = Color("fff2a8") if hinted else (Color("ffffff") if selected else Color("d9e9ff"))
+		button.scale = Vector2.ONE * (1.08 if hinted else (1.04 if selected else 1.0))
+	if is_instance_valid(player_preview):
+		player_preview.position = Vector2((selected_lane + 0.5) * size.x / LANES - player_preview.size.x * 0.5, size.y - 172.0)
+
+
+func _draw() -> void:
+	draw_rect(Rect2(Vector2.ZERO, size), Color("110a32"))
+	for lane in range(1, LANES):
+		var x := lane * size.x / LANES
+		draw_line(Vector2(x, 165), Vector2(x, size.y - 115), Color("6f68ac", 0.58), 5.0)
+		draw_line(Vector2(x + 5, 165), Vector2(x + 5, size.y - 115), Color("55d6e8", 0.24), 2.0)
+	for lane in LANES:
+		var x := (lane + 0.5) * size.x / LANES
+		draw_string(ThemeDB.fallback_font, Vector2(x - 32, 188), "LANE %d" % (lane + 1), HORIZONTAL_ALIGNMENT_CENTER, 64, 16, Color("c8c5f5"))
+	for lane in LANES:
+		if lane >= lane_buttons.size():
+			continue
+		var comet_center := lane_buttons[lane].position + lane_buttons[lane].size * 0.5
+		draw_line(comet_center + Vector2(-46, 30), comet_center + Vector2(-12, 9), Color("c17cf2", 0.62), 14.0)
+		draw_line(comet_center + Vector2(-46, 30), comet_center + Vector2(-12, 9), Color("ffe172", 0.82), 4.0)
+		draw_circle(comet_center, 47.0, Color("69d8ef", 0.36))
+		draw_arc(comet_center, 42.0, 0.15, TAU - 0.15, 18, Color("e9fbff", 0.75), 3.0)
+	if bolt_ms > 0.0 and bolt_lane >= 0:
+		var x := (bolt_lane + 0.5) * size.x / LANES
+		var alpha := bolt_ms / 520.0
+		draw_line(Vector2(x, size.y - 138), Vector2(x, START_Y + size.y * 0.46), Color(0.37, 0.91, 1.0, alpha), 14.0)
+		draw_line(Vector2(x, size.y - 138), Vector2(x, START_Y + size.y * 0.46), Color("ffe172", alpha), 5.0)
+
+
+func _build_ui() -> void:
+	equation_label = Label.new()
+	equation_label.name = "CometEquationBanner"
+	equation_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	equation_label.position.y = 112
+	equation_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	equation_label.add_theme_font_size_override("font_size", 34)
+	equation_label.add_theme_color_override("font_color", Color("fff5e9"))
+	equation_label.add_theme_constant_override("outline_size", 4)
+	equation_label.add_theme_color_override("font_outline_color", Color("271748"))
+	add_child(equation_label)
+	meter_label = Label.new()
+	meter_label.name = "CometRescueMeter"
+	meter_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	meter_label.position.y = 66
+	meter_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	meter_label.add_theme_font_size_override("font_size", 20)
+	meter_label.add_theme_color_override("font_color", Color("7fe7ef"))
+	add_child(meter_label)
+	for lane in LANES:
+		var comet := Button.new()
+		comet.name = "CometLane%d" % lane
+		comet.custom_minimum_size = Vector2(112, 76)
+		comet.add_theme_font_size_override("font_size", 30)
+		StorybookUI.apply_button(comet, Color("496bd5"), false, 22)
+		comet.pressed.connect(_select_lane.bind(lane))
+		add_child(comet)
+		lane_buttons.append(comet)
+	player_preview = RoomItemPreviewScene.new()
+	player_preview.name = "CometEquippedCompanion"
+	player_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	player_preview.size = Vector2(150, 120)
+	player_preview.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": true, "presentation": "marketplace"})
+	player_preview.z_index = 4
+	add_child(player_preview)
+	status_label = Label.new()
+	status_label.name = "CometStatus"
+	status_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	status_label.position.y = -104
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	status_label.add_theme_font_size_override("font_size", 19)
+	status_label.add_theme_color_override("font_color", Color("fff0ac"))
+	status_label.add_theme_constant_override("outline_size", 3)
+	status_label.add_theme_color_override("font_outline_color", Color("1b1038"))
+	add_child(status_label)
+	var actions := HBoxContainer.new()
+	actions.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	actions.position.y = -58
+	actions.alignment = BoxContainer.ALIGNMENT_CENTER
+	add_child(actions)
+	action_button = Button.new()
+	StorybookUI.apply_game_action(action_button, 170)
+	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Mission" else level))
+	actions.add_child(action_button)
+	var back := Button.new()
+	StorybookUI.apply_game_action(back, 150)
+	back.text = "Arcade"
+	back.pressed.connect(func() -> void: AppState.set_shell_destination("category", "Arcade"); get_tree().change_scene_to_file("res://scenes/main.tscn"))
+	actions.add_child(back)

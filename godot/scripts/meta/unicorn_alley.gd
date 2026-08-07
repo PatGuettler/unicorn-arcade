@@ -2,6 +2,7 @@ extends Control
 
 const Catalog = preload("res://scripts/meta_catalog.gd")
 const DoorStateArtScene = preload("res://scripts/meta/door_state_art.gd")
+const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
 
 const NAVY := Color("07142c")
 const PANEL := Color("14214a")
@@ -43,23 +44,7 @@ func _build_ui() -> void:
 	var root := VBoxContainer.new()
 	root.add_theme_constant_override("separation", 12)
 	margin.add_child(root)
-	var header := HBoxContainer.new()
-	root.add_child(header)
-	var home := Button.new()
-	home.text = "< HOME"
-	home.pressed.connect(_go_home)
-	header.add_child(home)
-	var title := Label.new()
-	title.text = "UNICORN ALLEY"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.add_theme_font_size_override("font_size", 28)
-	title.add_theme_color_override("font_color", PINK)
-	header.add_child(title)
-	var shop := Button.new()
-	shop.text = "SHOP"
-	shop.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/marketplace.tscn"))
-	header.add_child(shop)
+	root.add_child(UnicornHeader.build("UNICORN ALLEY", "HOME", _go_home, _go_home, "SHOP", func() -> void: get_tree().change_scene_to_file("res://scenes/meta/marketplace.tscn")))
 	var intro := Label.new()
 	intro.text = "Every adopted companion has a house. Make each room their own."
 	intro.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

@@ -437,11 +437,12 @@ func _fail(reason: String) -> void:
 	input_line.editable = false
 
 
+func can_show_hint() -> bool:
+	return active and not hint_visible
+
+
 func _show_hint() -> void:
 	if not active or hint_visible:
-		return
-	if not AppState.spend_hint(level):
-		message_label.text = "Not enough coins for a hint."
 		return
 	hint_visible = true
 	coin_label.text = "★ %d" % AppState.coins()

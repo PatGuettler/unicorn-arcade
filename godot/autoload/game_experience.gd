@@ -13,6 +13,7 @@ var objective_primary: Label
 var objective_detail: Label
 var coin_button: Button
 var ability_button: Button
+var hint_button: Button
 var inactivity_seconds := 0.0
 var last_level := -1
 var update_accumulator := 0.0
@@ -37,6 +38,7 @@ func _process(delta: float) -> void:
 		objective_detail = null
 		coin_button = null
 		ability_button = null
+		hint_button = null
 		last_level = -1
 		was_active = false
 		inactivity_seconds = 0.0
@@ -93,6 +95,8 @@ func _attach_scene(scene: Node) -> void:
 	layout.alignment = BoxContainer.ALIGNMENT_BEGIN
 	_apply_storybook_atmosphere(scene)
 	_hide_legacy_chrome(layout, str(game["title"]))
+	_hide_embedded_hint_controls(scene)
+	_configure_comet_chrome(scene)
 	var header := _build_header(str(game["title"]))
 	layout.add_child(header)
 	layout.move_child(header, 0)
@@ -282,6 +286,10 @@ func _build_objective_plaque() -> PanelContainer:
 	StorybookUI.apply_button(ability_button, Color("c45186"), false, 14)
 	ability_button.set_meta("standard_game_chrome", true)
 	row.add_child(ability_button)
+	hint_button = _header_button("HINT", "Show one ordinary hint (free on level 1; 5 coins later)")
+	hint_button.name = "OrdinaryHint"
+	hint_button.pressed.connect(_ordinary_hint_pressed)
+	row.add_child(hint_button)
 	var help := _header_button("?", "Replay the tutorial")
 	help.name = "ObjectiveTutorialHelp"
 	help.pressed.connect(_maybe_show_tutorial.bind(true))
@@ -299,6 +307,11 @@ func _update_runtime_ui() -> void:
 
 
 func _objective_for_scene() -> Dictionary:
+	if attached_game_id == "comet_math_rescue":
+		var problem: Dictionary = attached_scene.get("current_problem") if _has_property(attached_scene, "current_problem") else {}
+		var operation := str(problem.get("operation", "+"))
+		var visible_operation := "×" if operation == "x" else ("÷" if operation == "/" else operation)
+		return {"primary": "%d %s %d = ?" % [int(problem.get("left", 0)), visible_operation, int(problem.get("right", 0))], "detail": "SHIELDS %d - RESCUE %d/%d - SCORE %d" % [_scene_int(attached_scene, "lives", 3), _scene_int(attached_scene, "rescues", 0), _scene_int(attached_scene, "target_rescues", 0), _scene_int(attached_scene, "score", 0)]}
 	match attached_game_id:
 		"unicorn_jump":
 			var data = attached_scene.get("level_data")
@@ -354,10 +367,51 @@ func _update_ability_button() -> void:
 
 func _ability_pressed() -> void:
 	var definition := CompanionAbilityService.definition()
-	if CompanionAbilityService.companion_id() == "mystic" and CompanionAbilityService.is_available():
+	if attached_game_id == "mathtris" and CompanionAbilityService.is_available() and attached_scene.has_method("apply_companion_power"):
+		if attached_scene.has_method("can_use_companion_power") and not bool(attached_scene.call("can_use_companion_power")):
+			_show_notice("Power charging", "Clear 3 true equations to charge your unicorn power.")
+			return
+		if bool(attached_scene.call("apply_companion_power", CompanionAbilityService.companion_id())):
+			CompanionAbilityService.consume_active_power()
+			_update_ability_button()
+		else:
+			_show_notice("Power ready", "No safe board move yet; your charge is saved.")
+	elif CompanionAbilityService.companion_id() == "mystic" and CompanionAbilityService.is_available():
 		_show_assist(true)
 	else:
 		_show_notice(str(definition.get("name", "Companion Power")), str(definition.get("description", "This power works automatically.")))
+
+
+func _ordinary_hint_pressed() -> void:
+	if not is_instance_valid(attached_scene) or not attached_scene.has_method("_show_hint"):
+		_show_notice("Hint", "Keep trying — look for the next safe choice.")
+		return
+	if attached_scene.has_method("can_show_hint") and not bool(attached_scene.call("can_show_hint")):
+		_show_notice("Hint", "A hint is not available right now.")
+		return
+	var level := _scene_int(attached_scene, "level", 1)
+	if not AppState.spend_hint(level):
+		_show_notice("Hint", "You need 5 coins for another hint.")
+		return
+	attached_scene.call("_show_hint")
+
+
+func _hide_embedded_hint_controls(node: Node) -> void:
+	for child in node.get_children():
+		if child is Button and not child.has_meta("standard_game_chrome"):
+			var label := str((child as Button).text).to_upper()
+			if label.contains("HINT"):
+				child.hide()
+		_hide_embedded_hint_controls(child)
+
+
+func _configure_comet_chrome(scene: Node) -> void:
+	if attached_game_id != "comet_math_rescue":
+		return
+	for node_name in ["CometEquationBanner", "CometRescueMeter"]:
+		var duplicate_label := scene.get_node_or_null(node_name)
+		if duplicate_label is CanvasItem:
+			(duplicate_label as CanvasItem).hide()
 
 
 func _show_assist(mystic: bool) -> void:
@@ -396,6 +450,9 @@ func _show_assist(mystic: bool) -> void:
 		"galaxy_unicorn":
 			if attached_scene.has_method("_mystic_blast"):
 				attached_scene.call("_mystic_blast")
+		"comet_math_rescue":
+			if attached_scene.has_method("_mystic_rescue"):
+				attached_scene.call("_mystic_rescue")
 		_:
 			CompanionAbilityService.arm_assist_hint()
 			if attached_scene.has_method("_show_hint"):
@@ -404,12 +461,14 @@ func _show_assist(mystic: bool) -> void:
 
 
 func _can_apply_mystic() -> bool:
-	return attached_game_id in ["unicorn_jump", "mathtris", "cash_counter", "coin_count", "galaxy_unicorn"] or attached_scene.has_method("_show_hint")
+	return attached_game_id in ["unicorn_jump", "mathtris", "cash_counter", "coin_count", "galaxy_unicorn", "comet_math_rescue"] or attached_scene.has_method("_show_hint")
 
 
 func _is_retry_failure() -> bool:
 	if not is_instance_valid(attached_scene) or attached_game_id == "unicorn_jump":
 		return false
+	if attached_scene.has_method("can_retry_failure"):
+		return bool(attached_scene.call("can_retry_failure"))
 	if _has_property(attached_scene, "action_button"):
 		var action = attached_scene.get("action_button")
 		if action is Button:
@@ -425,14 +484,17 @@ func _is_retry_failure() -> bool:
 func _restart_after_sparkle() -> void:
 	if not is_instance_valid(attached_scene):
 		return
-	match attached_game_id:
-		"cash_counter", "coin_count": attached_scene.call("_start_round")
-		"mathtris": attached_scene.call("_start_game")
-		"rhyme_rally": attached_scene.call("_start_level")
-		"galaxy_unicorn", "math_swipe", "sliding_window": attached_scene.call("_start_level", _scene_int(attached_scene, "level", 1))
-		_:
-			if attached_scene.has_method("_start_level"):
-				attached_scene.call("_start_level")
+	if attached_scene.has_method("retry_failure"):
+		attached_scene.call("retry_failure")
+	else:
+		match attached_game_id:
+			"cash_counter", "coin_count": attached_scene.call("_start_round")
+			"mathtris": attached_scene.call("_start_game")
+			"rhyme_rally": attached_scene.call("_start_level")
+			"galaxy_unicorn", "comet_math_rescue", "math_swipe", "sliding_window": attached_scene.call("_start_level", _scene_int(attached_scene, "level", 1))
+			_:
+				if attached_scene.has_method("_start_level"):
+					attached_scene.call("_start_level")
 	if _has_property(attached_scene, "message_label"):
 		var message = attached_scene.get("message_label")
 		if message is Label:
@@ -522,7 +584,7 @@ func _show_profile_overlay() -> void:
 		ring.setup(ratio, category.to_upper(), "%d RUNS" % completed, Color("58d6e8") if category == "Number" else (Color("f26fa7") if category == "Word" else (Color("9b7bff") if category == "Mystery" else Color("ffd166"))))
 		rings.add_child(ring)
 	var tutorial_toggle := CheckButton.new()
-	tutorial_toggle.text = "GUIDED FIRST THREE LEVELS"
+	tutorial_toggle.text = "GUIDED FIRST LEVEL"
 	tutorial_toggle.button_pressed = bool(AppState.setting("tutorials_enabled", true))
 	tutorial_toggle.custom_minimum_size.y = 56
 	tutorial_toggle.add_theme_font_size_override("font_size", 19)
@@ -541,7 +603,7 @@ func _maybe_show_tutorial(force_replay: bool) -> void:
 	var raw_level := _scene_int(attached_scene, "level", 1)
 	var tutorial_level := clampi(raw_level, 1, 3)
 	if not force_replay:
-		if not bool(AppState.setting("tutorials_enabled", true)) or raw_level > 3 or AppState.tutorial_complete(attached_game_id, tutorial_level):
+		if not bool(AppState.setting("tutorials_enabled", true)) or raw_level != 1 or AppState.tutorial_complete(attached_game_id, tutorial_level):
 			return
 	var lessons: Array[String] = TutorialCatalog.lessons(attached_game_id, tutorial_level)
 	var dialog := _create_game_dialog("GuidedTutorialOverlay", 0.07, 0.93, 0.20, 0.80)
