@@ -198,8 +198,9 @@ func _build_header(title: String) -> PanelContainer:
 	back.name = "GameHeaderBack"
 	back.pressed.connect(_request_leave.bind(false))
 	row.add_child(back)
-	var home := _header_button("⌂", "Home")
+	var home := _header_button("", "Home")
 	home.name = "GameHeaderHome"
+	StorybookUI.apply_home_button(home)
 	home.pressed.connect(_request_leave.bind(true))
 	row.add_child(home)
 	var title_label := Label.new()

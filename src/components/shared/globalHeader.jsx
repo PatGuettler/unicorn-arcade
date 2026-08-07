@@ -1,6 +1,7 @@
 import React from "react";
-import { User as UserIcon, ArrowLeft, Home } from "lucide-react";
+import { User as UserIcon, ArrowLeft } from "lucide-react";
 import { guardTap } from "../../utils/mobileTouch";
+import unicornHouseHome from "../assets/unicornHouseHome.png";
 
 const GlobalHeader = ({
   user,
@@ -58,10 +59,18 @@ const GlobalHeader = ({
             onClick={onHome}
             onTouchStart={guardTap}
             data-testid="header-home"
-            className="p-2 hover:bg-white/10 rounded-full transition-colors text-slate-400 hover:text-white min-w-[44px] min-h-[44px]"
+            className="p-1.5 hover:bg-white/10 rounded-2xl transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
             title="Return Home"
+            aria-label="Return Home"
           >
-            <Home size={24} />
+            <img
+              src={unicornHouseHome}
+              alt=""
+              width={32}
+              height={32}
+              className="w-8 h-8 object-contain [image-rendering:pixelated]"
+              draggable={false}
+            />
           </button>
         )}
 

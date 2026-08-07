@@ -250,13 +250,7 @@ func _show_category(category: String) -> void:
 	AppState.set_shell_destination("category", category)
 	_reset_page()
 	_add_header("%s GAMES" % category.to_upper(), true, true, func() -> void: _show_dashboard())
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page.add_child(scroll)
-	var content := VBoxContainer.new()
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 12)
-	scroll.add_child(content)
+	var content := _make_vertical_scroll("CategoryContent", 12)
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -289,14 +283,7 @@ func _show_profile() -> void:
 	AppState.shell_view = "profile"
 	_reset_page()
 	_add_header("PROFILE", true, true, func() -> void: _show_home())
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page.add_child(scroll)
-	var content := VBoxContainer.new()
-	content.name = "ProfileContent"
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 18)
-	scroll.add_child(content)
+	var content := _make_vertical_scroll("ProfileContent", 18)
 	content.add_child(_build_profile_unicorn_banner())
 	content.add_child(_build_profile_stat_strip())
 	content.add_child(_profile_section_title("MAGIC RINGS"))
@@ -312,6 +299,9 @@ func _show_profile() -> void:
 		_show_login()
 	)
 	content.add_child(logout)
+	var bottom_pad := Control.new()
+	bottom_pad.custom_minimum_size.y = 24
+	content.add_child(bottom_pad)
 
 
 func _build_profile_unicorn_banner() -> PanelContainer:
@@ -356,46 +346,57 @@ func _build_profile_unicorn_banner() -> PanelContainer:
 	return banner
 
 
-func _build_profile_stat_strip() -> HBoxContainer:
-	var row := HBoxContainer.new()
-	row.name = "ProfileStatStrip"
-	row.add_theme_constant_override("separation", 8)
-	row.add_child(_profile_money_stat(AppState.coins(), "COINS"))
-	row.add_child(_profile_stat("%d" % AppState.completed_run_count(), "RUNS"))
-	row.add_child(_profile_stat("%d / 6" % AppState.owned_companions().size(), "UNICORNS"))
-	row.add_child(_profile_stat("%d" % AppState.data.get("inventory", {}).size(), "DECOR"))
-	for child in row.get_children():
-		if child is Control:
-			(child as Control).size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	return row
+func _build_profile_stat_strip() -> GridContainer:
+	var grid := GridContainer.new()
+	grid.name = "ProfileStatStrip"
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	for card in [
+		_profile_money_stat(AppState.coins(), "COINS"),
+		_profile_stat("%d" % AppState.completed_run_count(), "RUNS"),
+		_profile_stat("%d / 6" % AppState.owned_companions().size(), "UNICORNS"),
+		_profile_stat("%d" % AppState.data.get("inventory", {}).size(), "DECOR"),
+	]:
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_child(card)
+	return grid
 
 
 func _build_profile_progress_rings() -> PanelContainer:
 	var card := PanelContainer.new()
 	card.name = "ProfileProgressRings"
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254d"), StorybookUI.GOLD, 20))
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 8)
-	card.add_child(row)
+	var grid := GridContainer.new()
+	grid.columns = 2
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", 8)
+	grid.add_theme_constant_override("v_separation", 8)
+	card.add_child(grid)
 	for category in ["Number", "Word", "Mystery", "Arcade"]:
 		var progress := _category_progress_ratio(category)
 		var runs := _category_run_count(category)
 		var ring := ProgressRingScene.new()
 		ring.setup(progress, category.to_upper(), "%d RUNS" % runs, _category_color(category))
-		row.add_child(ring)
+		ring.custom_minimum_size = Vector2(0, 148)
+		ring.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_child(ring)
 	return card
 
 
-func _build_profile_category_chips() -> HBoxContainer:
-	var row := HBoxContainer.new()
+func _build_profile_category_chips() -> HFlowContainer:
+	var row := HFlowContainer.new()
 	row.name = "ProfileCategoryChips"
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 8)
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.alignment = FlowContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("h_separation", 8)
+	row.add_theme_constant_override("v_separation", 8)
 	for category in ["All", "Number", "Word", "Mystery", "Arcade"]:
 		var chip := Button.new()
 		chip.text = category.to_upper()
-		chip.custom_minimum_size = Vector2(92, 48)
+		chip.custom_minimum_size = Vector2(88, 48)
 		chip.toggle_mode = true
 		chip.button_pressed = profile_category_filter == category
 		var fill := Color("22345f")
@@ -514,9 +515,31 @@ func _category_run_count(category: String) -> int:
 	return completed_count
 
 
+func _make_vertical_scroll(content_name: String, separation: int = 14) -> VBoxContainer:
+	var scroll := ScrollContainer.new()
+	scroll.name = "%sScroll" % content_name
+	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.clip_contents = true
+	page.add_child(scroll)
+	var content := VBoxContainer.new()
+	content.name = content_name
+	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	content.add_theme_constant_override("separation", separation)
+	scroll.add_child(content)
+	# Keep the scroll child as wide as the viewport so tiles wrap instead of clipping.
+	scroll.resized.connect(func() -> void:
+		if is_instance_valid(content):
+			content.custom_minimum_size.x = scroll.size.x
+	)
+	return content
+
+
 func _profile_stat(value: String, caption: String) -> PanelContainer:
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(120, 70)
+	card.custom_minimum_size = Vector2(0, 70)
 	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("f7d8eb"), Color("d16b9e"), 12))
 	var label := Label.new()
 	label.text = "%s\n%s" % [value, caption]
@@ -529,7 +552,7 @@ func _profile_stat(value: String, caption: String) -> PanelContainer:
 
 func _profile_money_stat(amount: int, caption: String) -> PanelContainer:
 	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(120, 70)
+	card.custom_minimum_size = Vector2(0, 70)
 	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("f7d8eb"), Color("d16b9e"), 12))
 	var row := HBoxContainer.new()
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -628,7 +651,9 @@ func _add_header(title: String, show_back: bool, show_home: bool, back_action: C
 	right.add_child(coin_label)
 	if show_home:
 		var home := Button.new()
-		home.text = "⌂"
+		home.name = "HeaderHomeButton"
+		home.tooltip_text = "Return home"
+		StorybookUI.apply_home_button(home)
 		home.pressed.connect(func() -> void: _show_home())
 		right.add_child(home)
 
