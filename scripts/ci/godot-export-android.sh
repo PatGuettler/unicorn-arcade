@@ -148,7 +148,7 @@ set_package_name() {
 
 build_legacy_profile_bridge() {
 	local bridge="$PROJECT/android/legacy_profile_bridge"
-	local output="$PROJECT/addons/legacy_profile_bridge"
+	local output="$PROJECT/android/plugins"
 	local godot_aar
 	[[ -d "$bridge" ]] || { echo "ERROR: legacy bridge source missing" >&2; exit 1; }
 	# The generated custom template owns the matching Godot Java API AAR.

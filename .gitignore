@@ -194,6 +194,9 @@ godot/export/
 godot/builds/
 godot/android/*
 !godot/android/.build_version
+!godot/android/plugins/
+!godot/android/plugins/legacy_profile_bridge.gdap
+godot/android/plugins/*.aar
 !godot/android/legacy_profile_bridge/
 !godot/android/legacy_profile_bridge/**
 # Keep the native bridge's build definition and Kotlin source, never its local
@@ -205,6 +208,8 @@ godot/android/legacy_profile_bridge/build/
 godot/android/legacy_profile_bridge/local.properties
 godot/android/legacy_profile_bridge/.idea/
 godot/android/legacy_profile_bridge/*.iml
+# The former add-on output path may exist on developer machines; plugin discovery
+# now uses android/plugins instead.
 godot/addons/legacy_profile_bridge/*.aar
 godot/config/admob.json
 godot/export_credentials.cfg

@@ -1,0 +1,2 @@
+# This Gradle source project is consumed only by CI/local Android builds.
+# Godot must not scan it as a project plugin or import its generated outputs.
