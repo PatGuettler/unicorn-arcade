@@ -684,7 +684,7 @@ func _modal_title(text: String) -> Label:
 func _restyle_controls(node: Node) -> void:
 	if node is Button:
 		var button := node as Button
-		if not button.has_meta("standard_game_chrome") and not button.has_meta("currency_art") and not button.has_meta("mathtris_tile"):
+		if not button.has_meta("standard_game_chrome") and not button.has_meta("currency_art") and not button.has_meta("mathtris_tile") and not button.has_meta("sliding_window_node"):
 			StorybookUI.apply_game_action(button, maxf(96.0, button.custom_minimum_size.x))
 			button.custom_minimum_size.y = maxf(56.0, button.custom_minimum_size.y)
 			var copy := button.text.to_upper()
