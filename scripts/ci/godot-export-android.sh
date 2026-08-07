@@ -200,6 +200,21 @@ validate_artifact() {
 	fi
 }
 
+ensure_godot_import() {
+	# Always import before any other Godot invocation. A restored Actions cache can
+	# leave an empty/partial .godot/imported tree; skipping import then breaks
+	# preload() of textures (and cascades into AdMob/autoload parse failures).
+	echo "Importing project assets..."
+	godot --headless --path "$PROJECT" --import
+	local probe
+	probe="$(ls -1 "$PROJECT/.godot/imported"/unicorn_house_home_v1.png-*.ctex 2>/dev/null | head -1 || true)"
+	if [[ -z "$probe" || ! -s "$probe" ]]; then
+		echo "ERROR: Godot import did not produce unicorn_house_home_v1.ctex under .godot/imported" >&2
+		exit 1
+	fi
+	echo "Godot import OK ($(du -sh "$PROJECT/.godot/imported" | cut -f1))"
+}
+
 export_android() {
 	mkdir -p "$PROJECT/build/android"
 	PRESET_PATH="$PROJECT/export_presets.cfg"
@@ -207,19 +222,13 @@ export_android() {
 	cp "$PRESET_PATH" "$PRESET_BACKUP"
 	trap restore_export_preset EXIT
 	install_admob_android_binaries
-	build_legacy_profile_bridge
 	write_admob_config
 	bump_version
 	set_export_format 1
 	configure_godot_android_paths
 	start_adb_server
-
-	echo "Importing project assets (skipped on cache hit if fast)..."
-	if [[ ! -d "$PROJECT/.godot/imported" ]] || [[ "${FORCE_GODOT_IMPORT:-0}" == "1" ]]; then
-		godot --headless --path "$PROJECT" --import
-	else
-		echo "Found existing .godot/imported cache; run with FORCE_GODOT_IMPORT=1 to re-import."
-	fi
+	ensure_godot_import
+	build_legacy_profile_bridge
 
 	local ads_aar="$PROJECT/addons/admob/android/bin/ads/libs/poing-godot-admob-ads-release.aar"
 	if [[ ! -f "$ads_aar" ]]; then

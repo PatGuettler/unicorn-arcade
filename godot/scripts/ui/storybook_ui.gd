@@ -11,7 +11,7 @@ const INK := Color("172143")
 const CYAN := Color("58d6e8")
 const PLUM := Color("3c183d")
 const MUTED := Color("c9d3ef")
-const UNICORN_HOUSE_HOME_ICON := preload("res://assets/ui/unicorn_house_home_v1.png")
+const UNICORN_HOUSE_HOME_ICON_PATH := "res://assets/ui/unicorn_house_home_v1.png"
 
 
 static func apply_button(button: BaseButton, fill: Color = NAVY, dark_text: bool = false, radius: int = 14) -> void:
@@ -42,7 +42,11 @@ static func apply_game_action(button: BaseButton, minimum_width: float = 150.0) 
 static func apply_home_button(button: BaseButton, icon_width: int = 34) -> void:
 	apply_button(button, Color("22345f"), false, 14)
 	button.text = ""
-	button.icon = UNICORN_HOUSE_HOME_ICON
+	var home_icon := load(UNICORN_HOUSE_HOME_ICON_PATH) as Texture2D
+	if home_icon != null:
+		button.icon = home_icon
+	else:
+		button.text = "⌂"
 	button.expand_icon = true
 	if str(button.tooltip_text).is_empty():
 		button.tooltip_text = "Home"
