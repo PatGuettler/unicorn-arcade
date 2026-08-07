@@ -25,6 +25,7 @@ func _run() -> void:
 	_check(game.value_buttons.size() == game.level_data.size(), "the full number track stays visible")
 	_check(game.value_buttons[0].disabled and game.value_buttons[4].disabled, "numbers outside the current window are disabled")
 	_check(not game.value_buttons[1].disabled and not game.value_buttons[3].disabled, "only numbers inside the current window are selectable")
+	_check(game.track_viewport != null and not (game.track_viewport is ScrollContainer), "the number track uses a pan/pinch camera without scrollbars")
 
 	game.call("_choose", 4)
 	_check(game.active and game.window_pos == 1, "the global maximum is ignored while it is outside the window")
