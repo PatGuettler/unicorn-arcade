@@ -146,14 +146,41 @@ set_package_name() {
 	sed -i "s|^package/unique_name=.*|package/unique_name=\"${package_name}\"|" "$preset"
 }
 
+godot_import_is_warm() {
+	local probe imported_count
+	probe="$(ls -1 "$PROJECT/.godot/imported"/unicorn_house_home_v1.png-*.ctex 2>/dev/null | head -1 || true)"
+	[[ -n "$probe" && -s "$probe" ]] || return 1
+	imported_count="$(find "$PROJECT/.godot/imported" -type f | wc -l | tr -d ' ')"
+	# Fresh checkouts with a partial cache can have the probe but almost nothing else.
+	[[ "${imported_count:-0}" -ge 200 ]]
+}
+
+ensure_android_build_template() {
+	local marker="$PROJECT/android/build/build.gradle"
+	local godot_aar
+	godot_aar="$(find "$PROJECT/android/build/libs" -name 'godot-lib*.aar' -type f 2>/dev/null | head -1 || true)"
+	if [[ -f "$marker" && -n "$godot_aar" && -s "$godot_aar" ]]; then
+		echo "Android build template already present; skipping install."
+		return 0
+	fi
+	echo "Installing Android build template (one-time for this workspace/cache)..."
+	# Quiet + no verbose scan spam: template install still loads the project, but we
+	# only do this when android/build is missing from cache.
+	godot --headless --path "$PROJECT" --install-android-build-template
+	godot_aar="$(find "$PROJECT/android/build/libs" -name 'godot-lib*.aar' -type f 2>/dev/null | head -1 || true)"
+	[[ -f "$marker" && -n "$godot_aar" && -s "$godot_aar" ]] || {
+		echo "ERROR: Android build template install did not produce godot-lib*.aar" >&2
+		exit 1
+	}
+}
+
 build_legacy_profile_bridge() {
 	local bridge="$PROJECT/android/legacy_profile_bridge"
 	local output="$PROJECT/android/plugins"
 	local godot_aar
 	[[ -d "$bridge" ]] || { echo "ERROR: legacy bridge source missing" >&2; exit 1; }
-	# The generated custom template owns the matching Godot Java API AAR.
-	godot --headless --path "$PROJECT" --install-android-build-template
 	godot_aar="$(find "$PROJECT/android/build/libs/release" -name 'godot-lib*.aar' -type f | head -1)"
+	[[ -z "$godot_aar" ]] && godot_aar="$(find "$PROJECT/android/build/libs" -name 'godot-lib*.aar' -type f | head -1)"
 	[[ -n "$godot_aar" && -f "$godot_aar" ]] || { echo "ERROR: generated Godot library AAR missing" >&2; exit 1; }
 	mkdir -p "$output"
 	GODOT_ANDROID_LIBRARY_AAR="$godot_aar" LEGACY_BRIDGE_OUTPUT_DIR="$output" \
@@ -201,15 +228,16 @@ validate_artifact() {
 }
 
 ensure_godot_import() {
-	# Always import before any other Godot invocation. A restored Actions cache can
-	# leave an empty/partial .godot/imported tree; skipping import then breaks
-	# preload() of textures (and cascades into AdMob/autoload parse failures).
-	echo "Importing project assets..."
+	# Cold import of this project's GLBs/textures is ~30+ minutes. Skip when a
+	# validated Actions cache already has the imported .ctex tree.
+	if [[ "${FORCE_GODOT_IMPORT:-0}" != "1" ]] && godot_import_is_warm; then
+		echo "Warm Godot import cache detected ($(du -sh "$PROJECT/.godot/imported" | cut -f1)); skipping --import."
+		return 0
+	fi
+	echo "Importing project assets (cold or forced)..."
 	godot --headless --path "$PROJECT" --import
-	local probe
-	probe="$(ls -1 "$PROJECT/.godot/imported"/unicorn_house_home_v1.png-*.ctex 2>/dev/null | head -1 || true)"
-	if [[ -z "$probe" || ! -s "$probe" ]]; then
-		echo "ERROR: Godot import did not produce unicorn_house_home_v1.ctex under .godot/imported" >&2
+	if ! godot_import_is_warm; then
+		echo "ERROR: Godot import did not produce a usable .godot/imported cache" >&2
 		exit 1
 	fi
 	echo "Godot import OK ($(du -sh "$PROJECT/.godot/imported" | cut -f1))"
@@ -228,6 +256,8 @@ export_android() {
 	configure_godot_android_paths
 	start_adb_server
 	ensure_godot_import
+	# Template install before bridge + export so we only pay for one Godot project load.
+	ensure_android_build_template
 	build_legacy_profile_bridge
 
 	local ads_aar="$PROJECT/addons/admob/android/bin/ads/libs/poing-godot-admob-ads-release.aar"
@@ -236,11 +266,10 @@ export_android() {
 		exit 1
 	fi
 
-	echo "Exporting Play release AAB as ${RELEASE_PACKAGE_NAME} (installs Android build template as part of export)..."
+	echo "Exporting Play release AAB as ${RELEASE_PACKAGE_NAME}..."
 	set_package_name "$RELEASE_PACKAGE_NAME"
 	set_export_format 1
 	godot --headless --path "$PROJECT" --verbose \
-		--install-android-build-template \
 		--export-release "$EXPORT_PRESET" "$PROJECT/build/android/UnicornArcade.aab"
 	validate_artifact "$PROJECT/build/android/UnicornArcade.aab" "$RELEASE_PACKAGE_NAME" "$VERSION_CODE" "${VERSION_NAME:-1.${VERSION_CODE}}"
 

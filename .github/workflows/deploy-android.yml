@@ -28,10 +28,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: godot/.godot
-          # Include asset paths so new PNGs/import sidecars invalidate the cache.
-          # No restore-keys: a partial older cache leaves .godot/imported present but
-          # missing .ctex files, which previously caused export to skip re-import.
-          key: godot-import-${{ runner.os }}-${{ hashFiles('godot/**/*.import', 'godot/assets/**', 'godot/project.godot', 'godot/export_presets.cfg') }}
+          # Exact key only (no restore-keys): fuzzy restores caused skipped imports
+          # with missing .ctex files. Warm hits skip the 30+ min cold reimport.
+          key: godot-import-${{ runner.os }}-${{ env.GODOT_VERSION }}-${{ hashFiles('godot/**/*.import', 'godot/project.godot') }}
+
+      - name: Cache Android build template
+        uses: actions/cache@v4
+        with:
+          path: godot/android/build
+          key: godot-android-build-${{ runner.os }}-${{ env.GODOT_VERSION }}-${{ hashFiles('godot/export_presets.cfg', 'godot/android/build/.build_version') }}
+          restore-keys: |
+            godot-android-build-${{ runner.os }}-${{ env.GODOT_VERSION }}-
 
       - name: Cache Gradle (Android export)
         uses: actions/cache@v4
