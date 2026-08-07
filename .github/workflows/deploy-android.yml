@@ -3,6 +3,7 @@ name: Deploy Godot Android - Internal Test
 on:
   push:
     branches:
+      - main
       - godot-port
   workflow_dispatch:
 

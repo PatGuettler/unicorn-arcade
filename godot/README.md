@@ -172,7 +172,7 @@ This checkpoint exposes the complete 22-game registry plus the companion/decor m
 
 ## CI / Play internal testing
 
-Pushes to **`godot-port`** run [`.github/workflows/deploy-android.yml`](../.github/workflows/deploy-android.yml):
+Pushes to **`main`** (and `godot-port`) run [`.github/workflows/deploy-android.yml`](../.github/workflows/deploy-android.yml):
 
 1. Downloads Poing AdMob Android AARs, writes `config/admob.json` (`ads_enabled: true`, Google **test** banner).
 2. Builds a signed **AAB** and uploads to Play **internal** track (`com.grapegames.wlarcade`).
