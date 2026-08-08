@@ -5,6 +5,7 @@ const Rules = preload("res://scripts/room_rules.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
+const FURNITURE_BAG_ICON := preload("res://assets/ui/furniture_bag_v1.svg")
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -68,7 +69,9 @@ func _process(delta: float) -> void:
 		roaming_actor.set_motion_state(false)
 	roaming_actor.z_index = int(roaming_actor.position.y)
 	if roaming_actor.position.x != before.x:
-		roaming_actor.scale.x = absf(roaming_actor.scale.x) * (1.0 if roaming_actor.position.x > before.x else -1.0)
+		# The room-preview source art faces left. Mirror it only while travelling
+		# right so the unicorn always faces its current direction of travel.
+		roaming_actor.scale.x = -absf(roaming_actor.scale.x) if roaming_actor.position.x > before.x else absf(roaming_actor.scale.x)
 
 
 func _input(event: InputEvent) -> void:
@@ -159,18 +162,22 @@ func _build_editor() -> void:
 	bag_button.name = "FurnitureBagButton"
 	bag_button.text = "BAG"
 	bag_button.tooltip_text = "Open furniture bag"
-	bag_button.custom_minimum_size = Vector2(82, 64)
+	bag_button.icon = FURNITURE_BAG_ICON
+	bag_button.expand_icon = true
+	bag_button.add_theme_constant_override("icon_max_width", 44)
+	bag_button.custom_minimum_size = Vector2(118, 76)
 	bag_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	# Keep the floating action inside the content viewport's 24px bottom/right
-	# safe inset, rather than relying on a position that leaves those edges at 0.
-	bag_button.offset_left = -106
-	bag_button.offset_top = -88
+	# Keep the room action above the system/ad boundary, inside the room stage's
+	# 24px safe inset.  It intentionally belongs to the stage, not the page root.
+	bag_button.offset_left = -142
+	bag_button.offset_top = -100
 	bag_button.offset_right = -24
 	bag_button.offset_bottom = -24
 	bag_button.add_theme_font_size_override("font_size", 18)
 	StorybookUI.apply_button(bag_button, StorybookUI.NAVY, false, 22)
 	bag_button.pressed.connect(_show_bag)
-	add_child(bag_button)
+	bag_button.z_index = 300
+	room_stage.add_child(bag_button)
 	_position_items.call_deferred()
 
 

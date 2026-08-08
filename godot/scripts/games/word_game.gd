@@ -310,7 +310,9 @@ func _render_sequence() -> void:
 func _render_letter_lift() -> void:
 	var typed := "".join(picked)
 	prompt_label.text = typed.to_upper() + "_".repeat(maxi(0, expected_word.length() - typed.length()))
-	secondary_label.text = "Spell: %s" % expected_word.to_upper() if hint_visible else "Next letter: %s" % expected_word.substr(picked.size(), 1).to_upper()
+	# Letter Lift is an ordered typing game, not a memory test. Keep the entire
+	# round target visible after every correct letter and on every later round.
+	secondary_label.text = "TARGET: %s" % expected_word.to_upper()
 
 
 func _choose(payload) -> void:

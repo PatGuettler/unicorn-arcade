@@ -282,7 +282,8 @@ func _run() -> void:
 	_check(_ui_is_accessible(room), "room editor meets readable text, contrast, and touch-target minimums")
 	_check(room.companion_id == "sparkle" and is_instance_valid(room.room_canvas), "Sparkle's room editor launches")
 	_check(room.grid_snap, "room editor starts with eight-percent grid snapping enabled")
-	_check(is_instance_valid(room.bag_button) and is_equal_approx(room.bag_button.anchor_right, 1.0) and is_equal_approx(room.bag_button.anchor_bottom, 1.0) and is_equal_approx(room.bag_button.offset_right, -24.0) and is_equal_approx(room.bag_button.offset_bottom, -24.0), "room BAG button uses explicit 24-pixel bottom-right content insets")
+	var room_stage := room.room_canvas.get_parent() as Control
+	_check(is_instance_valid(room.bag_button) and room.bag_button.get_parent() == room_stage and room.bag_button.icon != null and room.bag_button.expand_icon and room.bag_button.get_theme_constant("icon_max_width") >= 44 and room.bag_button.custom_minimum_size.x >= 118.0 and room.bag_button.custom_minimum_size.y >= 76.0 and is_equal_approx(room.bag_button.anchor_right, 1.0) and is_equal_approx(room.bag_button.anchor_bottom, 1.0) and is_equal_approx(room.bag_button.offset_right, -24.0) and is_equal_approx(room.bag_button.offset_bottom, -24.0), "room BAG button is a large illustrated room-stage action with explicit 24-pixel bottom-right insets")
 	var roaming_actor = room.roaming_actor
 	var room_bounds := Rect2(Vector2.ZERO, room.room_canvas.size)
 	_check(is_instance_valid(roaming_actor) and room_bounds.encloses(Rect2(roaming_actor.position, roaming_actor.size)) and is_equal_approx(room.roam_target.y, roaming_actor.position.y), "room companion initializes after the fitted canvas, fully inside its floor lane")
@@ -296,6 +297,18 @@ func _run() -> void:
 		room.call("_fit_room_canvas", stage, room.room_canvas.size / 0.5)
 		var resized_bounds := Rect2(Vector2.ZERO, room.room_canvas.size)
 		_check(is_equal_approx(roaming_actor.position.y, room.roam_target.y) and resized_bounds.encloses(Rect2(roaming_actor.position, roaming_actor.size)), "room companion preserves its floor baseline and bounds after canvas reflow")
+		var right_start := Vector2(maxf(0.0, roaming_actor.position.x - 24.0), roaming_actor.position.y)
+		roaming_actor.position = right_start
+		room.roam_target = right_start + Vector2(18.0, 0.0)
+		room.roam_pause = 1.0
+		room.call("_process", 0.1)
+		_check(roaming_actor.scale.x < 0.0, "room companion mirrors the left-facing preview while walking right")
+		var left_start := Vector2(minf(room.room_canvas.size.x - roaming_actor.size.x, roaming_actor.position.x + 24.0), roaming_actor.position.y)
+		roaming_actor.position = left_start
+		room.roam_target = left_start - Vector2(18.0, 0.0)
+		room.roam_pause = 1.0
+		room.call("_process", 0.1)
+		_check(roaming_actor.scale.x > 0.0, "room companion keeps the source left-facing preview while walking left")
 	_check(room.call("_item_base_size", "companion_sparkle") == Vector2(252, 180), "room companions use an expanded transparent canvas for horn and hoof clearance")
 	var companion_button: Button = room.item_buttons.get("room_companion_sparkle")
 	var companion_preview = companion_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(companion_button) else null
@@ -415,8 +428,12 @@ func _exercise_first_move(game_id: String, game: Node) -> void:
 		_check(game.picked.size() == 1, "%s accepts the first ordered item" % game_id)
 		return
 	if game_id == "letter_lift":
-		game.call("_handle_letter_input", game.expected_word.left(1))
-		_check(game.picked.size() == 1, "Letter Lift accepts the next exact letter")
+		var first_target := game.expected_word
+		game.call("_handle_letter_input", first_target.left(1))
+		_check(game.picked.size() == 1 and game.secondary_label.text == "TARGET: %s" % first_target.to_upper(), "Letter Lift accepts the next exact letter while retaining its complete target")
+		for letter_index in range(1, first_target.length()):
+			game.call("_handle_letter_input", first_target.left(letter_index + 1))
+		_check(game.round_index == 1 and game.secondary_label.text == "TARGET: %s" % game.expected_word.to_upper(), "Letter Lift reveals the full new target after the first round instead of only one next letter")
 		return
 	if game_id == "sight_spark":
 		game.call("_finish_sight_flash")
