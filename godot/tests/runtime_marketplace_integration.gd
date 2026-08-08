@@ -71,24 +71,14 @@ func _run() -> void:
 		await market.catalog_build_complete
 	market.category_scroll.scroll_horizontal = 80
 	var category_scroll_before: int = market.category_scroll.scroll_horizontal
-	var category_drag := InputEventScreenDrag.new()
-	category_drag.position = market.category_scroll.get_global_rect().get_center()
-	category_drag.relative = Vector2(-120, 2)
-	market.call("_input", category_drag)
-	_check(market.category_dragging and market.category_scroll.scroll_horizontal > category_scroll_before, "horizontal category dragging advances the category strip exactly once in the swipe direction")
-	var category_release := InputEventScreenTouch.new()
-	category_release.pressed = false
-	category_release.position = category_drag.position
-	market.call("_input", category_release)
+	var category_dragged: bool = bool(market.call("_apply_category_scroll_drag", market.category_scroll.get_global_rect().get_center(), Vector2(-120, 2)))
+	_check(market.call("_input_owner_viewport") == get_tree().root and category_dragged and market.category_dragging and market.category_scroll.scroll_horizontal > category_scroll_before, "horizontal category dragging advances the category strip exactly once through the live root input owner")
+	_check(market.call("_finish_catalog_scroll_gesture"), "category drag completion clears its transient state before an action can be tapped")
 	market.call("_set_decor_category", "beds")
 	_check(market.category == "all", "a horizontal category swipe does not accidentally activate the chip under the finger")
-	market.catalog_scroll.scroll_vertical = 200
-	var scroll_before: int = market.catalog_scroll.scroll_vertical
-	var market_drag := InputEventScreenDrag.new()
-	market_drag.position = market.catalog_scroll.get_global_rect().get_center()
-	market_drag.relative = Vector2(2, -120)
-	market.call("_input", market_drag)
-	_check(market.catalog_dragging and market.catalog_scroll.scroll_vertical > scroll_before, "vertical decor dragging advances the catalog exactly once in the swipe direction")
+	var catalog_dragged: bool = bool(market.call("_apply_catalog_scroll_drag", market.catalog_scroll.get_global_rect().get_center(), Vector2(2, -120)))
+	_check(market.call("_input_owner_viewport") == get_tree().root and catalog_dragged and market.catalog_dragging, "vertical decor dragging reaches the catalog helper through the live root input owner even when a desktop layout clamps scrolling")
+	_check(market.call("_finish_catalog_scroll_gesture"), "vertical drag completion clears its transient state without a synthetic touch release")
 	await _release_marketplace(market)
 	AppState.data = pre_test_data
 	SaveService.end_test_session()

@@ -49,6 +49,7 @@ func _run() -> void:
 	var content_viewport := get_tree().root.find_child("AppContentViewport", true, false) as SubViewport
 	var ad_bar_area := get_tree().root.find_child("AdBarArea", true, false) as Control
 	_check(is_instance_valid(app_layout) and is_instance_valid(render_area) and is_instance_valid(content_viewport) and is_instance_valid(ad_bar_area), "AdBarService owns a persistent content viewport and a separate ad-slot sibling")
+	_check(AdBarService.call("_can_manage_app_layout") and AdBarService.call("_app_layout_is_live") and app_layout.get_parent() == tree.root and render_area.get_parent() == app_layout and content_viewport.get_parent() == render_area and ad_bar_area.get_parent() == app_layout, "AdBarService reuses its wrapper only while its service and every layout child remain live in the expected root ancestry")
 	if OS.is_debug_build() and not FileAccess.file_exists("res://config/admob.json"):
 		_check(AdBarService.ads_enabled() and AdBarService.call("_banner_unit_id") == "ca-app-pub-3940256099942544/6300978111" and not AdBarService.should_show_for_player_logged_in(""), "debug builds without the gitignored AdMob config use the official test banner while keeping login ad-free")
 	for path in CONTROL_ROOT_SCENES:
@@ -123,7 +124,7 @@ func _run() -> void:
 	var laterally_spread := true
 	for index in range(1, background_z.size()):
 		laterally_spread = laterally_spread and background_z[index] - background_z[index - 1] >= 2.4
-	_check(is_instance_valid(meadow) and is_instance_valid(display) and roots.size() == 6 and models.size() == 6 and is_instance_valid(hero_root) and is_equal_approx(hero_root.position.x, -5.8) and is_zero_approx(hero_root.position.y) and hero_root.get_child(0).scale.x > background_scale and mid_count == 2 and rear_count == 3 and laterally_spread, "home shared meadow keeps the equipped hero lower and camera-near, with a staggered two-mid/three-rear companion formation")
+	_check(is_instance_valid(meadow) and is_instance_valid(display) and roots.size() == 6 and models.size() == 6 and is_instance_valid(hero_root) and is_equal_approx(hero_root.position.x, -5.8) and is_equal_approx(hero_root.position.y, -2.6) and hero_root.get_child(0).scale.x > background_scale and mid_count == 2 and rear_count == 3 and laterally_spread, "home shared meadow keeps the equipped hero lower and camera-near, with a staggered two-mid/three-rear companion formation")
 	var ready: Variant = home.call("prepare_for_scene_change")
 	if ready is Signal:
 		await ready

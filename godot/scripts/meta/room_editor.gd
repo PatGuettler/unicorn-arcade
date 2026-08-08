@@ -89,10 +89,10 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventScreenDrag:
 		_move_dragged(dragging_id, event.position - room_canvas.global_position, button)
-		get_viewport().set_input_as_handled()
+		_mark_root_input_handled()
 	elif event is InputEventScreenTouch and not event.pressed:
-		_commit_drag(dragging_id)
-		get_viewport().set_input_as_handled()
+		if _finish_item_drag():
+			_mark_root_input_handled()
 	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		_move_dragged(dragging_id, event.position - room_canvas.global_position, button)
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
@@ -104,23 +104,61 @@ func _handle_bag_scroll_input(event: InputEvent) -> bool:
 		return false
 	if event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
-		if is_instance_valid(bag_category_scroll) and bag_category_scroll.get_global_rect().has_point(drag.position) and absf(drag.relative.x) > absf(drag.relative.y):
-			bag_category_scroll.scroll_horizontal -= roundi(drag.relative.x * TOUCH_SCROLL_MULTIPLIER)
-			bag_category_dragging = true
-			get_viewport().set_input_as_handled()
+		if _apply_bag_category_scroll_drag(drag.position, drag.relative):
+			_mark_root_input_handled()
 			return true
-		if is_instance_valid(bag_catalog_scroll) and bag_catalog_scroll.get_global_rect().has_point(drag.position) and absf(drag.relative.y) > absf(drag.relative.x):
-			bag_catalog_scroll.scroll_vertical -= roundi(drag.relative.y * TOUCH_SCROLL_MULTIPLIER)
-			bag_catalog_dragging = true
-			get_viewport().set_input_as_handled()
+		if _apply_bag_catalog_scroll_drag(drag.position, drag.relative):
+			_mark_root_input_handled()
 			return true
-	elif event is InputEventScreenTouch and not event.pressed and (bag_category_dragging or bag_catalog_dragging):
-		bag_category_dragging = false
-		bag_catalog_dragging = false
-		suppress_bag_actions_until_ms = Time.get_ticks_msec() + 220
-		get_viewport().set_input_as_handled()
+	elif event is InputEventScreenTouch and not event.pressed and _finish_bag_scroll_gesture():
+		_mark_root_input_handled()
 		return true
 	return false
+
+
+func _apply_bag_category_scroll_drag(position: Vector2, relative: Vector2) -> bool:
+	if not is_instance_valid(bag_category_scroll) or not bag_category_scroll.get_global_rect().has_point(position) or absf(relative.x) <= absf(relative.y):
+		return false
+	bag_category_scroll.scroll_horizontal -= roundi(relative.x * TOUCH_SCROLL_MULTIPLIER)
+	bag_category_dragging = true
+	return true
+
+
+func _apply_bag_catalog_scroll_drag(position: Vector2, relative: Vector2) -> bool:
+	if not is_instance_valid(bag_catalog_scroll) or not bag_catalog_scroll.get_global_rect().has_point(position) or absf(relative.y) <= absf(relative.x):
+		return false
+	bag_catalog_scroll.scroll_vertical -= roundi(relative.y * TOUCH_SCROLL_MULTIPLIER)
+	bag_catalog_dragging = true
+	return true
+
+
+func _finish_bag_scroll_gesture() -> bool:
+	if not bag_category_dragging and not bag_catalog_dragging:
+		return false
+	bag_category_dragging = false
+	bag_catalog_dragging = false
+	suppress_bag_actions_until_ms = Time.get_ticks_msec() + 220
+	return true
+
+
+func _finish_item_drag() -> bool:
+	if dragging_id.is_empty():
+		return false
+	_commit_drag(dragging_id)
+	return true
+
+
+func _input_owner_viewport() -> Viewport:
+	var tree := get_tree()
+	if tree == null or not is_instance_valid(tree.root) or not tree.root.is_inside_tree():
+		return null
+	return tree.root
+
+
+func _mark_root_input_handled() -> void:
+	var input_owner := _input_owner_viewport()
+	if input_owner != null:
+		input_owner.set_input_as_handled()
 
 
 func _clear_ui() -> void:
@@ -338,19 +376,21 @@ func _item_input(event: InputEvent, instance_id: String, button: Button) -> void
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
 			button.accept_event()
-			selected_id = instance_id
-			dragging_id = instance_id
-			_mark_selected()
+			_begin_item_drag(instance_id)
 		else:
 			_commit_drag(instance_id)
 	elif event is InputEventScreenTouch:
 		if event.pressed:
 			button.accept_event()
-			selected_id = instance_id
-			dragging_id = instance_id
-			_mark_selected()
+			_begin_item_drag(instance_id)
 		else:
 			_commit_drag(instance_id)
+
+
+func _begin_item_drag(instance_id: String) -> void:
+	selected_id = instance_id
+	dragging_id = instance_id
+	_mark_selected()
 
 
 func _room_canvas_input(event: InputEvent) -> void:

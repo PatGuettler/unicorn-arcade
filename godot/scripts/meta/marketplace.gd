@@ -419,27 +419,56 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
-		if is_instance_valid(category_scroll) and category_scroll.get_global_rect().has_point(drag.position) and absf(drag.relative.x) > absf(drag.relative.y):
-			category_scroll.scroll_horizontal -= roundi(drag.relative.x * TOUCH_SCROLL_MULTIPLIER)
-			category_dragging = true
-			get_viewport().set_input_as_handled()
+		if _apply_category_scroll_drag(drag.position, drag.relative):
+			_mark_root_input_handled()
 			return
-		if not catalog_scroll.get_global_rect().has_point(drag.position):
-			return
-		if absf(drag.relative.y) <= absf(drag.relative.x):
-			return
-		catalog_scroll.scroll_vertical -= roundi(drag.relative.y * TOUCH_SCROLL_MULTIPLIER)
-		catalog_dragging = true
-		# Drop LineEdit focus so the list can take over the gesture.
-		var focused := get_viewport().gui_get_focus_owner()
-		if focused != null and focused is LineEdit:
-			focused.release_focus()
-		get_viewport().set_input_as_handled()
+		if _apply_catalog_scroll_drag(drag.position, drag.relative):
+			# Drop LineEdit focus so the list can take over the gesture.
+			var focused := get_viewport().gui_get_focus_owner()
+			if focused != null and focused is LineEdit:
+				focused.release_focus()
+			_mark_root_input_handled()
 	elif event is InputEventScreenTouch and not (event as InputEventScreenTouch).pressed:
-		if catalog_dragging or category_dragging:
-			catalog_dragging = false
-			category_dragging = false
-			suppress_catalog_actions_until_ms = Time.get_ticks_msec() + 220
+		if _finish_catalog_scroll_gesture():
+			_mark_root_input_handled()
+
+
+func _apply_category_scroll_drag(position: Vector2, relative: Vector2) -> bool:
+	if not is_instance_valid(category_scroll) or not category_scroll.get_global_rect().has_point(position) or absf(relative.x) <= absf(relative.y):
+		return false
+	category_scroll.scroll_horizontal -= roundi(relative.x * TOUCH_SCROLL_MULTIPLIER)
+	category_dragging = true
+	return true
+
+
+func _apply_catalog_scroll_drag(position: Vector2, relative: Vector2) -> bool:
+	if not is_instance_valid(catalog_scroll) or not catalog_scroll.get_global_rect().has_point(position) or absf(relative.y) <= absf(relative.x):
+		return false
+	catalog_scroll.scroll_vertical -= roundi(relative.y * TOUCH_SCROLL_MULTIPLIER)
+	catalog_dragging = true
+	return true
+
+
+func _finish_catalog_scroll_gesture() -> bool:
+	if not catalog_dragging and not category_dragging:
+		return false
+	catalog_dragging = false
+	category_dragging = false
+	suppress_catalog_actions_until_ms = Time.get_ticks_msec() + 220
+	return true
+
+
+func _input_owner_viewport() -> Viewport:
+	var tree := get_tree()
+	if tree == null or not is_instance_valid(tree.root) or not tree.root.is_inside_tree():
+		return null
+	return tree.root
+
+
+func _mark_root_input_handled() -> void:
+	var input_owner := _input_owner_viewport()
+	if input_owner != null:
+		input_owner.set_input_as_handled()
 
 
 func _buy_decor(item_id: String) -> void:

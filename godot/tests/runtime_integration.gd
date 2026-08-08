@@ -364,19 +364,12 @@ func _run() -> void:
 	add_child(touch_room)
 	await get_tree().process_frame
 	var lamp_button: Button = touch_room.item_buttons.get("test_lamp")
-	var room_press := InputEventScreenTouch.new()
-	room_press.pressed = true
-	touch_room.call("_item_input", room_press, "test_lamp", lamp_button)
+	touch_room.call("_begin_item_drag", "test_lamp")
 	var lamp_preview = lamp_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(lamp_button) else null
 	_check(lamp_button.text.is_empty() and lamp_button.tooltip_text == "Lava Lamp" and is_instance_valid(lamp_preview) and lamp_preview.mesh_count > 0 and not lamp_preview.uses_character_model, "room decor uses a modeled 3D object instead of an icon glyph")
 	_check(is_instance_valid(touch_room.selection_toolbar) and touch_room.selection_toolbar.get_child_count() == 6, "selecting decor opens the original six-action contextual toolbar")
-	var room_drag := InputEventScreenDrag.new()
-	room_drag.position = touch_room.room_canvas.global_position + Vector2(touch_room.room_canvas.size.x * 0.82, touch_room.room_canvas.size.y * 0.66)
-	touch_room.call("_input", room_drag)
-	var room_release := InputEventScreenTouch.new()
-	room_release.pressed = false
-	room_release.position = room_drag.position
-	touch_room.call("_input", room_release)
+	touch_room.call("_move_dragged", "test_lamp", Vector2(touch_room.room_canvas.size.x * 0.82, touch_room.room_canvas.size.y * 0.66), lamp_button)
+	_check(touch_room.call("_finish_item_drag"), "room item drag completion commits without a synthetic touch release")
 	var moved_items := AppState.room_items("rainbow")
 	var moved_lamp := moved_items.filter(func(item: Dictionary) -> bool: return str(item.get("instance_id", "")) == "test_lamp")
 	_check(moved_lamp.size() == 1 and is_equal_approx(float(moved_lamp[0]["x"]), 80.0) and is_equal_approx(float(moved_lamp[0]["y"]), 64.0), "room decor follows and commits an Android drag outside its button")
@@ -402,27 +395,15 @@ func _run() -> void:
 	touch_room.bag_catalog_scroll.scroll_vertical = 30
 	var bag_category_before: int = touch_room.bag_category_scroll.scroll_horizontal
 	var bag_catalog_before: int = touch_room.bag_catalog_scroll.scroll_vertical
-	var bag_category_drag := InputEventScreenDrag.new()
-	bag_category_drag.position = touch_room.bag_category_scroll.get_global_rect().get_center()
-	bag_category_drag.relative = Vector2(-96, 2)
-	touch_room.call("_input", bag_category_drag)
-	_check(touch_room.bag_category_dragging and touch_room.bag_category_scroll.scroll_horizontal > bag_category_before and touch_room.bag_catalog_scroll.scroll_vertical == bag_catalog_before, "room bag horizontal swipes move only its category strip")
-	var bag_category_release := InputEventScreenTouch.new()
-	bag_category_release.pressed = false
-	bag_category_release.position = bag_category_drag.position
-	touch_room.call("_input", bag_category_release)
+	var bag_category_dragged: bool = bool(touch_room.call("_apply_bag_category_scroll_drag", touch_room.bag_category_scroll.get_global_rect().get_center(), Vector2(-96, 2)))
+	_check(touch_room.call("_input_owner_viewport") == get_tree().root and bag_category_dragged and touch_room.bag_category_dragging and touch_room.bag_category_scroll.scroll_horizontal > bag_category_before and touch_room.bag_catalog_scroll.scroll_vertical == bag_catalog_before, "room bag horizontal swipes move only its category strip through the live root input owner")
+	_check(touch_room.call("_finish_bag_scroll_gesture"), "room bag category drag completion clears transient input before a chip action")
 	touch_room.call("_set_bag_category", "beds")
 	_check(touch_room.bag_category == "all", "room bag category chip actions are suppressed immediately after a horizontal swipe")
 	var bag_category_after_horizontal: int = touch_room.bag_category_scroll.scroll_horizontal
-	var bag_catalog_drag := InputEventScreenDrag.new()
-	bag_catalog_drag.position = touch_room.bag_catalog_scroll.get_global_rect().get_center()
-	bag_catalog_drag.relative = Vector2(2, -96)
-	touch_room.call("_input", bag_catalog_drag)
-	_check(touch_room.bag_catalog_dragging and touch_room.bag_catalog_scroll.scroll_vertical > bag_catalog_before and touch_room.bag_category_scroll.scroll_horizontal == bag_category_after_horizontal, "room bag vertical swipes move only its item catalog")
-	var bag_catalog_release := InputEventScreenTouch.new()
-	bag_catalog_release.pressed = false
-	bag_catalog_release.position = bag_catalog_drag.position
-	touch_room.call("_input", bag_catalog_release)
+	var bag_catalog_dragged: bool = bool(touch_room.call("_apply_bag_catalog_scroll_drag", touch_room.bag_catalog_scroll.get_global_rect().get_center(), Vector2(2, -96)))
+	_check(bag_catalog_dragged and touch_room.bag_catalog_dragging and touch_room.bag_catalog_scroll.scroll_vertical > bag_catalog_before and touch_room.bag_category_scroll.scroll_horizontal == bag_category_after_horizontal, "room bag vertical swipes move only its item catalog")
+	_check(touch_room.call("_finish_bag_scroll_gesture"), "room bag catalog drag completion clears transient input without a synthetic touch release")
 	AppState.data["inventory"]["lamp"] = 1
 	touch_room.call("_place_from_bag", "lamp")
 	_check(AppState.available_count("lamp") == 1 and touch_room.selected_id.is_empty(), "room bag item placement is suppressed immediately after a vertical swipe")

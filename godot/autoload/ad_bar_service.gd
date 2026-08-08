@@ -20,6 +20,7 @@ var _app_content_viewport: SubViewport
 var _ad_bar_area: Control
 var _hosted_scene: Node
 var _layout_sync_queued := false
+var _shutting_down := false
 
 
 func _ready() -> void:
@@ -32,7 +33,19 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	detach()
+	# The root is already tearing down here.  `detach()` normally updates the
+	# reservation, which would try to rebuild AppViewportLayout while root child
+	# removal is in progress and can recurse through failed add_child calls.
+	_shutting_down = true
+	_banner_requested = false
+	_reservation_active = false
+	_layout_sync_queued = false
+	_destroy_banner()
+	_app_layout = null
+	_game_render_area = null
+	_app_content_viewport = null
+	_ad_bar_area = null
+	_hosted_scene = null
 
 
 func _reload_config() -> void:
@@ -122,6 +135,8 @@ func _banner_unit_id() -> String:
 
 
 func _initialize_mobile_ads() -> void:
+	if _shutting_down:
+		return
 	if _sdk_initialized:
 		_show_banner_if_attached()
 		return
@@ -160,6 +175,8 @@ func _initialize_mobile_ads() -> void:
 	var listener := OnInitializationCompleteListener.new()
 	listener.on_initialization_complete = func(_status: InitializationStatus) -> void:
 		_sdk_initializing = false
+		if _shutting_down:
+			return
 		_sdk_initialized = true
 		print("AdBarService: MobileAds initialized")
 		_show_banner_if_attached()
@@ -168,6 +185,8 @@ func _initialize_mobile_ads() -> void:
 
 
 func _show_banner() -> void:
+	if _shutting_down:
+		return
 	if _ad_view != null:
 		_set_reservation_active(true)
 		_ad_view.show()
@@ -204,7 +223,7 @@ func _show_banner() -> void:
 
 
 func _on_banner_loaded() -> void:
-	if _ad_view == null:
+	if _shutting_down or _ad_view == null:
 		return
 	# Loading creates the native view, but visibility is plugin/platform state.
 	# Explicitly show it so a prior hidden or background-created banner cannot
@@ -218,6 +237,8 @@ func _on_banner_loaded() -> void:
 
 
 func _show_banner_if_attached() -> void:
+	if _shutting_down:
+		return
 	if (
 		should_show_for_player_logged_in(AppState.player_name())
 		and _should_show_ads()
@@ -241,10 +262,14 @@ func _connect_scene_tracking() -> void:
 
 
 func _on_scene_changed() -> void:
+	if _shutting_down:
+		return
 	call_deferred("_host_current_scene")
 
 
 func _on_viewport_size_changed() -> void:
+	if _shutting_down:
+		return
 	_update_app_layout()
 
 
@@ -264,15 +289,13 @@ func _content_to_banner_gutter_height() -> int:
 
 
 func _ensure_app_layout() -> void:
-	if is_instance_valid(_app_layout) and not _app_layout.is_queued_for_deletion():
+	if not _can_manage_app_layout():
 		return
-	_app_layout = null
-	_game_render_area = null
-	_app_content_viewport = null
-	_ad_bar_area = null
-	_hosted_scene = null
+	if _app_layout_is_live():
+		return
+	_discard_stale_app_layout()
 	var tree := get_tree()
-	if tree == null or tree.root == null:
+	if tree == null or tree.root == null or not tree.root.is_inside_tree() or tree.root.is_queued_for_deletion():
 		return
 	_app_layout = VBoxContainer.new()
 	_app_layout.name = "AppViewportLayout"
@@ -305,7 +328,42 @@ func _ensure_app_layout() -> void:
 	_update_app_layout()
 
 
+func _app_layout_is_live() -> bool:
+	var tree := get_tree()
+	if not _can_manage_app_layout() or tree == null or tree.root == null:
+		return false
+	if not is_instance_valid(_app_layout) or _app_layout.is_queued_for_deletion() or not _app_layout.is_inside_tree():
+		return false
+	if not is_instance_valid(_game_render_area) or _game_render_area.is_queued_for_deletion() or not _game_render_area.is_inside_tree():
+		return false
+	if not is_instance_valid(_app_content_viewport) or _app_content_viewport.is_queued_for_deletion() or not _app_content_viewport.is_inside_tree():
+		return false
+	if not is_instance_valid(_ad_bar_area) or _ad_bar_area.is_queued_for_deletion() or not _ad_bar_area.is_inside_tree():
+		return false
+	return _app_layout.get_parent() == tree.root and _game_render_area.get_parent() == _app_layout and _app_content_viewport.get_parent() == _game_render_area and _ad_bar_area.get_parent() == _app_layout
+
+
+func _can_manage_app_layout() -> bool:
+	return not _shutting_down and is_inside_tree()
+
+
+func _discard_stale_app_layout() -> void:
+	var stale_layout := _app_layout
+	_app_layout = null
+	_game_render_area = null
+	_app_content_viewport = null
+	_ad_bar_area = null
+	_hosted_scene = null
+	# During a scene replacement Godot can detach the old wrapper before its
+	# queued deletion runs.  Never reuse that detached SubViewport: reparenting a
+	# new scene into it leaves input dispatch pointing at a dead tree branch.
+	if is_instance_valid(stale_layout) and not stale_layout.is_queued_for_deletion():
+		stale_layout.queue_free()
+
+
 func _update_app_layout() -> void:
+	if not _can_manage_app_layout():
+		return
 	_ensure_app_layout()
 	if not is_instance_valid(_app_layout) or not is_instance_valid(_ad_bar_area):
 		return
@@ -320,7 +378,7 @@ func _update_app_layout() -> void:
 
 
 func _schedule_layout_sync() -> void:
-	if _layout_sync_queued:
+	if not _can_manage_app_layout() or _layout_sync_queued:
 		return
 	_layout_sync_queued = true
 	call_deferred("_enforce_app_layout_bounds")
@@ -328,6 +386,8 @@ func _schedule_layout_sync() -> void:
 
 func _enforce_app_layout_bounds() -> void:
 	_layout_sync_queued = false
+	if not _can_manage_app_layout():
+		return
 	if not is_instance_valid(_app_layout) or not is_instance_valid(_game_render_area):
 		return
 	var tree := get_tree()
@@ -348,8 +408,10 @@ func _enforce_app_layout_bounds() -> void:
 
 
 func _host_current_scene() -> void:
+	if not _can_manage_app_layout():
+		return
 	_ensure_app_layout()
-	if not is_instance_valid(_app_content_viewport):
+	if not _app_layout_is_live():
 		return
 	var tree := get_tree()
 	var scene := tree.current_scene if tree != null else null

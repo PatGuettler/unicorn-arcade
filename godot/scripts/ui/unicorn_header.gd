@@ -2,7 +2,7 @@ class_name UnicornHeader
 extends RefCounted
 
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
-const COIN_ICON_PATH := "res://assets/games/currency/quarter.png"
+const CURRENCY_STAR := Color("ffd166")
 
 static func build(title: String, back_text: String, back_action: Callable, home_action: Callable, trailing_text := "", trailing_action := Callable()) -> PanelContainer:
 	var panel := PanelContainer.new()
@@ -50,12 +50,17 @@ static func build(title: String, back_text: String, back_action: Callable, home_
 	StorybookUI.apply_home_button(home)
 	home.pressed.connect(home_action)
 	actions.add_child(home)
-	var coin_icon := TextureRect.new()
+	var coin_icon := Label.new()
 	coin_icon.name = "SharedCoinIcon"
-	coin_icon.texture = load(COIN_ICON_PATH) as Texture2D
-	coin_icon.custom_minimum_size = Vector2(30, 30)
-	coin_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	coin_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	coin_icon.text = "★"
+	coin_icon.tooltip_text = "Coins"
+	coin_icon.custom_minimum_size = Vector2(24, 30)
+	coin_icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	coin_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	coin_icon.add_theme_font_size_override("font_size", 24)
+	coin_icon.add_theme_color_override("font_color", CURRENCY_STAR)
+	coin_icon.add_theme_color_override("font_outline_color", StorybookUI.PLUM)
+	coin_icon.add_theme_constant_override("outline_size", 3)
 	coin_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	actions.add_child(coin_icon)
 	var coins := Label.new()
