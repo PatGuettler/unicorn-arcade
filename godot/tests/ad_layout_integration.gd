@@ -33,6 +33,11 @@ func _check(condition: bool, message: String) -> void:
 
 
 func _run() -> void:
+	# The runner must stay outside the app wrapper so it can verify a real scene
+	# hosted by AppContentViewport without being retired during wrapper changes.
+	var tree := get_tree()
+	if get_parent() != tree.root:
+		reparent(tree.root)
 	# SceneTree.scene_changed emits no parameters; call the handler directly so a
 	# future signature drift fails this focused runner before device testing.
 	AdBarService.call("_on_scene_changed")
@@ -44,13 +49,6 @@ func _run() -> void:
 	var content_viewport := get_tree().root.find_child("AppContentViewport", true, false) as SubViewport
 	var ad_bar_area := get_tree().root.find_child("AdBarArea", true, false) as Control
 	_check(is_instance_valid(app_layout) and is_instance_valid(render_area) and is_instance_valid(content_viewport) and is_instance_valid(ad_bar_area), "AdBarService owns a persistent content viewport and a separate ad-slot sibling")
-	var hosted_scene := Control.new()
-	hosted_scene.name = "AdLayoutHostedScene"
-	hosted_scene.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	get_tree().root.add_child(hosted_scene)
-	get_tree().current_scene = hosted_scene
-	AdBarService.call("_host_current_scene")
-	await get_tree().process_frame
 	for path in CONTROL_ROOT_SCENES:
 		var packed := load(path) as PackedScene
 		var root := packed.instantiate()
@@ -59,28 +57,39 @@ func _run() -> void:
 			var control := root as Control
 			_check(is_equal_approx(control.anchor_left, 0.0) and is_equal_approx(control.anchor_top, 0.0) and is_equal_approx(control.anchor_right, 1.0) and is_equal_approx(control.anchor_bottom, 1.0), "%s remains full-rect inside the app content viewport" % path)
 		root.free()
-	AdBarService.call("_set_reservation_active", true)
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var window_size := get_tree().root.get_visible_rect().size
-	var slot_height := ad_bar_area.size.y if is_instance_valid(ad_bar_area) else 0.0
-	var scene := get_tree().current_scene
-	var content_scene := AdBarService.content_scene()
-	_check(slot_height > 0.0 and is_equal_approx(app_layout.size.y - render_area.size.y, slot_height) and is_equal_approx(content_viewport.get_visible_rect().size.y, render_area.size.y), "active banner reserves a separate bottom slot and makes the game viewport exactly the remaining render area")
-	_check(scene == app_layout and content_scene == hosted_scene and content_scene.get_parent() == content_viewport and is_equal_approx(render_area.size.x, window_size.x) and is_equal_approx(app_layout.size.y, window_size.y), "persistent app wrapper stays current while content_scene is hosted inside the content viewport")
-	_check(is_instance_valid(content_scene) and content_scene.get_viewport() == content_viewport and get_tree().root.find_child("AdDisclosure", true, false) == null, "games see only the content viewport and native banners add no duplicate Godot disclosure")
-	AdBarService.call("_set_reservation_active", false)
-	await get_tree().process_frame
-	await get_tree().process_frame
-	_check(is_zero_approx(ad_bar_area.size.y) and is_equal_approx(render_area.size.y, app_layout.size.y) and is_equal_approx(content_viewport.get_visible_rect().size.y, window_size.y), "disabling ads collapses the ad slot and restores full-height game content")
 	var original_data := AppState.data.duplicate(true)
 	AppState.data = SaveService.default_profile("Ad Layout Hero")
 	AppState.data["owned_companions"] = ["sparkle", "rainbow", "star", "cloud", "dream", "mystic"]
 	AppState.data["player"]["equipped_companion"] = "mystic"
+	AppState.shell_view = "home"
 	var home := preload("res://scenes/main.tscn").instantiate()
-	add_child(home)
+	tree.root.add_child(home)
+	tree.current_scene = home
+	AdBarService.call("_host_current_scene")
 	await home.page_build_complete
-	await get_tree().process_frame
+	for _frame in 3:
+		await get_tree().process_frame
+	AdBarService.call("_set_reservation_active", true)
+	home.call("_show_dashboard")
+	await home.page_build_complete
+	AdBarService.call("_set_reservation_active", true)
+	for _frame in 3:
+		await get_tree().process_frame
+	var window_size := tree.root.get_visible_rect().size
+	var slot_height := ad_bar_area.size.y if is_instance_valid(ad_bar_area) else 0.0
+	var content_scene := AdBarService.content_scene()
+	_check(slot_height > 0.0 and is_equal_approx(app_layout.size.y, window_size.y) and is_equal_approx(render_area.size.y, window_size.y - slot_height) and content_viewport.get_visible_rect().size.is_equal_approx(render_area.size), "active banner keeps the app layout root-sized while the render viewport is exactly the window minus its separate slot")
+	_check(tree.current_scene == app_layout and content_scene == home and content_scene.get_parent() == content_viewport and content_scene.get_viewport() == content_viewport, "persistent app wrapper stays current while the actual Main scene is hosted in the content viewport")
+	_check(home.find_children("CategoryIcon", "ArcadePictogram", true, false).size() == 4 and home.is_visible_in_tree() and get_tree().root.find_child("AdDisclosure", true, false) == null, "dashboard remains visibly built inside the reduced content viewport without a duplicate Godot disclosure")
+	AdBarService.call("_set_reservation_active", false)
+	for _frame in 2:
+		await get_tree().process_frame
+	_check(is_zero_approx(ad_bar_area.size.y) and is_equal_approx(app_layout.size.y, window_size.y) and is_equal_approx(render_area.size.y, window_size.y) and content_viewport.get_visible_rect().size.is_equal_approx(window_size), "disabling ads collapses only the ad slot and restores full-height content without shrinking the app layout")
+	home.call("_show_home")
+	await home.page_build_complete
+	AdBarService.call("_set_reservation_active", true)
+	for _frame in 2:
+		await get_tree().process_frame
 	var meadow := home.find_child("MeadowCompanionStage3D", true, false)
 	var display := home.find_child("MeadowCompanionDisplay", true, false)
 	var roots := []
