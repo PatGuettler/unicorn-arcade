@@ -5,7 +5,7 @@ extends Node
 
 const CONFIG_PATH := "res://config/admob.json"
 const EXAMPLE_PATH := "res://config/admob.example.json"
-const CONTENT_TO_BANNER_GUTTER_LOGICAL_PIXELS := 12
+const CONTENT_TO_BANNER_GUTTER_LOGICAL_PIXELS := 24
 var _config: Dictionary = {}
 var _ad_view: AdView
 var _sdk_initialized := false

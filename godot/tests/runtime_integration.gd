@@ -75,6 +75,11 @@ func _run() -> void:
 	_check(coin_count.coin_buttons[0].custom_minimum_size.y >= 170.0 and coin_count.coin_buttons[0].tooltip_text.contains("worth"), "illustrated coins retain large accessible tap targets and denomination descriptions")
 	var official_coin := coin_count.coin_buttons[0].find_child("OfficialCoinPortrait", true, false) as TextureRect
 	_check(is_instance_valid(official_coin) and official_coin.texture != null and not coin_count.coin_buttons[0].has_method("_draw_coin_face"), "Coin Count presents only the official coin portrait, while retaining accessible labels and focus treatment")
+	var coin_portraits_clear_text := true
+	for button in coin_count.coin_buttons:
+		var portrait := button.find_child("OfficialCoinPortrait", true, false) as TextureRect
+		coin_portraits_clear_text = coin_portraits_clear_text and is_instance_valid(portrait) and is_equal_approx(portrait.offset_bottom, CoinChoiceButton.PORTRAIT_BOTTOM_Y) and portrait.get_rect().end.y <= CoinChoiceButton.PORTRAIT_BOTTOM_Y and CoinChoiceButton.DENOMINATION_BASELINE_Y - portrait.get_rect().end.y >= 24.0
+	_check(coin_portraits_clear_text, "Coin Count bounds every denomination portrait above the 140-pixel text baseline, including the quarter")
 	await _release_scene(coin_count)
 	var rhyme = RHYME_SCENE.instantiate()
 	add_child(rhyme)
@@ -237,6 +242,7 @@ func _run() -> void:
 	_check(_ui_is_accessible(room), "room editor meets readable text, contrast, and touch-target minimums")
 	_check(room.companion_id == "sparkle" and is_instance_valid(room.room_canvas), "Sparkle's room editor launches")
 	_check(room.grid_snap, "room editor starts with eight-percent grid snapping enabled")
+	_check(is_instance_valid(room.bag_button) and is_equal_approx(room.bag_button.anchor_right, 1.0) and is_equal_approx(room.bag_button.anchor_bottom, 1.0) and is_equal_approx(room.bag_button.offset_right, -24.0) and is_equal_approx(room.bag_button.offset_bottom, -24.0), "room BAG button uses explicit 24-pixel bottom-right content insets")
 	var roaming_actor = room.roaming_actor
 	var room_bounds := Rect2(Vector2.ZERO, room.room_canvas.size)
 	_check(is_instance_valid(roaming_actor) and room_bounds.encloses(Rect2(roaming_actor.position, roaming_actor.size)) and is_equal_approx(room.roam_target.y, roaming_actor.position.y), "room companion initializes after the fitted canvas, fully inside its floor lane")

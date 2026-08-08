@@ -3,7 +3,9 @@ extends Node
 
 const Preview = preload("res://scripts/meta/room_item_preview_3d.gd")
 const IdleAnimator = preload("res://scripts/meta/unicorn_idle_animator.gd")
-const HERO_POSITION := Vector3(-5.0, 0.0, 0.95)
+const HERO_POSITION := Vector3(-5.8, 0.0, 0.95)
+const HERO_SCALE_MULTIPLIER := 3.8
+const HERO_SHADOW_RADIUS := 0.84
 
 var viewport: SubViewport
 
@@ -59,13 +61,13 @@ func _add_companion(stage: Node3D, id: String, position: Vector3, hero: bool, fo
 	stage.add_child(root)
 	var model := Preview.CHARACTER_SCENES[id].instantiate() as Node3D
 	model.name = "LiveUnicornModel_%s" % id
-	model.scale = Vector3.ONE * float(Preview.CHARACTER_SCALES.get(id, 1.0)) * (3.4 if hero else 1.7)
+	model.scale = Vector3.ONE * float(Preview.CHARACTER_SCALES.get(id, 1.0)) * (HERO_SCALE_MULTIPLIER if hero else 1.7)
 	model.position.y = -0.25
 	root.add_child(model)
 	var shadow := MeshInstance3D.new()
 	shadow.name = "MeadowContactShadow"
 	var mesh := CylinderMesh.new()
-	mesh.top_radius = 0.75 if hero else 0.42
+	mesh.top_radius = HERO_SHADOW_RADIUS if hero else 0.42
 	mesh.bottom_radius = mesh.top_radius
 	mesh.height = 0.02
 	shadow.mesh = mesh

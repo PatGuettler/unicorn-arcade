@@ -161,7 +161,12 @@ func _build_editor() -> void:
 	bag_button.tooltip_text = "Open furniture bag"
 	bag_button.custom_minimum_size = Vector2(82, 64)
 	bag_button.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
-	bag_button.position = Vector2(-98, -88)
+	# Keep the floating action inside the content viewport's 24px bottom/right
+	# safe inset, rather than relying on a position that leaves those edges at 0.
+	bag_button.offset_left = -106
+	bag_button.offset_top = -88
+	bag_button.offset_right = -24
+	bag_button.offset_bottom = -24
 	bag_button.add_theme_font_size_override("font_size", 18)
 	StorybookUI.apply_button(bag_button, StorybookUI.NAVY, false, 22)
 	bag_button.pressed.connect(_show_bag)

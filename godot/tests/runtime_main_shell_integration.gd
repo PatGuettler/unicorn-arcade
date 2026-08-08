@@ -64,7 +64,7 @@ func _run() -> void:
 	background_z.sort()
 	var lateral_safe := background_z.size() == 5
 	for index in range(1, background_z.size()): lateral_safe = lateral_safe and background_z[index] - background_z[index - 1] >= 2.4
-	_check(is_instance_valid(hero_root) and is_equal_approx(hero_root.position.x, -5.0) and is_zero_approx(hero_root.position.y) and is_equal_approx(hero_root.position.z, 0.95) and hero_root.get_child(0).scale.x > 3.0 and mid_count == 2 and rear_count == 3 and lateral_safe, "equipped hero occupies the lower camera-front placement while the two-mid/three-rear meadow formation stays separated")
+	_check(is_instance_valid(hero_root) and is_equal_approx(hero_root.position.x, -5.8) and is_zero_approx(hero_root.position.y) and is_equal_approx(hero_root.position.z, 0.95) and is_equal_approx(hero_root.get_child(0).scale.x, 4.256) and mid_count == 2 and rear_count == 3 and lateral_safe, "equipped hero occupies the lower, enlarged camera-front placement while the two-mid/three-rear meadow formation stays separated")
 	var centered_slot := shell.find_child("TrueCenterHeaderSlot", true, false) as Control
 	var home_sign := shell.find_child("HomeTitleSign", true, false) as TextureRect
 	var alley_sign_button := shell.find_child("UnicornAlleyStreetSignButton", true, false) as Button

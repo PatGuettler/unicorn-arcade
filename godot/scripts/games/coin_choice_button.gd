@@ -3,6 +3,9 @@ extends Button
 
 const SILVER_LIGHT := Color("eef3fa")
 const CREAM := Color("fff3d6")
+const PORTRAIT_TOP_Y := 2.0
+const PORTRAIT_BOTTOM_Y := 116.0
+const DENOMINATION_BASELINE_Y := 140.0
 const COIN_TEXTURES := {
 	"Penny": "res://assets/games/currency/penny.png",
 	"Nickel": "res://assets/games/currency/nickel.png",
@@ -44,8 +47,10 @@ func setup(coin_name: String, coin_cents: int, ratio: float) -> void:
 	portrait.anchor_right = 0.5
 	portrait.offset_left = -66.0 * size_ratio
 	portrait.offset_right = 66.0 * size_ratio
-	portrait.offset_top = 2
-	portrait.offset_bottom = 134.0 * size_ratio
+	# A bounded image lane prevents tall source art from entering either text line.
+	# Width remains ratio-based so the denominations keep their relative coin sizes.
+	portrait.offset_top = PORTRAIT_TOP_Y
+	portrait.offset_bottom = PORTRAIT_BOTTOM_Y
 	add_child(portrait)
 	portrait.position.x -= 0.0
 	queue_redraw()
@@ -55,7 +60,7 @@ func _draw() -> void:
 	var font := ThemeDB.fallback_font
 	var label_color := Color(CREAM, 0.48) if disabled else CREAM
 	var value_color := Color(SILVER_LIGHT, 0.62) if disabled else SILVER_LIGHT
-	draw_string(font, Vector2(0, 140), denomination.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, size.x, 20, label_color)
+	draw_string(font, Vector2(0, DENOMINATION_BASELINE_Y), denomination.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, size.x, 20, label_color)
 	draw_string(font, Vector2(0, 165), _value_label(), HORIZONTAL_ALIGNMENT_CENTER, size.x, 18, value_color)
 	if has_focus():
 		# Outline the entire accessible portrait region rather than drawing a
