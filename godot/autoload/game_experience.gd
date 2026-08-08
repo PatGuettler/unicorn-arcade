@@ -257,9 +257,11 @@ func _build_objective_plaque() -> PanelContainer:
 	plaque.add_child(row)
 	var mascot := RoomItemPreviewScene.new()
 	mascot.name = "EquippedCompanionMascot"
-	mascot.custom_minimum_size = Vector2(72, 68)
+	# A dedicated, wider HUD presentation prevents ears and tails from clipping
+	# without changing marketplace or room preview framing.
+	mascot.custom_minimum_size = Vector2(96, 74)
 	mascot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mascot.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": false, "presentation": "marketplace"})
+	mascot.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": false, "presentation": "game_hud"})
 	row.add_child(mascot)
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -519,17 +521,53 @@ func _request_leave(home: bool) -> void:
 	if not is_instance_valid(attached_scene):
 		return
 	if _has_property(attached_scene, "active") and bool(attached_scene.get("active")):
-		var dialog := ConfirmationDialog.new()
-		dialog.title = "Leave this run?"
-		dialog.dialog_text = "Your current level will be abandoned."
-		dialog.ok_button_text = "LEAVE RUN"
-		dialog.cancel_button_text = "KEEP PLAYING"
-		attached_scene.add_child(dialog)
-		dialog.confirmed.connect(_leave_game.bind(home))
-		dialog.canceled.connect(dialog.queue_free)
-		dialog.popup_centered(Vector2i(520, 260))
+		_show_leave_run_modal(home)
 	else:
 		_leave_game(home)
+
+
+func _show_leave_run_modal(home: bool) -> void:
+	if not is_instance_valid(attached_scene) or _scene_has_dialog("LeaveRunOverlay"):
+		return
+	var overlay := _modal_backdrop("LeaveRunOverlay")
+	attached_scene.add_child(overlay)
+	var card := _modal_card(overlay, 0.10, 0.90, 0.30, 0.70)
+	card.name = "LeaveRunCard"
+	var stack := VBoxContainer.new()
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 16)
+	card.add_child(stack)
+	var badge := Label.new()
+	badge.text = "STORYBOOK PAUSE"
+	badge.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	StorybookUI.apply_story_label(badge, Color("c45186"), 18, false)
+	stack.add_child(badge)
+	stack.add_child(_modal_title("LEAVE THIS RUN?"))
+	var copy := Label.new()
+	copy.name = "LeaveRunCopy"
+	copy.text = "Your current level will be abandoned. You can begin a fresh run anytime."
+	copy.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	copy.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	copy.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	copy.custom_minimum_size.y = 86
+	StorybookUI.apply_story_label(copy, StorybookUI.INK, 23, false)
+	stack.add_child(copy)
+	var actions := HBoxContainer.new()
+	actions.alignment = BoxContainer.ALIGNMENT_CENTER
+	actions.add_theme_constant_override("separation", 12)
+	stack.add_child(actions)
+	var leave := Button.new()
+	leave.name = "LeaveRunConfirm"
+	leave.text = "LEAVE RUN"
+	StorybookUI.apply_game_action(leave, 180)
+	leave.pressed.connect(_leave_game.bind(home))
+	actions.add_child(leave)
+	var keep_playing := Button.new()
+	keep_playing.name = "LeaveRunCancel"
+	keep_playing.text = "KEEP PLAYING"
+	StorybookUI.apply_game_action(keep_playing, 190)
+	keep_playing.pressed.connect(overlay.queue_free)
+	actions.add_child(keep_playing)
 
 
 func _leave_game(home: bool) -> void:

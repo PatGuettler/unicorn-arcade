@@ -79,6 +79,8 @@ func _run() -> void:
 	var slot_height := ad_bar_area.size.y if is_instance_valid(ad_bar_area) else 0.0
 	var content_scene := AdBarService.content_scene()
 	_check(slot_height > 0.0 and is_equal_approx(app_layout.size.y, window_size.y) and is_equal_approx(render_area.size.y, window_size.y - slot_height) and content_viewport.get_visible_rect().size.is_equal_approx(render_area.size), "active banner keeps the app layout root-sized while the render viewport is exactly the window minus its separate slot")
+	_check(ad_bar_area.get_parent() == app_layout and is_equal_approx(ad_bar_area.size.x, app_layout.size.x) and is_equal_approx(render_area.size.x, app_layout.size.x), "the native ad slot remains a full-width sibling of the game render area")
+	_check(is_equal_approx(float(AdBarService.call("_reservation_height")), float(AdBarService.get("_banner_logical_height"))), "the ad slot reserves the actual native banner height without double-counting Android's bottom safe inset")
 	_check(tree.current_scene == app_layout and content_scene == home and content_scene.get_parent() == content_viewport and content_scene.get_viewport() == content_viewport, "persistent app wrapper stays current while the actual Main scene is hosted in the content viewport")
 	_check(home.find_children("CategoryIcon", "ArcadePictogram", true, false).size() == 4 and home.is_visible_in_tree() and get_tree().root.find_child("AdDisclosure", true, false) == null, "dashboard remains visibly built inside the reduced content viewport without a duplicate Godot disclosure")
 	AdBarService.call("_set_reservation_active", false)
