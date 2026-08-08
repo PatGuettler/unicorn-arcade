@@ -13,6 +13,7 @@ const CYAN := Color("58d6e8")
 const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 const MUTED := Color("aab7e8")
+const TOUCH_SCROLL_MULTIPLIER := 1.25
 const ROOM_BACKGROUNDS := {
 	"sparkle": preload("res://assets/meta/environments/room_sparkle_production_v1.png"),
 	"rainbow": preload("res://assets/meta/environments/room_rainbow_production_v1.png"),
@@ -36,7 +37,12 @@ var bag_button: Button
 var selection_toolbar: HBoxContainer
 var bag_overlay: Control
 var bag_grid: GridContainer
+var bag_category_scroll: ScrollContainer
+var bag_catalog_scroll: ScrollContainer
 var bag_category := "all"
+var bag_category_dragging := false
+var bag_catalog_dragging := false
+var suppress_bag_actions_until_ms := 0
 var roaming_actor: RoomItemPreview3D
 var roam_target := Vector2.ZERO
 var roam_pause := 0.0
@@ -59,6 +65,7 @@ func _process(delta: float) -> void:
 	if roam_target == Vector2.ZERO or roam_pause <= 0.0:
 		roam_target = _safe_roam_target()
 		roam_pause = roam_rng.randf_range(2.4, 5.5)
+		_set_roaming_actor_facing(roam_target.x - roaming_actor.position.x)
 		roaming_actor.set_motion_state(roaming_actor.position.distance_to(roam_target) >= 4.0)
 	elif roaming_actor.position.distance_to(roam_target) < 4.0:
 		roaming_actor.set_motion_state(false)
@@ -69,12 +76,12 @@ func _process(delta: float) -> void:
 		roaming_actor.set_motion_state(false)
 	roaming_actor.z_index = int(roaming_actor.position.y)
 	if roaming_actor.position.x != before.x:
-		# The room-preview source art faces left. Mirror it only while travelling
-		# right so the unicorn always faces its current direction of travel.
-		roaming_actor.scale.x = -absf(roaming_actor.scale.x) if roaming_actor.position.x > before.x else absf(roaming_actor.scale.x)
+		_set_roaming_actor_facing(roaming_actor.position.x - before.x)
 
 
 func _input(event: InputEvent) -> void:
+	if _handle_bag_scroll_input(event):
+		return
 	if dragging_id.is_empty() or not is_instance_valid(room_canvas):
 		return
 	var button := item_buttons.get(dragging_id) as Button
@@ -92,6 +99,30 @@ func _input(event: InputEvent) -> void:
 		_commit_drag(dragging_id)
 
 
+func _handle_bag_scroll_input(event: InputEvent) -> bool:
+	if not is_instance_valid(bag_overlay):
+		return false
+	if event is InputEventScreenDrag:
+		var drag := event as InputEventScreenDrag
+		if is_instance_valid(bag_category_scroll) and bag_category_scroll.get_global_rect().has_point(drag.position) and absf(drag.relative.x) > absf(drag.relative.y):
+			bag_category_scroll.scroll_horizontal -= roundi(drag.relative.x * TOUCH_SCROLL_MULTIPLIER)
+			bag_category_dragging = true
+			get_viewport().set_input_as_handled()
+			return true
+		if is_instance_valid(bag_catalog_scroll) and bag_catalog_scroll.get_global_rect().has_point(drag.position) and absf(drag.relative.y) > absf(drag.relative.x):
+			bag_catalog_scroll.scroll_vertical -= roundi(drag.relative.y * TOUCH_SCROLL_MULTIPLIER)
+			bag_catalog_dragging = true
+			get_viewport().set_input_as_handled()
+			return true
+	elif event is InputEventScreenTouch and not event.pressed and (bag_category_dragging or bag_catalog_dragging):
+		bag_category_dragging = false
+		bag_catalog_dragging = false
+		suppress_bag_actions_until_ms = Time.get_ticks_msec() + 220
+		get_viewport().set_input_as_handled()
+		return true
+	return false
+
+
 func _clear_ui() -> void:
 	for child in get_children():
 		remove_child(child)
@@ -100,6 +131,11 @@ func _clear_ui() -> void:
 	selection_toolbar = null
 	bag_overlay = null
 	bag_grid = null
+	bag_category_scroll = null
+	bag_catalog_scroll = null
+	bag_category_dragging = false
+	bag_catalog_dragging = false
+	suppress_bag_actions_until_ms = 0
 
 
 func _build_editor() -> void:
@@ -232,12 +268,26 @@ func _create_roaming_actor() -> void:
 	roaming_actor.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	roaming_actor.custom_minimum_size = Vector2(148, 116)
 	roaming_actor.size = roaming_actor.custom_minimum_size
+	roaming_actor.pivot_offset = roaming_actor.size * 0.5
 	roaming_actor.setup({"id": "companion_%s" % companion_id, "category": "companions", "animate": true, "presentation": "marketplace"})
 	room_canvas.add_child(roaming_actor)
 	var home := _local_item("room_companion_%s" % companion_id)
 	roaming_actor.position = _roam_home_position(home)
 	roam_floor_y = roaming_actor.position.y
 	roam_target = roaming_actor.position
+	_set_roaming_actor_facing(1.0)
+
+
+func _set_roaming_actor_facing(horizontal_direction: float) -> void:
+	if not is_instance_valid(roaming_actor) or is_zero_approx(horizontal_direction):
+		return
+	# RoomItemPreview3D faces screen-right without mirroring. Its centered pivot
+	# keeps the actor anchored on the floor while a leftward route mirrors it.
+	roaming_actor.pivot_offset = roaming_actor.size * 0.5
+	var scale_magnitude := absf(roaming_actor.scale.x)
+	if is_zero_approx(scale_magnitude):
+		scale_magnitude = 1.0
+	roaming_actor.scale.x = scale_magnitude if horizontal_direction > 0.0 else -scale_magnitude
 
 
 func _roam_home_position(home: Dictionary) -> Vector2:
@@ -255,6 +305,7 @@ func _reflow_roaming_actor() -> void:
 	var max_x := maxf(0.0, room_canvas.size.x - roaming_actor.size.x)
 	roaming_actor.position = Vector2(clampf(roaming_actor.position.x, 0.0, max_x), roam_floor_y)
 	roam_target = Vector2(clampf(roam_target.x, 0.0, max_x), roam_floor_y)
+	roaming_actor.pivot_offset = roaming_actor.size * 0.5
 
 
 func _safe_roam_target() -> Vector2:
@@ -533,14 +584,16 @@ func _show_bag() -> void:
 	shop.custom_minimum_size = Vector2(82, 56)
 	shop.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/marketplace.tscn"))
 	header.add_child(shop)
-	var category_scroll := ScrollContainer.new()
-	category_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	category_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	category_scroll.custom_minimum_size.y = 58
-	content.add_child(category_scroll)
+	bag_category_scroll = ScrollContainer.new()
+	bag_category_scroll.name = "FurnitureBagCategoryScroll"
+	bag_category_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	bag_category_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	bag_category_scroll.scroll_deadzone = 12
+	bag_category_scroll.custom_minimum_size.y = 58
+	content.add_child(bag_category_scroll)
 	var categories := HBoxContainer.new()
 	categories.add_theme_constant_override("separation", 6)
-	category_scroll.add_child(categories)
+	bag_category_scroll.add_child(categories)
 	for category_data in Catalog.categories():
 		var chip := Button.new()
 		var category_id := str(category_data.get("id", "all"))
@@ -558,26 +611,26 @@ func _show_bag() -> void:
 	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	count_label.add_theme_color_override("font_color", MUTED)
 	content.add_child(count_label)
-	var scroll := ScrollContainer.new()
-	scroll.name = "FurnitureBagScroll"
-	scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	scroll.scroll_deadzone = 12
-	scroll.follow_focus = false
-	scroll.clip_contents = true
-	content.add_child(scroll)
+	bag_catalog_scroll = ScrollContainer.new()
+	bag_catalog_scroll.name = "FurnitureBagScroll"
+	bag_catalog_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bag_catalog_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	bag_catalog_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	bag_catalog_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	bag_catalog_scroll.scroll_deadzone = 12
+	bag_catalog_scroll.follow_focus = false
+	bag_catalog_scroll.clip_contents = true
+	content.add_child(bag_catalog_scroll)
 	bag_grid = GridContainer.new()
 	bag_grid.name = "BagGrid"
 	bag_grid.columns = 3
 	bag_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	bag_grid.add_theme_constant_override("h_separation", 7)
 	bag_grid.add_theme_constant_override("v_separation", 7)
-	scroll.add_child(bag_grid)
-	scroll.resized.connect(func() -> void:
+	bag_catalog_scroll.add_child(bag_grid)
+	bag_catalog_scroll.resized.connect(func() -> void:
 		if is_instance_valid(bag_grid):
-			bag_grid.custom_minimum_size.x = scroll.size.x
+			bag_grid.custom_minimum_size.x = bag_catalog_scroll.size.x
 	)
 	_rebuild_bag_grid(count_label)
 
@@ -587,6 +640,11 @@ func _close_bag() -> void:
 		bag_overlay.queue_free()
 	bag_overlay = null
 	bag_grid = null
+	bag_category_scroll = null
+	bag_catalog_scroll = null
+	bag_category_dragging = false
+	bag_catalog_dragging = false
+	suppress_bag_actions_until_ms = 0
 	if is_instance_valid(bag_button):
 		bag_button.show()
 	if is_instance_valid(status_label):
@@ -594,12 +652,16 @@ func _close_bag() -> void:
 
 
 func _set_bag_category(category_id: String) -> void:
+	if Time.get_ticks_msec() < suppress_bag_actions_until_ms:
+		return
 	bag_category = category_id
 	_close_bag()
 	_show_bag()
 
 
 func _rebuild_bag_grid(count_label: Label) -> void:
+	bag_category_dragging = false
+	bag_catalog_dragging = false
 	bag_grid.columns = 3
 	for child in bag_grid.get_children():
 		child.queue_free()
@@ -667,6 +729,8 @@ func _rebuild_bag_grid(count_label: Label) -> void:
 
 
 func _place_from_bag(item_id: String) -> void:
+	if Time.get_ticks_msec() < suppress_bag_actions_until_ms:
+		return
 	var items := AppState.room_items(companion_id)
 	var item := {
 		"instance_id": "%d_%d" % [Time.get_ticks_msec(), randi_range(100, 999)],

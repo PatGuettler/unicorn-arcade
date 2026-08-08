@@ -8,7 +8,10 @@ static func build(title: String, back_text: String, back_action: Callable, home_
 	var panel := PanelContainer.new()
 	panel.name = "SharedUnicornHeader"
 	panel.custom_minimum_size.y = 56
-	panel.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254d"), StorybookUI.GOLD, 16))
+	var panel_style := StorybookUI.plaque_style(Color("17254d"), StorybookUI.GOLD, 16)
+	panel_style.content_margin_left = 8
+	panel_style.content_margin_right = 8
+	panel.add_theme_stylebox_override("panel", panel_style)
 	var grid := GridContainer.new()
 	grid.columns = 3
 	panel.add_child(grid)
@@ -18,7 +21,7 @@ static func build(title: String, back_text: String, back_action: Callable, home_
 		# fixed left slot so the title stays centered without duplicating Home.
 		left_slot = Control.new()
 		left_slot.name = "HeaderLeftSpacer"
-		left_slot.custom_minimum_size = Vector2(112, 56)
+		left_slot.custom_minimum_size = Vector2(48, 56)
 	else:
 		var back := Button.new()
 		back.name = "HeaderBackButton"
@@ -38,7 +41,9 @@ static func build(title: String, back_text: String, back_action: Callable, home_
 	var actions := HBoxContainer.new()
 	actions.name = "HeaderActions"
 	actions.alignment = BoxContainer.ALIGNMENT_END
-	actions.custom_minimum_size = Vector2(216, 56)
+	actions.add_theme_constant_override("separation", 4)
+	var has_trailing_action := not trailing_text.is_empty() and trailing_action.is_valid()
+	actions.custom_minimum_size = Vector2(202 if has_trailing_action else 138, 56)
 	var home := Button.new()
 	home.name = "HeaderHomeButton"
 	home.tooltip_text = "Home"
@@ -48,23 +53,23 @@ static func build(title: String, back_text: String, back_action: Callable, home_
 	var coin_icon := TextureRect.new()
 	coin_icon.name = "SharedCoinIcon"
 	coin_icon.texture = load(COIN_ICON_PATH) as Texture2D
-	coin_icon.custom_minimum_size = Vector2(34, 34)
+	coin_icon.custom_minimum_size = Vector2(30, 30)
 	coin_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	coin_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	coin_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	actions.add_child(coin_icon)
 	var coins := Label.new()
 	coins.name = "SharedCoinBalance"
-	coins.text = "COINS %d" % AppState.coins()
+	coins.text = str(AppState.coins())
 	coins.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	coins.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	coins.custom_minimum_size = Vector2(96, 56)
+	coins.custom_minimum_size = Vector2(52, 56)
 	coins.add_theme_font_size_override("font_size", 16)
 	actions.add_child(coins)
-	if not trailing_text.is_empty() and trailing_action.is_valid():
+	if has_trailing_action:
 		var trailing := Button.new()
 		trailing.text = trailing_text
-		trailing.custom_minimum_size = Vector2(64, 56)
+		trailing.custom_minimum_size = Vector2(60, 56)
 		trailing.pressed.connect(trailing_action)
 		actions.add_child(trailing)
 	grid.add_child(actions)

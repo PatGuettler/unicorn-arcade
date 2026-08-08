@@ -120,15 +120,21 @@ func _input(event: InputEvent) -> void:
 	if not active or wave_resolved:
 		return
 	if event is InputEventScreenTouch and event.pressed:
-		_select_lane(_lane_for_x(event.position.x))
+		if not _is_playable_aim_position(event.position):
+			return
+		_select_lane(_lane_for_x(event.position.x - get_global_rect().position.x))
 		get_viewport().set_input_as_handled()
 	elif event is InputEventScreenDrag:
-		_select_lane(_lane_for_x(event.position.x))
+		if not _is_playable_aim_position(event.position):
+			return
+		_select_lane(_lane_for_x(event.position.x - get_global_rect().position.x))
 		get_viewport().set_input_as_handled()
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-		_select_lane(_lane_for_x(event.position.x))
+		if _is_playable_aim_position(event.position):
+			_select_lane(_lane_for_x(event.position.x - get_global_rect().position.x))
 	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
-		_select_lane(_lane_for_x(event.position.x))
+		if _is_playable_aim_position(event.position):
+			_select_lane(_lane_for_x(event.position.x - get_global_rect().position.x))
 
 
 func _start_level(for_level: int) -> void:
@@ -248,6 +254,18 @@ func _lane_for_x(x: float) -> int:
 	return clampi(int(floor(x / maxf(1.0, size.x / LANES))), 0, LANES - 1)
 
 
+func _is_playable_aim_position(screen_position: Vector2) -> bool:
+	var game_rect := get_global_rect()
+	if not game_rect.has_point(screen_position) or screen_position.y < game_rect.position.y + 165.0:
+		return false
+	# The equation/header is above the lane field, and the status/action chrome
+	# must never silently retarget the unicorn when the player taps FIRE.
+	if is_instance_valid(status_label) and status_label.get_global_rect().has_point(screen_position):
+		return false
+	var action_bar := get_node_or_null("CometActionBar") as Control
+	return not is_instance_valid(action_bar) or not action_bar.get_global_rect().has_point(screen_position)
+
+
 func _update_hud() -> void:
 	meter_label.text = "RESCUE %d / %d     SHIELDS %d     SCORE %d" % [rescues, target_rescues, lives, score]
 
@@ -338,6 +356,7 @@ func _build_ui() -> void:
 	status_label.add_theme_color_override("font_outline_color", Color("1b1038"))
 	add_child(status_label)
 	var actions := HBoxContainer.new()
+	actions.name = "CometActionBar"
 	actions.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
 	actions.position.y = -58
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER

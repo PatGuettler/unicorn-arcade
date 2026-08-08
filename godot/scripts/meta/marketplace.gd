@@ -13,6 +13,7 @@ const YELLOW := Color("ffd166")
 const TEXT := Color("f7f1ff")
 const MUTED := Color("aab7e8")
 const DECOR_PAGE_SIZE := 24
+const TOUCH_SCROLL_MULTIPLIER := 1.25
 const COMPANION_PORTRAITS := {
 	"sparkle": preload("res://assets/characters/unicorns/thumbnails/sparkle.png"),
 	"rainbow": preload("res://assets/characters/unicorns/thumbnails/rainbow.png"),
@@ -419,17 +420,21 @@ func _input(event: InputEvent) -> void:
 	if event is InputEventScreenDrag:
 		var drag := event as InputEventScreenDrag
 		if is_instance_valid(category_scroll) and category_scroll.get_global_rect().has_point(drag.position) and absf(drag.relative.x) > absf(drag.relative.y):
+			category_scroll.scroll_horizontal -= roundi(drag.relative.x * TOUCH_SCROLL_MULTIPLIER)
 			category_dragging = true
+			get_viewport().set_input_as_handled()
 			return
 		if not catalog_scroll.get_global_rect().has_point(drag.position):
 			return
 		if absf(drag.relative.y) <= absf(drag.relative.x):
 			return
+		catalog_scroll.scroll_vertical -= roundi(drag.relative.y * TOUCH_SCROLL_MULTIPLIER)
 		catalog_dragging = true
 		# Drop LineEdit focus so the list can take over the gesture.
 		var focused := get_viewport().gui_get_focus_owner()
 		if focused != null and focused is LineEdit:
 			focused.release_focus()
+		get_viewport().set_input_as_handled()
 	elif event is InputEventScreenTouch and not (event as InputEventScreenTouch).pressed:
 		if catalog_dragging or category_dragging:
 			catalog_dragging = false
@@ -456,7 +461,7 @@ func _sell_decor(item_id: String) -> void:
 
 
 func _update_coins() -> void:
-	coin_label.text = "%d COINS" % AppState.coins()
+	coin_label.text = str(AppState.coins())
 
 
 func prepare_for_scene_change() -> Signal:

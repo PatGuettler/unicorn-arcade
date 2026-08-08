@@ -21,8 +21,13 @@ func _run() -> void:
 	var coins := home_header.find_child("SharedCoinBalance", true, false) as Label
 	var actions := home_header.find_child("HeaderActions", true, false) as HBoxContainer
 	_check(coin_icon != null and coin_icon.texture != null, "shared headers display a visible coin icon")
-	_check(coins != null and actions != null and actions.custom_minimum_size.x >= 216.0, "shared header reserves enough width for the coin balance and trailing action")
+	_check(coins != null and coins.text == str(AppState.coins()) and actions != null and actions.custom_minimum_size.x == 202.0, "shared header uses a compact numeric coin balance while reserving the exact width for a trailing action")
 	home_header.queue_free()
+	var marketplace_header := UnicornHeader.build("MARKETPLACE", "HOME", Callable(self, "_noop"), Callable(self, "_noop"))
+	get_tree().root.add_child(marketplace_header)
+	await get_tree().process_frame
+	_check(marketplace_header.get_combined_minimum_size().x <= 534.0, "a HOME Marketplace-style header fits inside the 534-pixel phone content width")
+	marketplace_header.queue_free()
 
 	var back_header := UnicornHeader.build("NUMBER GAMES", "BACK", Callable(self, "_noop"), Callable(self, "_noop"))
 	get_tree().root.add_child(back_header)

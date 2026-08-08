@@ -5,6 +5,7 @@ extends Node
 
 const CONFIG_PATH := "res://config/admob.json"
 const EXAMPLE_PATH := "res://config/admob.example.json"
+const GOOGLE_TEST_BANNER_UNIT_ID := "ca-app-pub-3940256099942544/6300978111"
 const CONTENT_TO_BANNER_GUTTER_LOGICAL_PIXELS := 24
 var _config: Dictionary = {}
 var _ad_view: AdView
@@ -37,8 +38,14 @@ func _exit_tree() -> void:
 func _reload_config() -> void:
 	if FileAccess.file_exists(CONFIG_PATH):
 		_config = _parse_json_file(CONFIG_PATH)
-	elif FileAccess.file_exists(EXAMPLE_PATH):
+	elif OS.is_debug_build() and FileAccess.file_exists(EXAMPLE_PATH):
+		# admob.json is deliberately gitignored. A debug APK must still exercise
+		# the native-banner layout on a fresh checkout, but only with Google's
+		# official test unit and never on the login/startup screen.
 		_config = _parse_json_file(EXAMPLE_PATH)
+		_config["ads_enabled"] = true
+		_config["android_banner_unit_id"] = GOOGLE_TEST_BANNER_UNIT_ID
+		_config["show_on_login"] = false
 	else:
 		_config = {}
 	_banner_logical_height = float(_config.get("banner_height_dp", 60.0))

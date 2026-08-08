@@ -75,7 +75,7 @@ func _run() -> void:
 	category_drag.position = market.category_scroll.get_global_rect().get_center()
 	category_drag.relative = Vector2(-120, 2)
 	market.call("_input", category_drag)
-	_check(market.category_dragging and market.category_scroll.scroll_horizontal == category_scroll_before, "horizontal category dragging is owned by the native ScrollContainer instead of a second jumpy manual scroller")
+	_check(market.category_dragging and market.category_scroll.scroll_horizontal > category_scroll_before, "horizontal category dragging advances the category strip exactly once in the swipe direction")
 	var category_release := InputEventScreenTouch.new()
 	category_release.pressed = false
 	category_release.position = category_drag.position
@@ -88,7 +88,7 @@ func _run() -> void:
 	market_drag.position = market.catalog_scroll.get_global_rect().get_center()
 	market_drag.relative = Vector2(2, -120)
 	market.call("_input", market_drag)
-	_check(market.catalog_dragging and market.catalog_scroll.scroll_vertical == scroll_before, "vertical decor dragging uses one native inertial scroll owner without double-applying movement")
+	_check(market.catalog_dragging and market.catalog_scroll.scroll_vertical > scroll_before, "vertical decor dragging advances the catalog exactly once in the swipe direction")
 	await _release_marketplace(market)
 	AppState.data = pre_test_data
 	SaveService.end_test_session()

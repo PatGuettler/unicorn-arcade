@@ -49,6 +49,8 @@ func _run() -> void:
 	var content_viewport := get_tree().root.find_child("AppContentViewport", true, false) as SubViewport
 	var ad_bar_area := get_tree().root.find_child("AdBarArea", true, false) as Control
 	_check(is_instance_valid(app_layout) and is_instance_valid(render_area) and is_instance_valid(content_viewport) and is_instance_valid(ad_bar_area), "AdBarService owns a persistent content viewport and a separate ad-slot sibling")
+	if OS.is_debug_build() and not FileAccess.file_exists("res://config/admob.json"):
+		_check(AdBarService.ads_enabled() and AdBarService.call("_banner_unit_id") == "ca-app-pub-3940256099942544/6300978111" and not AdBarService.should_show_for_player_logged_in(""), "debug builds without the gitignored AdMob config use the official test banner while keeping login ad-free")
 	for path in CONTROL_ROOT_SCENES:
 		var packed := load(path) as PackedScene
 		var root := packed.instantiate()

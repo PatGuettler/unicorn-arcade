@@ -227,9 +227,20 @@ func _run() -> void:
 	await get_tree().process_frame
 	comet.size = Vector2(720, 1280)
 	comet.call("_update_comet_positions")
+	await get_tree().process_frame
 	_check(comet.active and comet.lane_buttons.size() == 3 and comet.target_rescues > 0, "Comet Math Rescue launches a three-lane Rescue mission")
 	_check(_ui_is_accessible(comet), "Comet Math Rescue meets readable text, contrast, and touch-target minimums")
 	_check(is_instance_valid(comet.fire_button) and comet.fire_button.visible, "Comet Math Rescue presents a dedicated FIRE RAINBOW action")
+	var side_lane := (comet.correct_lane + 1) % 3
+	comet.call("_select_lane", side_lane)
+	var fire_touch := InputEventScreenTouch.new()
+	fire_touch.pressed = true
+	fire_touch.position = comet.fire_button.get_global_rect().get_center()
+	comet.call("_input", fire_touch)
+	_check(comet.selected_lane == side_lane, "touching FIRE RAINBOW does not retarget the aimed comet lane")
+	comet.fire_button.pressed.emit()
+	_check(comet.wave_resolved and comet.bolt_lane == side_lane, "FIRE RAINBOW fires the rainbow through the previously aimed unicorn lane")
+	comet.call("_start_level", 1)
 	comet.call("_select_lane", comet.correct_lane)
 	_check(not comet.wave_resolved and comet.rescues == 0, "Comet lane aiming alone does not resolve the wave")
 	comet.fire_button.pressed.emit()
@@ -286,7 +297,7 @@ func _run() -> void:
 	_check(is_instance_valid(room.bag_button) and room.bag_button.get_parent() == room_stage and room.bag_button.icon != null and room.bag_button.expand_icon and room.bag_button.get_theme_constant("icon_max_width") >= 44 and room.bag_button.custom_minimum_size.x >= 118.0 and room.bag_button.custom_minimum_size.y >= 76.0 and is_equal_approx(room.bag_button.anchor_right, 1.0) and is_equal_approx(room.bag_button.anchor_bottom, 1.0) and is_equal_approx(room.bag_button.offset_right, -24.0) and is_equal_approx(room.bag_button.offset_bottom, -24.0), "room BAG button is a large illustrated room-stage action with explicit 24-pixel bottom-right insets")
 	var roaming_actor = room.roaming_actor
 	var room_bounds := Rect2(Vector2.ZERO, room.room_canvas.size)
-	_check(is_instance_valid(roaming_actor) and room_bounds.encloses(Rect2(roaming_actor.position, roaming_actor.size)) and is_equal_approx(room.roam_target.y, roaming_actor.position.y), "room companion initializes after the fitted canvas, fully inside its floor lane")
+	_check(is_instance_valid(roaming_actor) and room_bounds.encloses(Rect2(roaming_actor.position, roaming_actor.size)) and is_equal_approx(room.roam_target.y, roaming_actor.position.y) and roaming_actor.pivot_offset.is_equal_approx(roaming_actor.size * 0.5), "room companion initializes after the fitted canvas, fully inside its floor lane with a centered mirror pivot")
 	if is_instance_valid(roaming_actor):
 		room.roam_target = room.call("_safe_roam_target")
 		var floor_y: float = roaming_actor.position.y
@@ -302,13 +313,13 @@ func _run() -> void:
 		room.roam_target = right_start + Vector2(18.0, 0.0)
 		room.roam_pause = 1.0
 		room.call("_process", 0.1)
-		_check(roaming_actor.scale.x < 0.0, "room companion mirrors the left-facing preview while walking right")
+		_check(roaming_actor.scale.x > 0.0, "room companion keeps its unmirrored screen-right preview while walking right")
 		var left_start := Vector2(minf(room.room_canvas.size.x - roaming_actor.size.x, roaming_actor.position.x + 24.0), roaming_actor.position.y)
 		roaming_actor.position = left_start
 		room.roam_target = left_start - Vector2(18.0, 0.0)
 		room.roam_pause = 1.0
 		room.call("_process", 0.1)
-		_check(roaming_actor.scale.x > 0.0, "room companion keeps the source left-facing preview while walking left")
+		_check(roaming_actor.scale.x < 0.0 and roaming_actor.pivot_offset.is_equal_approx(roaming_actor.size * 0.5), "room companion mirrors leftward travel around its centered pivot")
 	_check(room.call("_item_base_size", "companion_sparkle") == Vector2(252, 180), "room companions use an expanded transparent canvas for horn and hoof clearance")
 	var companion_button: Button = room.item_buttons.get("room_companion_sparkle")
 	var companion_preview = companion_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(companion_button) else null
@@ -385,6 +396,37 @@ func _run() -> void:
 	_check(is_instance_valid(touch_room.bag_overlay) and touch_room.bag_grid.columns == 1 and is_instance_valid(empty_bag_message) and empty_bag_message.custom_minimum_size.x >= 600.0, "empty furniture bag uses one full-width message instead of a one-character column")
 	_check(not touch_room.bag_button.visible and not touch_room.status_label.visible, "open furniture bag hides the underlying floating button and room status")
 	_check(_ui_is_accessible(touch_room.bag_overlay), "Furniture Bag meets readable text, contrast, and touch-target minimums")
+	touch_room.bag_grid.custom_minimum_size.y = touch_room.bag_catalog_scroll.size.y + 400.0
+	await get_tree().process_frame
+	touch_room.bag_category_scroll.scroll_horizontal = 40
+	touch_room.bag_catalog_scroll.scroll_vertical = 30
+	var bag_category_before: int = touch_room.bag_category_scroll.scroll_horizontal
+	var bag_catalog_before: int = touch_room.bag_catalog_scroll.scroll_vertical
+	var bag_category_drag := InputEventScreenDrag.new()
+	bag_category_drag.position = touch_room.bag_category_scroll.get_global_rect().get_center()
+	bag_category_drag.relative = Vector2(-96, 2)
+	touch_room.call("_input", bag_category_drag)
+	_check(touch_room.bag_category_dragging and touch_room.bag_category_scroll.scroll_horizontal > bag_category_before and touch_room.bag_catalog_scroll.scroll_vertical == bag_catalog_before, "room bag horizontal swipes move only its category strip")
+	var bag_category_release := InputEventScreenTouch.new()
+	bag_category_release.pressed = false
+	bag_category_release.position = bag_category_drag.position
+	touch_room.call("_input", bag_category_release)
+	touch_room.call("_set_bag_category", "beds")
+	_check(touch_room.bag_category == "all", "room bag category chip actions are suppressed immediately after a horizontal swipe")
+	var bag_category_after_horizontal: int = touch_room.bag_category_scroll.scroll_horizontal
+	var bag_catalog_drag := InputEventScreenDrag.new()
+	bag_catalog_drag.position = touch_room.bag_catalog_scroll.get_global_rect().get_center()
+	bag_catalog_drag.relative = Vector2(2, -96)
+	touch_room.call("_input", bag_catalog_drag)
+	_check(touch_room.bag_catalog_dragging and touch_room.bag_catalog_scroll.scroll_vertical > bag_catalog_before and touch_room.bag_category_scroll.scroll_horizontal == bag_category_after_horizontal, "room bag vertical swipes move only its item catalog")
+	var bag_catalog_release := InputEventScreenTouch.new()
+	bag_catalog_release.pressed = false
+	bag_catalog_release.position = bag_catalog_drag.position
+	touch_room.call("_input", bag_catalog_release)
+	AppState.data["inventory"]["lamp"] = 1
+	touch_room.call("_place_from_bag", "lamp")
+	_check(AppState.available_count("lamp") == 1 and touch_room.selected_id.is_empty(), "room bag item placement is suppressed immediately after a vertical swipe")
+	AppState.data["inventory"]["lamp"] = 0
 	touch_room.call("_close_bag")
 	await _release_scene(touch_room)
 	_check(AppState.remove_room_item("rainbow", "test_lamp") and AppState.available_count("lamp") == 1, "removed decor returns to the shared bag")
