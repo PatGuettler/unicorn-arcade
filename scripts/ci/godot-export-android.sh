@@ -165,11 +165,21 @@ android_export_template_dir() {
 	printf '%s\n' "$template_dir"
 }
 
+sanitize_android_build_template() {
+	local build_dir="$PROJECT/android/build"
+	# The editor-created installer adds this marker, but android_source.zip does
+	# not. Without it, Godot scans generated Android resources and writes files
+	# such as icon_background.webp.import, which Android's resource merger rejects.
+	: >"$build_dir/.gdignore"
+	find "$build_dir" -type f -name '*.import' -delete
+}
+
 ensure_android_build_template() {
 	local marker="$PROJECT/android/build/build.gradle"
 	local godot_aar template_dir android_source
 	godot_aar="$(find "$PROJECT/android/build/libs" -name 'godot-lib*.aar' -type f 2>/dev/null | head -1 || true)"
 	if [[ -f "$marker" && -n "$godot_aar" && -s "$godot_aar" ]]; then
+		sanitize_android_build_template
 		echo "Android build template already present; skipping install."
 		return 0
 	fi
@@ -191,6 +201,7 @@ ensure_android_build_template() {
 	chmod +x "$PROJECT/android/build/gradlew"
 	printf '%s\n' "$template_dir" >"$PROJECT/android/build/.build_version"
 	printf '%s\n' "$template_dir" >"$PROJECT/android/.build_version"
+	sanitize_android_build_template
 
 	godot_aar="$(find "$PROJECT/android/build/libs" -name 'godot-lib*.aar' -type f 2>/dev/null | head -1 || true)"
 	[[ -f "$marker" && -n "$godot_aar" && -s "$godot_aar" ]] || {
