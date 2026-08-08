@@ -13,7 +13,8 @@ const YELLOW := Color("ffd166")
 const TEXT := Color("f7f1ff")
 const MUTED := Color("aab7e8")
 const DECOR_PAGE_SIZE := 24
-const TOUCH_SCROLL_MULTIPLIER := 1.25
+const DECOR_ITEM_COLUMNS := 3
+const SCROLL_TOUCH_DEADZONE := 12.0
 const COMPANION_PORTRAITS := {
 	"sparkle": preload("res://assets/characters/unicorns/thumbnails/sparkle.png"),
 	"rainbow": preload("res://assets/characters/unicorns/thumbnails/rainbow.png"),
@@ -42,6 +43,11 @@ var category_dragging := false
 var suppress_catalog_actions_until_ms := 0
 var _decor_build_generation := 0
 var _scene_change_generation := 0
+var _scroll_touch_index := -1
+var _scroll_target := ""
+var _scroll_axis := ""
+var _scroll_motion := Vector2.ZERO
+var _scroll_surface_active := ""
 
 
 func _ready() -> void:
@@ -97,6 +103,9 @@ func _build_shell() -> void:
 	catalog_scroll.scroll_deadzone = 12
 	catalog_scroll.follow_focus = false
 	catalog_scroll.clip_contents = true
+	catalog_scroll.gui_input.connect(_on_catalog_scroll_gui_input)
+	catalog_scroll.scroll_started.connect(_on_scroll_surface_started.bind("catalog"))
+	catalog_scroll.scroll_ended.connect(_on_scroll_surface_ended.bind("catalog"))
 	root.add_child(catalog_scroll)
 	content = VBoxContainer.new()
 	content.name = "MarketplaceCatalog"
@@ -258,16 +267,23 @@ func _build_decor_catalog(generation: int) -> void:
 	category_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	category_scroll.scroll_deadzone = 12
 	category_scroll.follow_focus = false
+	category_scroll.gui_input.connect(_on_category_scroll_gui_input)
+	category_scroll.scroll_started.connect(_on_scroll_surface_started.bind("category"))
+	category_scroll.scroll_ended.connect(_on_scroll_surface_ended.bind("category"))
 	filters.add_child(category_scroll)
 	var category_row := HBoxContainer.new()
 	category_row.name = "DecorCategoryChips"
 	category_row.add_theme_constant_override("separation", 8)
+	category_row.mouse_filter = Control.MOUSE_FILTER_PASS
 	category_scroll.add_child(category_row)
 	for item in Catalog.categories():
 		var category_id := str(item["id"])
 		var chip := _button(str(item["label"]).to_upper(), PINK if category_id == category else PANEL, 56)
 		chip.name = "Category_%s" % category_id
 		chip.custom_minimum_size.x = maxf(94.0, float(str(item["label"]).length() * 12 + 34))
+		# Passing touch input upward keeps a drag that begins on a chip owned by
+		# the native category ScrollContainer while Button still receives taps.
+		chip.mouse_filter = Control.MOUSE_FILTER_PASS
 		chip.pressed.connect(_set_decor_category.bind(category_id))
 		category_row.add_child(chip)
 	message_label.text = "LOADING DECOR..."
@@ -282,13 +298,18 @@ func _build_decor_catalog(generation: int) -> void:
 	var shown_count := mini(DECOR_PAGE_SIZE, maxi(0, filtered.size() - page_start))
 	var item_list := ItemList.new()
 	item_list.name = "DecorItemList"
-	item_list.custom_minimum_size = Vector2(0, 520)
 	item_list.icon_mode = ItemList.ICON_MODE_TOP
 	item_list.fixed_icon_size = Vector2i(96, 96)
 	item_list.fixed_column_width = 148
-	item_list.max_columns = 4
+	item_list.max_columns = DECOR_ITEM_COLUMNS
 	item_list.allow_reselect = true
+	# Resize to every page item so ItemList has no competing vertical scroll
+	# range; MarketplaceScroll remains the single vertical owner.
+	item_list.auto_height = true
+	item_list.mouse_filter = Control.MOUSE_FILTER_PASS
 	item_list.tooltip_text = "Select a decor item to view details and actions."
+	# ItemList passes input to MarketplaceScroll, which is the only observer and
+	# native scroll owner. Connecting both would count the same drag twice.
 	content.add_child(item_list)
 	var page_items := filtered.slice(page_start, page_start + shown_count)
 	for definition in page_items:
@@ -296,7 +317,7 @@ func _build_decor_catalog(generation: int) -> void:
 		var index := item_list.add_item(str(definition["name"]).to_upper(), load("res://assets/store/decor_thumbnails/%s.png" % id))
 		item_list.set_item_metadata(index, {"source_model_id": id, "icon_path": "res://assets/store/decor_thumbnails/%s.png" % id})
 		item_list.set_item_tooltip(index, "%s — %s" % [str(definition["name"]), str(definition.get("desc", ""))])
-		if (index + 1) % 4 == 0:
+		if (index + 1) % DECOR_ITEM_COLUMNS == 0:
 			await get_tree().process_frame
 			if generation != _decor_build_generation or tab != "decor":
 				return
@@ -414,61 +435,75 @@ func _next_decor_page() -> void:
 	catalog_scroll.set_deferred("scroll_vertical", 0)
 
 
-func _input(event: InputEvent) -> void:
-	if tab != "decor" or not is_instance_valid(catalog_scroll):
+func _on_category_scroll_gui_input(event: InputEvent) -> void:
+	_observe_scroll_gesture("category", "horizontal", event)
+
+
+func _on_catalog_scroll_gui_input(event: InputEvent) -> void:
+	_observe_scroll_gesture("catalog", "vertical", event)
+
+
+func _observe_scroll_gesture(surface: String, axis: String, event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			# A fresh touch also cancels any interrupted prior gesture.
+			catalog_dragging = false
+			category_dragging = false
+			_scroll_touch_index = touch.index
+			_scroll_target = surface
+			_scroll_axis = ""
+			_scroll_motion = Vector2.ZERO
+		elif touch.index == _scroll_touch_index:
+			if _scroll_target == surface and _scroll_axis == axis and (catalog_dragging or category_dragging):
+				# gui_input release can arrive before ScrollContainer.scroll_ended.
+				# Arm suppression here so the release cannot activate the touched item.
+				suppress_catalog_actions_until_ms = Time.get_ticks_msec() + 220
+			_reset_scroll_gesture()
 		return
-	if event is InputEventScreenDrag:
-		var drag := event as InputEventScreenDrag
-		if _apply_category_scroll_drag(drag.position, drag.relative):
-			_mark_root_input_handled()
-			return
-		if _apply_catalog_scroll_drag(drag.position, drag.relative):
-			# Drop LineEdit focus so the list can take over the gesture.
-			var focused := get_viewport().gui_get_focus_owner()
-			if focused != null and focused is LineEdit:
-				focused.release_focus()
-			_mark_root_input_handled()
-	elif event is InputEventScreenTouch and not (event as InputEventScreenTouch).pressed:
-		if _finish_catalog_scroll_gesture():
-			_mark_root_input_handled()
+	if not event is InputEventScreenDrag:
+		return
+	var drag := event as InputEventScreenDrag
+	if drag.index != _scroll_touch_index or _scroll_target != surface:
+		return
+	_scroll_motion += drag.relative
+	if not _scroll_axis.is_empty():
+		return
+	if _scroll_motion.length() < SCROLL_TOUCH_DEADZONE:
+		return
+	var dominant_axis := "horizontal" if absf(_scroll_motion.x) > absf(_scroll_motion.y) else "vertical"
+	# Lock this gesture once. The ScrollContainer itself performs the movement;
+	# this observer never accepts the event or mutates its scroll position.
+	_scroll_axis = dominant_axis
+	if dominant_axis == axis:
+		if surface == "catalog":
+			catalog_dragging = true
+		else:
+			category_dragging = true
 
 
-func _apply_category_scroll_drag(position: Vector2, relative: Vector2) -> bool:
-	if not is_instance_valid(category_scroll) or not category_scroll.get_global_rect().has_point(position) or absf(relative.x) <= absf(relative.y):
-		return false
-	category_scroll.scroll_horizontal -= roundi(relative.x * TOUCH_SCROLL_MULTIPLIER)
-	category_dragging = true
-	return true
+func _on_scroll_surface_started(surface: String) -> void:
+	_scroll_surface_active = surface
+	if surface == "catalog":
+		var focused := get_viewport().gui_get_focus_owner()
+		if focused != null and focused is LineEdit:
+			focused.release_focus()
 
 
-func _apply_catalog_scroll_drag(position: Vector2, relative: Vector2) -> bool:
-	if not is_instance_valid(catalog_scroll) or not catalog_scroll.get_global_rect().has_point(position) or absf(relative.y) <= absf(relative.x):
-		return false
-	catalog_scroll.scroll_vertical -= roundi(relative.y * TOUCH_SCROLL_MULTIPLIER)
-	catalog_dragging = true
-	return true
+func _on_scroll_surface_ended(surface: String) -> void:
+	if _scroll_surface_active == surface or _scroll_target == surface:
+		suppress_catalog_actions_until_ms = Time.get_ticks_msec() + 220
+	_reset_scroll_gesture()
 
 
-func _finish_catalog_scroll_gesture() -> bool:
-	if not catalog_dragging and not category_dragging:
-		return false
+func _reset_scroll_gesture() -> void:
 	catalog_dragging = false
 	category_dragging = false
-	suppress_catalog_actions_until_ms = Time.get_ticks_msec() + 220
-	return true
-
-
-func _input_owner_viewport() -> Viewport:
-	var tree := get_tree()
-	if tree == null or not is_instance_valid(tree.root) or not tree.root.is_inside_tree():
-		return null
-	return tree.root
-
-
-func _mark_root_input_handled() -> void:
-	var input_owner := _input_owner_viewport()
-	if input_owner != null:
-		input_owner.set_input_as_handled()
+	_scroll_touch_index = -1
+	_scroll_target = ""
+	_scroll_axis = ""
+	_scroll_motion = Vector2.ZERO
+	_scroll_surface_active = ""
 
 
 func _buy_decor(item_id: String) -> void:

@@ -69,16 +69,53 @@ func _run() -> void:
 	while market.decor_page > 0:
 		market.call("_previous_decor_page")
 		await market.catalog_build_complete
-	market.category_scroll.scroll_horizontal = 80
-	var category_scroll_before: int = market.category_scroll.scroll_horizontal
-	var category_dragged: bool = bool(market.call("_apply_category_scroll_drag", market.category_scroll.get_global_rect().get_center(), Vector2(-120, 2)))
-	_check(market.call("_input_owner_viewport") == get_tree().root and category_dragged and market.category_dragging and market.category_scroll.scroll_horizontal > category_scroll_before, "horizontal category dragging advances the category strip exactly once through the live root input owner")
-	_check(market.call("_finish_catalog_scroll_gesture"), "category drag completion clears its transient state before an action can be tapped")
+	await get_tree().process_frame
+	var first_list_node := market.find_child("DecorItemList", true, false)
+	var first_list: ItemList = first_list_node as ItemList
+	var category_bar: HScrollBar = market.category_scroll.get_h_scroll_bar()
+	var catalog_bar: VScrollBar = market.catalog_scroll.get_v_scroll_bar()
+	var list_bar: VScrollBar = null
+	if is_instance_valid(first_list):
+		list_bar = first_list.get_v_scroll_bar()
+	_check(is_instance_valid(first_list), "Marketplace exposes its native decor item list after returning to page one")
+	_check(first_list.max_columns == 3, "Marketplace decor keeps a stable three-column portrait grid")
+	_check(first_list.has_auto_height(), "Marketplace decor ItemList auto-sizes to its page instead of owning vertical scrolling")
+	_check(is_instance_valid(list_bar) and list_bar.max_value <= list_bar.page, "Marketplace decor ItemList has no inner vertical scroll range")
+	_check(is_instance_valid(category_bar) and category_bar.max_value > category_bar.page, "Marketplace category ScrollContainer has a horizontal scroll range")
+	_check(is_instance_valid(catalog_bar) and catalog_bar.max_value > catalog_bar.page, "Marketplace catalog ScrollContainer has a vertical scroll range")
+	var category_press := InputEventScreenTouch.new()
+	category_press.index = 4
+	category_press.pressed = true
+	market.call("_on_category_scroll_gui_input", category_press)
+	var category_drag := InputEventScreenDrag.new()
+	category_drag.index = 4
+	category_drag.relative = Vector2(-96, 2)
+	market.call("_on_category_scroll_gui_input", category_drag)
+	_check(market.category_dragging, "Marketplace category drag is tracked locally after its touch deadzone")
+	var category_release := InputEventScreenTouch.new()
+	category_release.index = 4
+	category_release.pressed = false
+	market.call("_on_category_scroll_gui_input", category_release)
+	_check(not market.category_dragging and market.get("_scroll_touch_index") == -1, "Marketplace category release resets local touch state")
 	market.call("_set_decor_category", "beds")
 	_check(market.category == "all", "a horizontal category swipe does not accidentally activate the chip under the finger")
-	var catalog_dragged: bool = bool(market.call("_apply_catalog_scroll_drag", market.catalog_scroll.get_global_rect().get_center(), Vector2(2, -120)))
-	_check(market.call("_input_owner_viewport") == get_tree().root and catalog_dragged and market.catalog_dragging, "vertical decor dragging reaches the catalog helper through the live root input owner even when a desktop layout clamps scrolling")
-	_check(market.call("_finish_catalog_scroll_gesture"), "vertical drag completion clears its transient state without a synthetic touch release")
+	var catalog_press := InputEventScreenTouch.new()
+	catalog_press.index = 8
+	catalog_press.pressed = true
+	market.call("_on_catalog_scroll_gui_input", catalog_press)
+	var catalog_drag := InputEventScreenDrag.new()
+	catalog_drag.index = 8
+	catalog_drag.relative = Vector2(2, -96)
+	market.call("_on_catalog_scroll_gui_input", catalog_drag)
+	_check(market.catalog_dragging, "Marketplace catalog drag is tracked locally after its touch deadzone")
+	var catalog_release := InputEventScreenTouch.new()
+	catalog_release.index = 8
+	catalog_release.pressed = false
+	market.call("_on_catalog_scroll_gui_input", catalog_release)
+	_check(not market.catalog_dragging and market.get("_scroll_touch_index") == -1, "Marketplace catalog release resets local touch state")
+	_check(not market.has_method("_apply_category_scroll_drag"), "Marketplace no longer exposes custom category scroll mutation")
+	_check(not market.has_method("_apply_catalog_scroll_drag"), "Marketplace no longer exposes custom catalog scroll mutation")
+	_check(not market.has_method("_mark_root_input_handled"), "Marketplace no longer handles scrolling through the root viewport")
 	await _release_marketplace(market)
 	AppState.data = pre_test_data
 	SaveService.end_test_session()

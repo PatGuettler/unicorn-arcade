@@ -13,7 +13,7 @@ const CYAN := Color("58d6e8")
 const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 const MUTED := Color("aab7e8")
-const TOUCH_SCROLL_MULTIPLIER := 1.25
+const SCROLL_TOUCH_DEADZONE := 12.0
 const ROOM_BACKGROUNDS := {
 	"sparkle": preload("res://assets/meta/environments/room_sparkle_production_v1.png"),
 	"rainbow": preload("res://assets/meta/environments/room_rainbow_production_v1.png"),
@@ -43,6 +43,11 @@ var bag_category := "all"
 var bag_category_dragging := false
 var bag_catalog_dragging := false
 var suppress_bag_actions_until_ms := 0
+var _bag_scroll_touch_index := -1
+var _bag_scroll_target := ""
+var _bag_scroll_axis := ""
+var _bag_scroll_motion := Vector2.ZERO
+var _bag_scroll_surface_active := ""
 var roaming_actor: RoomItemPreview3D
 var roam_target := Vector2.ZERO
 var roam_pause := 0.0
@@ -80,8 +85,6 @@ func _process(delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if _handle_bag_scroll_input(event):
-		return
 	if dragging_id.is_empty() or not is_instance_valid(room_canvas):
 		return
 	var button := item_buttons.get(dragging_id) as Button
@@ -89,57 +92,14 @@ func _input(event: InputEvent) -> void:
 		return
 	if event is InputEventScreenDrag:
 		_move_dragged(dragging_id, event.position - room_canvas.global_position, button)
-		_mark_root_input_handled()
+		room_canvas.accept_event()
 	elif event is InputEventScreenTouch and not event.pressed:
 		if _finish_item_drag():
-			_mark_root_input_handled()
+			room_canvas.accept_event()
 	elif event is InputEventMouseMotion and Input.is_mouse_button_pressed(MOUSE_BUTTON_LEFT):
 		_move_dragged(dragging_id, event.position - room_canvas.global_position, button)
 	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT and not event.pressed:
 		_commit_drag(dragging_id)
-
-
-func _handle_bag_scroll_input(event: InputEvent) -> bool:
-	if not is_instance_valid(bag_overlay):
-		return false
-	if event is InputEventScreenDrag:
-		var drag := event as InputEventScreenDrag
-		if _apply_bag_category_scroll_drag(drag.position, drag.relative):
-			_mark_root_input_handled()
-			return true
-		if _apply_bag_catalog_scroll_drag(drag.position, drag.relative):
-			_mark_root_input_handled()
-			return true
-	elif event is InputEventScreenTouch and not event.pressed and _finish_bag_scroll_gesture():
-		_mark_root_input_handled()
-		return true
-	return false
-
-
-func _apply_bag_category_scroll_drag(position: Vector2, relative: Vector2) -> bool:
-	if not is_instance_valid(bag_category_scroll) or not bag_category_scroll.get_global_rect().has_point(position) or absf(relative.x) <= absf(relative.y):
-		return false
-	bag_category_scroll.scroll_horizontal -= roundi(relative.x * TOUCH_SCROLL_MULTIPLIER)
-	bag_category_dragging = true
-	return true
-
-
-func _apply_bag_catalog_scroll_drag(position: Vector2, relative: Vector2) -> bool:
-	if not is_instance_valid(bag_catalog_scroll) or not bag_catalog_scroll.get_global_rect().has_point(position) or absf(relative.y) <= absf(relative.x):
-		return false
-	bag_catalog_scroll.scroll_vertical -= roundi(relative.y * TOUCH_SCROLL_MULTIPLIER)
-	bag_catalog_dragging = true
-	return true
-
-
-func _finish_bag_scroll_gesture() -> bool:
-	if not bag_category_dragging and not bag_catalog_dragging:
-		return false
-	bag_category_dragging = false
-	bag_catalog_dragging = false
-	suppress_bag_actions_until_ms = Time.get_ticks_msec() + 220
-	return true
-
 
 func _finish_item_drag() -> bool:
 	if dragging_id.is_empty():
@@ -148,17 +108,67 @@ func _finish_item_drag() -> bool:
 	return true
 
 
-func _input_owner_viewport() -> Viewport:
-	var tree := get_tree()
-	if tree == null or not is_instance_valid(tree.root) or not tree.root.is_inside_tree():
-		return null
-	return tree.root
+func _on_bag_category_scroll_gui_input(event: InputEvent) -> void:
+	_observe_bag_scroll_gesture("category", "horizontal", event)
 
 
-func _mark_root_input_handled() -> void:
-	var input_owner := _input_owner_viewport()
-	if input_owner != null:
-		input_owner.set_input_as_handled()
+func _on_bag_catalog_scroll_gui_input(event: InputEvent) -> void:
+	_observe_bag_scroll_gesture("catalog", "vertical", event)
+
+
+func _observe_bag_scroll_gesture(surface: String, axis: String, event: InputEvent) -> void:
+	if event is InputEventScreenTouch:
+		var touch := event as InputEventScreenTouch
+		if touch.pressed:
+			# A fresh touch also cancels any interrupted prior gesture.
+			bag_category_dragging = false
+			bag_catalog_dragging = false
+			_bag_scroll_touch_index = touch.index
+			_bag_scroll_target = surface
+			_bag_scroll_axis = ""
+			_bag_scroll_motion = Vector2.ZERO
+		elif touch.index == _bag_scroll_touch_index:
+			if _bag_scroll_target == surface and _bag_scroll_axis == axis and (bag_category_dragging or bag_catalog_dragging):
+				# gui_input release can precede ScrollContainer.scroll_ended.
+				suppress_bag_actions_until_ms = Time.get_ticks_msec() + 220
+			_reset_bag_scroll_gesture()
+		return
+	if not event is InputEventScreenDrag:
+		return
+	var drag := event as InputEventScreenDrag
+	if drag.index != _bag_scroll_touch_index or _bag_scroll_target != surface:
+		return
+	_bag_scroll_motion += drag.relative
+	if not _bag_scroll_axis.is_empty() or _bag_scroll_motion.length() < SCROLL_TOUCH_DEADZONE:
+		return
+	_bag_scroll_axis = "horizontal" if absf(_bag_scroll_motion.x) > absf(_bag_scroll_motion.y) else "vertical"
+	# ScrollContainer owns physical movement. This only identifies a completed
+	# swipe so the touched chip or bag item cannot immediately activate.
+	if _bag_scroll_axis == axis:
+		if surface == "category":
+			bag_category_dragging = true
+		else:
+			bag_catalog_dragging = true
+
+
+func _on_bag_scroll_started(surface: String) -> void:
+	_bag_scroll_surface_active = surface
+
+
+func _on_bag_scroll_ended(surface: String) -> void:
+	if _bag_scroll_surface_active == surface or _bag_scroll_target == surface:
+		suppress_bag_actions_until_ms = Time.get_ticks_msec() + 220
+		_reset_bag_scroll_gesture()
+
+
+func _reset_bag_scroll_gesture() -> void:
+	bag_category_dragging = false
+	bag_catalog_dragging = false
+	_bag_scroll_touch_index = -1
+	_bag_scroll_target = ""
+	_bag_scroll_axis = ""
+	_bag_scroll_motion = Vector2.ZERO
+	_bag_scroll_surface_active = ""
 
 
 func _clear_ui() -> void:
@@ -171,8 +181,7 @@ func _clear_ui() -> void:
 	bag_grid = null
 	bag_category_scroll = null
 	bag_catalog_scroll = null
-	bag_category_dragging = false
-	bag_catalog_dragging = false
+	_reset_bag_scroll_gesture()
 	suppress_bag_actions_until_ms = 0
 
 
@@ -630,20 +639,26 @@ func _show_bag() -> void:
 	bag_category_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	bag_category_scroll.scroll_deadzone = 12
 	bag_category_scroll.custom_minimum_size.y = 58
+	bag_category_scroll.gui_input.connect(_on_bag_category_scroll_gui_input)
+	bag_category_scroll.scroll_started.connect(_on_bag_scroll_started.bind("category"))
+	bag_category_scroll.scroll_ended.connect(_on_bag_scroll_ended.bind("category"))
 	content.add_child(bag_category_scroll)
 	var categories := HBoxContainer.new()
 	categories.add_theme_constant_override("separation", 6)
+	categories.mouse_filter = Control.MOUSE_FILTER_PASS
 	bag_category_scroll.add_child(categories)
 	for category_data in Catalog.categories():
 		var chip := Button.new()
 		var category_id := str(category_data.get("id", "all"))
 		chip.text = str(category_data.get("label", category_id))
 		chip.button_pressed = category_id == bag_category
+		chip.mouse_filter = Control.MOUSE_FILTER_PASS
 		chip.pressed.connect(_set_bag_category.bind(category_id))
 		categories.add_child(chip)
 	var companion_chip := Button.new()
 	companion_chip.text = "Companion"
 	companion_chip.button_pressed = bag_category == "companions"
+	companion_chip.mouse_filter = Control.MOUSE_FILTER_PASS
 	companion_chip.pressed.connect(_set_bag_category.bind("companions"))
 	categories.add_child(companion_chip)
 	var count_label := Label.new()
@@ -660,11 +675,15 @@ func _show_bag() -> void:
 	bag_catalog_scroll.scroll_deadzone = 12
 	bag_catalog_scroll.follow_focus = false
 	bag_catalog_scroll.clip_contents = true
+	bag_catalog_scroll.gui_input.connect(_on_bag_catalog_scroll_gui_input)
+	bag_catalog_scroll.scroll_started.connect(_on_bag_scroll_started.bind("catalog"))
+	bag_catalog_scroll.scroll_ended.connect(_on_bag_scroll_ended.bind("catalog"))
 	content.add_child(bag_catalog_scroll)
 	bag_grid = GridContainer.new()
 	bag_grid.name = "BagGrid"
 	bag_grid.columns = 3
 	bag_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bag_grid.mouse_filter = Control.MOUSE_FILTER_PASS
 	bag_grid.add_theme_constant_override("h_separation", 7)
 	bag_grid.add_theme_constant_override("v_separation", 7)
 	bag_catalog_scroll.add_child(bag_grid)
@@ -682,8 +701,7 @@ func _close_bag() -> void:
 	bag_grid = null
 	bag_category_scroll = null
 	bag_catalog_scroll = null
-	bag_category_dragging = false
-	bag_catalog_dragging = false
+	_reset_bag_scroll_gesture()
 	suppress_bag_actions_until_ms = 0
 	if is_instance_valid(bag_button):
 		bag_button.show()
@@ -700,8 +718,7 @@ func _set_bag_category(category_id: String) -> void:
 
 
 func _rebuild_bag_grid(count_label: Label) -> void:
-	bag_category_dragging = false
-	bag_catalog_dragging = false
+	_reset_bag_scroll_gesture()
 	bag_grid.columns = 3
 	for child in bag_grid.get_children():
 		child.queue_free()
@@ -722,6 +739,8 @@ func _rebuild_bag_grid(count_label: Label) -> void:
 		place.tooltip_text = str(definition.get("desc", ""))
 		place.custom_minimum_size = Vector2(0, 132)
 		place.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# Route a drag beginning on an item to the outer bag ScrollContainer.
+		place.mouse_filter = Control.MOUSE_FILTER_PASS
 		place.pressed.connect(_place_from_bag.bind(item_id))
 		bag_grid.add_child(place)
 		var art := RoomItemPreviewScene.new()
