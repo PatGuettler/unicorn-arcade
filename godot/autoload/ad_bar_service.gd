@@ -5,6 +5,7 @@ extends Node
 
 const CONFIG_PATH := "res://config/admob.json"
 const EXAMPLE_PATH := "res://config/admob.example.json"
+const CONTENT_TO_BANNER_GUTTER_LOGICAL_PIXELS := 12
 var _config: Dictionary = {}
 var _ad_view: AdView
 var _sdk_initialized := false
@@ -251,6 +252,10 @@ func _reservation_height() -> float:
 	return _banner_logical_height if _reservation_active else 0.0
 
 
+func _content_to_banner_gutter_height() -> int:
+	return CONTENT_TO_BANNER_GUTTER_LOGICAL_PIXELS if _reservation_active else 0
+
+
 func _ensure_app_layout() -> void:
 	if is_instance_valid(_app_layout) and not _app_layout.is_queued_for_deletion():
 		return
@@ -295,8 +300,11 @@ func _ensure_app_layout() -> void:
 
 func _update_app_layout() -> void:
 	_ensure_app_layout()
-	if not is_instance_valid(_ad_bar_area):
+	if not is_instance_valid(_app_layout) or not is_instance_valid(_ad_bar_area):
 		return
+	# The separation is deliberately outside both children: it keeps game content
+	# clear of the native banner without inflating the measured banner reservation.
+	_app_layout.add_theme_constant_override("separation", _content_to_banner_gutter_height())
 	_ad_bar_area.custom_minimum_size.y = _reservation_height()
 	# Keep this transparent layout child visible so VBoxContainer immediately
 	# reallocates it to zero height when inactive instead of retaining its old rect.
