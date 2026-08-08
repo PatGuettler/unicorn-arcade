@@ -420,11 +420,17 @@ func _host_current_scene() -> void:
 	if scene.get_parent() == _app_content_viewport:
 		_hosted_scene = scene
 		return
+	var previous_hosted_scene := _hosted_scene
+	# SceneTree only permits a direct root child as current_scene.  Clear it
+	# before moving the new direct-root route under the persistent SubViewport;
+	# the service's content_scene() is the route source while it is hosted.
+	tree.current_scene = null
 	scene.reparent(_app_content_viewport)
 	_hosted_scene = scene
-	# SceneTree only accepts a direct root child as current_scene. The persistent
-	# wrapper keeps that contract while content_scene() exposes the actual route.
-	tree.current_scene = _app_layout
+	# A later change_scene_to_file() now creates a fresh direct-root route. Once
+	# it arrives here, retire only the prior hosted route, never the wrapper.
+	if is_instance_valid(previous_hosted_scene) and previous_hosted_scene != scene and previous_hosted_scene.get_parent() == _app_content_viewport:
+		previous_hosted_scene.queue_free()
 	if scene is Control:
 		(scene as Control).set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 

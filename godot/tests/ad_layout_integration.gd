@@ -86,7 +86,7 @@ func _run() -> void:
 	_check(is_equal_approx(gutter_height, 24.0) and is_equal_approx(float(app_layout.get_theme_constant("separation")), gutter_height) and is_equal_approx(content_viewport.get_visible_rect().size.y, render_area.size.y), "the active 24-pixel gutter is a VBox gap outside AppContentViewport, between game content and the native banner slot")
 	_check(ad_bar_area.get_parent() == app_layout and is_equal_approx(ad_bar_area.size.x, app_layout.size.x) and is_equal_approx(render_area.size.x, app_layout.size.x), "the native ad slot remains a full-width sibling of the game render area")
 	_check(is_equal_approx(slot_height, float(AdBarService.call("_reservation_height"))) and is_equal_approx(float(AdBarService.call("_reservation_height")), float(AdBarService.get("_banner_logical_height"))), "the ad slot reserves the actual native banner height without double-counting Android's bottom safe inset")
-	_check(tree.current_scene == app_layout and content_scene == home and content_scene.get_parent() == content_viewport and content_scene.get_viewport() == content_viewport, "persistent app wrapper stays current while the actual Main scene is hosted in the content viewport")
+	_check(tree.current_scene == null and content_scene == home and content_scene.get_parent() == content_viewport and content_scene.get_viewport() == content_viewport, "the ad service owns the actual Main route while the hosted SceneTree current scene is intentionally clear")
 	_check(home.find_children("CategoryIcon", "ArcadePictogram", true, false).size() == 4 and home.is_visible_in_tree() and get_tree().root.find_child("AdDisclosure", true, false) == null, "dashboard remains visibly built inside the reduced content viewport without a duplicate Godot disclosure")
 	AdBarService.call("_set_reservation_active", false)
 	for _frame in 2:
@@ -125,12 +125,18 @@ func _run() -> void:
 	for index in range(1, background_z.size()):
 		laterally_spread = laterally_spread and background_z[index] - background_z[index - 1] >= 2.4
 	_check(is_instance_valid(meadow) and is_instance_valid(display) and roots.size() == 6 and models.size() == 6 and is_instance_valid(hero_root) and is_equal_approx(hero_root.position.x, -5.8) and is_equal_approx(hero_root.position.y, -2.6) and hero_root.get_child(0).scale.x > background_scale and mid_count == 2 and rear_count == 3 and laterally_spread, "home shared meadow keeps the equipped hero lower and camera-near, with a staggered two-mid/three-rear companion formation")
-	var ready: Variant = home.call("prepare_for_scene_change")
-	if ready is Signal:
-		await ready
-	home.queue_free()
-	await get_tree().process_frame
-	await get_tree().process_frame
+	var layout_id: int = app_layout.get_instance_id()
+	var render_area_id: int = render_area.get_instance_id()
+	var content_viewport_id: int = content_viewport.get_instance_id()
+	var ad_bar_area_id: int = ad_bar_area.get_instance_id()
+	var old_content_id: int = home.get_instance_id()
+	var change_error: Error = tree.change_scene_to_file("res://scenes/games/cash_counter.tscn")
+	_check(change_error == OK, "SceneTree accepts a transition away from content hosted by AppContentViewport")
+	for _frame in 4:
+		await get_tree().process_frame
+	var transitioned_content: Node = AdBarService.content_scene()
+	_check(is_instance_valid(app_layout) and is_instance_valid(render_area) and is_instance_valid(content_viewport) and is_instance_valid(ad_bar_area) and app_layout.get_instance_id() == layout_id and render_area.get_instance_id() == render_area_id and content_viewport.get_instance_id() == content_viewport_id and ad_bar_area.get_instance_id() == ad_bar_area_id, "a SceneTree transition preserves the same persistent app layout, render area, content viewport, and ad slot")
+	_check(is_instance_valid(transitioned_content) and not is_instance_valid(home) and old_content_id != transitioned_content.get_instance_id() and tree.current_scene == null and transitioned_content.get_parent() == content_viewport and AdBarService.content_scene() == transitioned_content and AdBarService.call("_app_layout_is_live"), "a SceneTree transition retires only the old route then leaves the ad service owning the new hosted route in the still-live content viewport")
 	AppState.data = original_data
 	if failures.is_empty():
 		print("AD_LAYOUT_INTEGRATION_OK: %d checks" % checks)
