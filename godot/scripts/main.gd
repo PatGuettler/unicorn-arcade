@@ -15,6 +15,7 @@ const HOME_TITLE_SIGN = preload("res://assets/ui/title_sign_option3_compact_v1.p
 const ALLEY_STREET_SIGN = preload("res://assets/ui/unicorn_alley_street_sign_compact_v1.png")
 const PENNY_TEXTURE_PATH := "res://assets/games/currency/penny.png"
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const MeadowCompanionStageScene = preload("res://scripts/meta/meadow_companion_stage_3d.gd")
 const ArcadePictogramScene = preload("res://scripts/ui/arcade_pictogram.gd")
 const ProgressRingScene = preload("res://scripts/ui/progress_ring.gd")
 const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
@@ -23,7 +24,12 @@ var page: VBoxContainer
 var status_label: Label
 var coin_label: Label
 var profile_category_filter := "All"
+signal profile_build_complete
+signal page_build_complete
+signal scene_change_ready
 var _page_generation := 0
+var _meadow_stage: MeadowCompanionStage3D
+var _meadow_display: TextureRect
 
 
 func _ready() -> void:
@@ -45,20 +51,44 @@ func _show_view(view: String) -> void:
 		return
 	AppState.shell_view = view
 	match view:
-		"dashboard": _show_dashboard()
-		"category": _show_category(AppState.selected_category)
-		"profile": _show_profile()
-		_: _show_home()
+		"dashboard": await _show_dashboard()
+		"category": await _show_category(AppState.selected_category)
+		"profile": await _show_profile()
+		_: await _show_home()
 	_sync_ad_bar()
 
 
 func _reset_page(use_meadow: bool = false) -> VBoxContainer:
+	if not use_meadow and is_instance_valid(_meadow_stage):
+		_meadow_stage.set_active(false)
+	if not use_meadow and is_instance_valid(_meadow_display):
+		_meadow_display.visible = false
+		_meadow_display.texture = null
 	_page_generation += 1
+	var generation := _page_generation
+	var outgoing: Array[Node] = []
 	for child in get_children():
-		if child.name == "AdDisclosure":
+		if child.name == "AdDisclosure" or child == _meadow_stage:
 			continue
-		remove_child(child)
-		child.queue_free()
+		outgoing.append(child)
+		if child is CanvasItem:
+			(child as CanvasItem).visible = false
+		for viewport_node in child.find_children("*", "SubViewport", true, false):
+			(viewport_node as SubViewport).render_target_update_mode = SubViewport.UPDATE_DISABLED
+	await _await_page_retire_frames()
+	if generation != _page_generation:
+		return null
+	if not use_meadow and is_instance_valid(_meadow_stage):
+		_meadow_stage.queue_free()
+		_meadow_stage = null
+	for child in outgoing:
+		if is_instance_valid(child) and child.get_parent() == self:
+			child.queue_free()
+	if not use_meadow:
+		_meadow_display = null
+	await _await_page_retire_frames()
+	if generation != _page_generation:
+		return null
 	if use_meadow:
 		var meadow := TextureRect.new()
 		meadow.texture = MEADOW_BACKGROUND
@@ -81,13 +111,7 @@ func _reset_page(use_meadow: bool = false) -> VBoxContainer:
 	margin.add_theme_constant_override("margin_left", 24)
 	margin.add_theme_constant_override("margin_right", 24)
 	margin.add_theme_constant_override("margin_top", 24)
-	var ad_reserve := 20.0
-	if (
-		AdBarService.should_show_for_player_logged_in(AppState.player_name())
-		and AdBarService.ads_enabled()
-	):
-		ad_reserve = maxf(20.0, AdBarService.banner_height() + 8.0)
-	margin.add_theme_constant_override("margin_bottom", int(ad_reserve))
+	margin.add_theme_constant_override("margin_bottom", 20)
 	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(margin)
 	page = VBoxContainer.new()
@@ -96,8 +120,46 @@ func _reset_page(use_meadow: bool = false) -> VBoxContainer:
 	return page
 
 
+func _await_page_retire_frames() -> void:
+	for _frame in 2:
+		await get_tree().process_frame
+
+
+func _attach_meadow_stage(host: Control) -> void:
+	if not is_instance_valid(_meadow_stage):
+		_meadow_stage = MeadowCompanionStageScene.new()
+		_meadow_stage.name = "MeadowCompanionStage3D"
+		_meadow_stage.setup(AppState.equipped_companion(), AppState.owned_companions())
+		add_child(_meadow_stage)
+	_meadow_display = _meadow_stage.create_display()
+	host.add_child(_meadow_display)
+	_meadow_stage.set_active(true)
+
+
+func prepare_for_scene_change() -> Signal:
+	_page_generation += 1
+	_finish_scene_change_cleanup.call_deferred()
+	return scene_change_ready
+
+
+func _finish_scene_change_cleanup() -> void:
+	if is_instance_valid(_meadow_stage):
+		_meadow_stage.set_active(false)
+	if is_instance_valid(_meadow_display):
+		_meadow_display.visible = false
+		_meadow_display.texture = null
+	await _await_page_retire_frames()
+	scene_change_ready.emit()
+
+
+func _change_scene_safely(path: String) -> void:
+	await prepare_for_scene_change()
+	get_tree().change_scene_to_file(path)
+
+
 func _show_login() -> void:
-	_reset_page(true)
+	if await _reset_page(true) == null:
+		return
 	var spacer := Control.new()
 	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	page.add_child(spacer)
@@ -177,10 +239,12 @@ func _show_login() -> void:
 	# Leave the field unfocused. Android otherwise opens its keyboard before
 	# the child chooses to type and covers the lower half of the form.
 	_sync_ad_bar()
+	page_build_complete.emit()
 
 
 func _show_home() -> void:
-	_reset_page(true)
+	if await _reset_page(true) == null:
+		return
 	_add_header("", false, false)
 	var welcome := Label.new()
 	welcome.name = "HomeWelcomeText"
@@ -197,6 +261,7 @@ func _show_home() -> void:
 	companion.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	companion.add_theme_font_size_override("font_size", 48)
 	companion.add_theme_color_override("font_color", PINK)
+	companion.add_theme_constant_override("outline_size", 2)
 	page.add_child(companion)
 	var identity := Label.new()
 	identity.name = "HomeCompanionSummary"
@@ -211,24 +276,7 @@ func _show_home() -> void:
 	hero.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	hero.custom_minimum_size.y = 300
 	page.add_child(hero)
-	var meadow_companions := Control.new()
-	meadow_companions.name = "OwnedMeadowCompanions"
-	meadow_companions.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	meadow_companions.z_index = 4
-	hero.add_child(meadow_companions)
-	meadow_companions.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_build_meadow_companions(meadow_companions)
-	var preview := _build_sparkle_preview()
-	preview.name = "EquippedMeadowHero"
-	hero.add_child(preview)
-	preview.anchor_left = 0.0
-	preview.anchor_right = 1.0
-	preview.anchor_top = 0.5
-	preview.anchor_bottom = 0.5
-	preview.offset_left = 0
-	preview.offset_right = 0
-	preview.offset_top = -70
-	preview.offset_bottom = 230
+	_attach_meadow_stage(hero)
 	var play := _make_button("▶  PLAY", StorybookUI.NAVY, 82)
 	play.add_theme_font_size_override("font_size", 28)
 	play.pressed.connect(func() -> void: _show_dashboard())
@@ -245,11 +293,12 @@ func _show_home() -> void:
 	row.add_child(profile)
 	var shop := _make_button("SHOP", StorybookUI.NAVY, 74)
 	shop.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	shop.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/marketplace.tscn"))
+	shop.pressed.connect(func() -> void: _change_scene_safely.call_deferred("res://scenes/meta/marketplace.tscn"))
 	row.add_child(shop)
 	var alley := _make_art_button("UNICORN ALLEY", ALLEY_STREET_SIGN, 150)
 	alley.name = "UnicornAlleyStreetSignButton"
-	alley.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/unicorn_alley.tscn"))
+	alley.add_theme_font_size_override("font_size", 19)
+	alley.pressed.connect(func() -> void: _change_scene_safely.call_deferred("res://scenes/meta/unicorn_alley.tscn"))
 	page.add_child(alley)
 	status_label = Label.new()
 	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -257,6 +306,7 @@ func _show_home() -> void:
 	status_label.custom_minimum_size = Vector2(0, 44)
 	status_label.add_theme_color_override("font_color", YELLOW)
 	page.add_child(status_label)
+	page_build_complete.emit()
 
 
 func _show_home_status(message: String) -> void:
@@ -266,7 +316,8 @@ func _show_home_status(message: String) -> void:
 
 func _show_dashboard() -> void:
 	AppState.shell_view = "dashboard"
-	_reset_page()
+	if await _reset_page() == null:
+		return
 	_add_header("GAME CATEGORIES", true, true, func() -> void: _show_home())
 	var intro := Label.new()
 	intro.text = "Choose a path"
@@ -284,11 +335,13 @@ func _show_dashboard() -> void:
 		var button := _make_category_card(category, GameRegistry.playable_count(category["name"]), games.size())
 		button.pressed.connect(_show_category.bind(category["name"]))
 		page.add_child(button)
+	page_build_complete.emit()
 
 
 func _show_category(category: String) -> void:
 	AppState.set_shell_destination("category", category)
-	_reset_page()
+	if await _reset_page() == null:
+		return
 	_add_header("%s GAMES" % category.to_upper(), true, true, func() -> void: _show_dashboard())
 	var content := _make_vertical_scroll("CategoryContent", 12)
 	var grid := GridContainer.new()
@@ -309,6 +362,7 @@ func _show_category(category: String) -> void:
 	status_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	status_label.add_theme_color_override("font_color", YELLOW)
 	content.add_child(status_label)
+	page_build_complete.emit()
 
 
 func _open_game(game: Dictionary) -> void:
@@ -316,12 +370,13 @@ func _open_game(game: Dictionary) -> void:
 		status_label.text = "%s is registered for exact parity but is not ported yet." % game["title"]
 		return
 	AppState.select_game(game["id"], game["category"])
-	get_tree().change_scene_to_file(game["scene"])
+	await _change_scene_safely(str(game["scene"]))
 
 
 func _show_profile() -> void:
 	AppState.shell_view = "profile"
-	_reset_page()
+	if await _reset_page() == null:
+		return
 	var generation := _page_generation
 	_add_header("PROFILE", true, true, func() -> void: _show_home())
 	var content := _make_vertical_scroll("ProfileContent", 18)
@@ -333,6 +388,7 @@ func _show_profile() -> void:
 	loading.add_theme_color_override("font_color", MUTED)
 	content.add_child(loading)
 	_populate_profile.call_deferred(content, generation)
+	page_build_complete.emit()
 
 
 func _populate_profile(content: VBoxContainer, generation: int) -> void:
@@ -366,6 +422,8 @@ func _populate_profile(content: VBoxContainer, generation: int) -> void:
 	var bottom_pad := Control.new()
 	bottom_pad.custom_minimum_size.y = 24
 	content.add_child(bottom_pad)
+	if _profile_page_is_current(content, generation):
+		profile_build_complete.emit()
 
 
 func _profile_page_is_current(content: Control, generation: int) -> bool:
@@ -396,8 +454,15 @@ func _build_profile_unicorn_banner() -> PanelContainer:
 	var hero_row := HBoxContainer.new()
 	hero_row.add_theme_constant_override("separation", 14)
 	stack.add_child(hero_row)
-	var preview := _build_companion_preview(AppState.equipped_companion(), "profile", 188)
+	var preview := TextureRect.new()
+	preview.name = "ProfileCompanionPortrait"
+	preview.texture = load("res://assets/characters/unicorns/thumbnails/%s.png" % AppState.equipped_companion())
 	preview.custom_minimum_size = Vector2(188, 168)
+	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview.tooltip_text = "%s portrait" % str(companion.get("name", "Companion"))
+	preview.set_meta("source_model_id", AppState.equipped_companion())
 	hero_row.add_child(preview)
 	var identity := VBoxContainer.new()
 	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -501,10 +566,9 @@ func _populate_profile_game_grid(grid: GridContainer, generation: int) -> void:
 		for game in GameRegistry.games_in_category(category):
 			if not _profile_page_is_current(grid, generation):
 				return
-			grid.add_child(_build_profile_game_tile(game, category))
+			var tile := _build_profile_game_tile(game, category)
+			grid.add_child(tile)
 			added += 1
-			if added % 4 == 0:
-				await get_tree().process_frame
 
 
 func _build_profile_game_tile(game: Dictionary, category: String) -> PanelContainer:
@@ -541,6 +605,7 @@ func _build_profile_game_tile(game: Dictionary, category: String) -> PanelContai
 
 func _build_profile_settings() -> PanelContainer:
 	var settings_card := PanelContainer.new()
+	settings_card.name = "ProfileSettings"
 	settings_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), StorybookUI.GOLD, 18))
 	var settings_stack := VBoxContainer.new()
 	settings_stack.add_theme_constant_override("separation", 8)
@@ -611,11 +676,6 @@ func _make_vertical_scroll(content_name: String, separation: int = 14) -> VBoxCo
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	content.add_theme_constant_override("separation", separation)
 	scroll.add_child(content)
-	# Keep the scroll child as wide as the viewport so tiles wrap instead of clipping.
-	scroll.resized.connect(func() -> void:
-		if is_instance_valid(content):
-			content.custom_minimum_size.x = scroll.size.x
-	)
 	return content
 
 
@@ -898,31 +958,4 @@ func _build_companion_preview(companion_id: String, presentation: String, minimu
 	return container
 
 
-func _build_meadow_companions(layer: Control) -> void:
-	var equipped_id := AppState.equipped_companion()
-	var slots := [
-		{"x": 0.14, "y": 0.67, "w": 156.0, "h": 112.0},
-		{"x": 0.84, "y": 0.72, "w": 164.0, "h": 118.0},
-		{"x": 0.31, "y": 0.57, "w": 148.0, "h": 106.0},
-		{"x": 0.69, "y": 0.61, "w": 152.0, "h": 110.0},
-		{"x": 0.50, "y": 0.76, "w": 160.0, "h": 116.0},
-	]
-	var slot_index := 0
-	for owned_id in AppState.owned_companions():
-		var companion_id := str(owned_id)
-		if companion_id == equipped_id or slot_index >= slots.size():
-			continue
-		var slot: Dictionary = slots[slot_index]
-		var preview := _build_companion_preview(companion_id, "meadow_background", float(slot["h"]))
-		preview.name = "MeadowCompanion_%s" % companion_id.capitalize()
-		preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		layer.add_child(preview)
-		preview.anchor_left = float(slot["x"])
-		preview.anchor_right = float(slot["x"])
-		preview.anchor_top = float(slot["y"])
-		preview.anchor_bottom = float(slot["y"])
-		preview.offset_left = -float(slot["w"]) * 0.5
-		preview.offset_right = float(slot["w"]) * 0.5
-		preview.offset_top = -float(slot["h"]) * 0.5
-		preview.offset_bottom = float(slot["h"]) * 0.5
-		slot_index += 1
+	print("PROFILE_PHASE settings")

@@ -51,12 +51,23 @@ func setup(definition: Dictionary) -> void:
 	_build_viewport()
 
 
+func _exit_tree() -> void:
+	# Stop the render target before SceneTree releases the owning control. This
+	# keeps a tab replacement from racing an in-flight SubViewport submission.
+	for viewport_node in find_children("*", "SubViewport", true, false):
+		var viewport := viewport_node as SubViewport
+		viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+
+
 func _build_viewport() -> void:
 	var viewport := SubViewport.new()
 	viewport.size = Vector2i(448, 320) if uses_character_model else Vector2i(192, 192)
 	viewport.own_world_3d = true
 	viewport.transparent_bg = true
-	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if uses_character_model else SubViewport.UPDATE_ONCE
+	# Marketplace portraits are intentionally static. Keeping six hidden 3D
+	# render targets hot while swapping to the decor catalog needlessly keeps
+	# renderer resources alive for the next frame.
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if animate_character else SubViewport.UPDATE_ONCE
 	add_child(viewport)
 	var stage := Node3D.new()
 	stage.name = "PreviewStage"

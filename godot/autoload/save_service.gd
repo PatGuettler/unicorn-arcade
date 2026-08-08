@@ -9,6 +9,22 @@ const BACKUP_COUNT := 3
 var _envelope: Dictionary = {}
 var last_error := ""
 var _active_key := ""
+var _test_in_memory := false
+
+
+func begin_test_session() -> bool:
+	if not OS.has_feature("editor"):
+		return false
+	_test_in_memory = true
+	_envelope = default_state()
+	_active_key = ""
+	return true
+
+
+func end_test_session() -> void:
+	_test_in_memory = false
+	_envelope = {}
+	_active_key = ""
 
 
 func default_profile(display_name := "") -> Dictionary:
@@ -188,6 +204,9 @@ func _normalize_profile(source: Dictionary) -> Dictionary:
 func _write_envelope(envelope: Dictionary) -> bool:
 	last_error = ""
 	envelope["version"] = SAVE_VERSION
+	if _test_in_memory:
+		_envelope = envelope.duplicate(true)
+		return true
 	var text := JSON.stringify(envelope, "  ")
 	var temp := "%s.tmp" % SAVE_PATH
 	if not _write_text(temp, text): return false
