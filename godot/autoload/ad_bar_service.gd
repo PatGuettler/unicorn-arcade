@@ -17,6 +17,7 @@ var _game_render_area: SubViewportContainer
 var _app_content_viewport: SubViewport
 var _ad_bar_area: Control
 var _hosted_scene: Node
+var _layout_sync_queued := false
 
 
 func _ready() -> void:
@@ -259,12 +260,14 @@ func _ensure_app_layout() -> void:
 		return
 	_app_layout = VBoxContainer.new()
 	_app_layout.name = "AppViewportLayout"
-	_app_layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_app_layout.add_theme_constant_override("separation", 0)
 	tree.root.add_child(_app_layout)
+	# Anchors only resolve against an owning viewport after this node is parented.
+	_app_layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_game_render_area = SubViewportContainer.new()
 	_game_render_area.name = "GameRenderArea"
 	_game_render_area.stretch = true
+	_game_render_area.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_game_render_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_game_render_area.mouse_filter = Control.MOUSE_FILTER_STOP
 	_app_layout.add_child(_game_render_area)
@@ -275,8 +278,12 @@ func _ensure_app_layout() -> void:
 	_game_render_area.add_child(_app_content_viewport)
 	_ad_bar_area = Control.new()
 	_ad_bar_area.name = "AdBarArea"
+	_ad_bar_area.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_ad_bar_area.mouse_filter = Control.MOUSE_FILTER_STOP
 	_app_layout.add_child(_ad_bar_area)
+	_app_layout.minimum_size_changed.connect(_schedule_layout_sync)
+	_app_layout.resized.connect(_schedule_layout_sync)
+	_game_render_area.resized.connect(_schedule_layout_sync)
 	_update_app_layout()
 
 
@@ -288,6 +295,35 @@ func _update_app_layout() -> void:
 	# Keep this transparent layout child visible so VBoxContainer immediately
 	# reallocates it to zero height when inactive instead of retaining its old rect.
 	_ad_bar_area.visible = true
+	_schedule_layout_sync()
+
+
+func _schedule_layout_sync() -> void:
+	if _layout_sync_queued:
+		return
+	_layout_sync_queued = true
+	call_deferred("_enforce_app_layout_bounds")
+
+
+func _enforce_app_layout_bounds() -> void:
+	_layout_sync_queued = false
+	if not is_instance_valid(_app_layout) or not is_instance_valid(_game_render_area):
+		return
+	var tree := get_tree()
+	if tree == null or tree.root == null:
+		return
+	var root_size := tree.root.get_visible_rect().size
+	if root_size.x < 1.0 or root_size.y < 1.0:
+		return
+	_app_layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_app_layout.offset_left = 0.0
+	_app_layout.offset_top = 0.0
+	_app_layout.offset_right = 0.0
+	_app_layout.offset_bottom = 0.0
+	_app_layout.size = root_size
+	_game_render_area.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_game_render_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_app_layout.queue_sort()
 
 
 func _host_current_scene() -> void:
