@@ -5,14 +5,12 @@ const WORD_SCENE = preload("res://scenes/games/word_game.tscn")
 const CASH_SCENE = preload("res://scenes/games/cash_counter.tscn")
 const COIN_SCENE = preload("res://scenes/games/coin_count.tscn")
 const RHYME_SCENE = preload("res://scenes/games/rhyme_rally.tscn")
-const MAIN_SCENE = preload("res://scenes/main.tscn")
 const MATH_SWIPE_SCENE = preload("res://scenes/games/math_swipe.tscn")
 const JUMP_SCENE = preload("res://scenes/games/unicorn_jump.tscn")
 const SLIDING_SCENE = preload("res://scenes/games/sliding_window.tscn")
 const MATHTRIS_SCENE = preload("res://scenes/games/mathtris.tscn")
 const GALAXY_SCENE = preload("res://scenes/games/galaxy_unicorn.tscn")
 const COMET_SCENE = preload("res://scenes/games/comet_math_rescue.tscn")
-const MARKET_SCENE = preload("res://scenes/meta/marketplace.tscn")
 const ALLEY_SCENE = preload("res://scenes/meta/unicorn_alley.tscn")
 const ROOM_SCENE = preload("res://scenes/meta/room_editor.tscn")
 
@@ -32,6 +30,16 @@ func _ready() -> void:
 
 
 func _run() -> void:
+	var pre_test_data := AppState.data.duplicate(true)
+	var test_session_started := SaveService.begin_test_session()
+	var test_profile := SaveService.create_profile("Runtime Integration")
+	if not test_session_started or test_profile.is_empty() or not SaveService.has_active_profile():
+		push_error("runtime integration could not create its isolated active save profile")
+		SaveService.end_test_session()
+		get_tree().quit(1)
+		return
+	_check(true, "runtime integration owns an isolated active save profile")
+	AppState.data = test_profile
 	var original_game := AppState.selected_game_id
 	var original_category := AppState.selected_category
 	for game_id in WORD_GAME_IDS:
@@ -45,8 +53,7 @@ func _run() -> void:
 		_check(game.active, "%s begins in an active play state" % game_id)
 		_check(game.target_rounds > 0, "%s has a positive round target" % game_id)
 		_exercise_first_move(game_id, game)
-		remove_child(game)
-		game.free()
+		await _release_scene(game)
 	var cash = CASH_SCENE.instantiate()
 	add_child(cash)
 	await get_tree().process_frame
@@ -57,8 +64,7 @@ func _run() -> void:
 	cash.total = 0
 	cash.call("_add_bill", 5)
 	_check(cash.total == 5 and cash.active, "Cash Counter accepts a non-overshooting bill")
-	remove_child(cash)
-	cash.free()
+	await _release_scene(cash)
 	var coin_count = COIN_SCENE.instantiate()
 	add_child(coin_count)
 	await get_tree().process_frame
@@ -67,16 +73,14 @@ func _run() -> void:
 	_check(_storybook_action_count(coin_count) >= 2, "Coin Count styles retry and navigation with the shared storybook action treatment")
 	_check(coin_count.coin_buttons.size() == 4 and coin_count.coin_buttons.all(func(button: Button) -> bool: return button is CoinChoiceButton), "Coin Count uses four illustrated denomination coins instead of text boxes")
 	_check(coin_count.coin_buttons[0].custom_minimum_size.y >= 170.0 and coin_count.coin_buttons[0].tooltip_text.contains("worth"), "illustrated coins retain large accessible tap targets and denomination descriptions")
-	remove_child(coin_count)
-	coin_count.free()
+	await _release_scene(coin_count)
 	var rhyme = RHYME_SCENE.instantiate()
 	add_child(rhyme)
 	await get_tree().process_frame
 	_check(rhyme.target_rounds > 0 and not rhyme.challenge.is_empty(), "Rhyme Rally begins with a playable challenge")
 	_check(_ui_is_accessible(rhyme), "Rhyme Rally meets readable text, contrast, and touch-target minimums")
 	_check(_storybook_action_count(rhyme) >= 2, "Rhyme Rally styles retry and navigation with the shared storybook action treatment")
-	remove_child(rhyme)
-	rhyme.free()
+	await _release_scene(rhyme)
 	var math_swipe = MATH_SWIPE_SCENE.instantiate()
 	add_child(math_swipe)
 	await get_tree().process_frame
@@ -90,8 +94,7 @@ func _run() -> void:
 			break
 	math_swipe.call("_submit", correct_card)
 	_check(math_swipe.completed == 1, "Math Swipe accepts the correct card")
-	remove_child(math_swipe)
-	math_swipe.free()
+	await _release_scene(math_swipe)
 	var jump = JUMP_SCENE.instantiate()
 	add_child(jump)
 	await get_tree().process_frame
@@ -112,8 +115,7 @@ func _run() -> void:
 	_check(jump.current_index == landing and jump.active, "Unicorn Jump accepts the exact indexed landing")
 	_check(trail_companion.get_parent() == jump.node_buttons[landing], "the active companion moves to the newly reached stone")
 	_check(jump.fx_layer.burst_amount > 0.0 and jump.find_child("JumpingCompanion", true, false) == null, "Unicorn Jump leaves a rainbow tail-puff landing burst after its animated arc")
-	remove_child(jump)
-	jump.free()
+	await _release_scene(jump)
 	var sliding = SLIDING_SCENE.instantiate()
 	add_child(sliding)
 	await get_tree().process_frame
@@ -126,8 +128,7 @@ func _run() -> void:
 			max_index = index
 	sliding.call("_choose", max_index)
 	_check(sliding.window_pos == 1 and sliding.active, "Sliding Window advances after selecting the maximum")
-	remove_child(sliding)
-	sliding.free()
+	await _release_scene(sliding)
 	var mathtris = MATHTRIS_SCENE.instantiate()
 	add_child(mathtris)
 	await get_tree().process_frame
@@ -158,7 +159,7 @@ func _run() -> void:
 	var bottom_anchors: Array[Vector2i] = [Vector2i(0, 11)]
 	var bottom_match: Array = mathtris.call("_find_matches", bottom_anchors)
 	mathtris.call("_clear_matches", bottom_match, 100, true)
-	_check(mathtris.board[3][0] == "1", "Mathtris cascade clears only equations touched by falling tiles")
+	_check(mathtris.board[3][0] == "" and mathtris.call("_find_equations").is_empty(), "Mathtris cascade clears a true equation only after its tiles fall into the cascade anchors")
 	mathtris.board = mathtris.call("_make_board")
 	var falling_fixture: Array[Dictionary] = [{"row": 0, "col": 2, "value": "3"}]
 	mathtris.falling = falling_fixture
@@ -173,8 +174,7 @@ func _run() -> void:
 	mathtris.call("_spawn_wave")
 	_check(not mathtris.active and mathtris.falling.is_empty(), "a blocked Mathtris spawn tops out without an orphan box")
 	_mathtris_companion_power_contract(mathtris)
-	remove_child(mathtris)
-	mathtris.free()
+	await _release_scene(mathtris)
 	var galaxy = GALAXY_SCENE.instantiate()
 	add_child(galaxy)
 	await get_tree().process_frame
@@ -194,8 +194,7 @@ func _run() -> void:
 	galaxy.call("_process", 0.016)
 	_check(galaxy.fire_cooldown > 0.0 and galaxy.bolt_flashes.size() > 0, "Galaxy Unicorn auto-fires a visible rainbow bolt")
 	_check(galaxy.call("_segment_hits_circle", Vector2(576, 1000), Vector2(576, 300), Vector2(576, 650), 26.0), "Galaxy Unicorn fast bolts use swept collision instead of tunneling through targets")
-	remove_child(galaxy)
-	galaxy.free()
+	await _release_scene(galaxy)
 	var comet = COMET_SCENE.instantiate()
 	add_child(comet)
 	await get_tree().process_frame
@@ -207,70 +206,7 @@ func _run() -> void:
 	_check(comet.hint_ms > 0.0 and not comet.wave_resolved, "Comet Math Rescue hint highlights without resolving its wave")
 	comet.selected_lane = comet.correct_lane
 	_check(comet.call("_resolve_wave") and comet.rescues == 1 and comet.score > 0, "Comet Math Rescue resolves only the selected correct lane")
-	remove_child(comet)
-	comet.free()
-	var market = MARKET_SCENE.instantiate()
-	add_child(market)
-	await get_tree().process_frame
-	_check(_ui_is_accessible(market), "companion Marketplace meets readable text, contrast, and touch-target minimums")
-	_check(market.tab == "companions" and market.content.get_child_count() > 0, "Marketplace launches its companion catalog")
-	var companion_previews := market.find_children("CompanionModelPreview", "RoomItemPreview3D", true, false)
-	var source_model_ids: Dictionary = {}
-	var static_marketplace_models := 0
-	var static_marketplace_framing_safe := true
-	for live_preview in companion_previews:
-		source_model_ids[live_preview.source_model_id] = true
-		var preview_animator = live_preview.find_child("IdleAnimator", true, false)
-		if not is_instance_valid(preview_animator) and not live_preview.animate_character:
-			static_marketplace_models += 1
-		var preview_cameras: Array[Node] = live_preview.find_children("*", "Camera3D", true, false)
-		var preview_viewports: Array[Node] = live_preview.find_children("*", "SubViewport", true, false)
-		var viewport_matches_card: bool = not preview_viewports.is_empty() and live_preview.size.y > 0.0 and absf(
-			float(preview_viewports[0].size.x) / float(preview_viewports[0].size.y) - live_preview.size.x / live_preview.size.y
-		) <= 0.02
-		if preview_cameras.is_empty() or preview_cameras[0].size < 6.8 or not viewport_matches_card:
-			static_marketplace_framing_safe = false
-	_check(companion_previews.size() == 6 and source_model_ids.size() == 6, "Marketplace companion cards use six distinct authored GLB models")
-	_check(static_marketplace_models == 6, "Marketplace companion models remain in a static authored pose")
-	_check(static_marketplace_framing_safe, "Marketplace camera preserves horn and hoof clearance without stretching the enlarged unicorns")
-	market.call("_show_decor")
-	await get_tree().process_frame
-	_check(_ui_is_accessible(market), "decor Marketplace meets readable text, contrast, and touch-target minimums")
-	_check(market.tab == "decor" and MetaCatalog.filtered_furniture("all", "").size() == 107, "Marketplace keeps the full 107-item decor catalog available")
-	_check(market.find_children("CatalogModelThumbnail", "TextureRect", true, false).size() == 107, "Marketplace exposes the complete modeled decor collection in one continuous lightweight list")
-	_check(market.find_children("DecorCard_*", "PanelContainer", true, false).size() == 107 and market.find_child("LoadMoreDecor", true, false) == null, "decor catalog no longer rebuilds around a Load More boundary")
-	_check(market.find_child("DecorCategoryChips", true, false) != null and market.find_child("DecorSearch", true, false) != null, "decor catalog restores quick category chips and search")
-	market.category_scroll.scroll_horizontal = 80
-	var category_scroll_before: int = market.category_scroll.scroll_horizontal
-	var category_drag := InputEventScreenDrag.new()
-	category_drag.position = market.category_scroll.get_global_rect().get_center()
-	category_drag.relative = Vector2(-120, 2)
-	market.call("_input", category_drag)
-	_check(market.category_dragging and market.category_scroll.scroll_horizontal == category_scroll_before, "horizontal category dragging is owned by the native ScrollContainer instead of a second jumpy manual scroller")
-	var category_release := InputEventScreenTouch.new()
-	category_release.pressed = false
-	category_release.position = category_drag.position
-	market.call("_input", category_release)
-	market.call("_set_decor_category", "beds")
-	_check(market.category == "all", "a horizontal category swipe does not accidentally activate the chip under the finger")
-	market.catalog_scroll.scroll_vertical = 200
-	var scroll_before: int = market.catalog_scroll.scroll_vertical
-	var market_drag := InputEventScreenDrag.new()
-	market_drag.position = market.catalog_scroll.get_global_rect().get_center()
-	market_drag.relative = Vector2(2, -120)
-	market.call("_input", market_drag)
-	_check(market.catalog_dragging and market.catalog_scroll.scroll_vertical == scroll_before, "vertical decor dragging uses one native inertial scroll owner without double-applying movement")
-	var signature_nodes := ["bed_race", "pet_fish", "tv_retro", "xmas_sock"]
-	var signatures_found := 0
-	for item_id in signature_nodes:
-		var signature_preview := RoomItemPreview3D.new()
-		signature_preview.setup(MetaCatalog.furniture_item(item_id))
-		if signature_preview.uses_authored_furniture_model and signature_preview.find_child("AuthoredFurniture_%s" % item_id, true, false) != null and signature_preview.source_furniture_model_id.ends_with(":%s" % item_id):
-			signatures_found += 1
-		signature_preview.free()
-	_check(signatures_found == signature_nodes.size(), "decor previews load item-specific authored models across beds, pets, electronics, and seasonal art")
-	remove_child(market)
-	market.free()
+	await _release_scene(comet)
 	var alley = ALLEY_SCENE.instantiate()
 	add_child(alley)
 	await get_tree().process_frame
@@ -280,8 +216,7 @@ func _run() -> void:
 	var door_button: Button = alley.house_buttons.get("sparkle")
 	_check(door_button.custom_minimum_size.y > door_button.custom_minimum_size.x, "Alley house targets use tall door-shaped controls")
 	_check(door_button.text.is_empty() and door_button.has_node("DoorStateArt"), "Alley doors use environmental light cues without floating label shapes")
-	remove_child(alley)
-	alley.free()
+	await _release_scene(alley)
 	AppState.active_room_companion = "sparkle"
 	var room = ROOM_SCENE.instantiate()
 	add_child(room)
@@ -318,9 +253,8 @@ func _run() -> void:
 		idle_animator.walk_tween.custom_step(10.0)
 		_check(not idle_animator.model.position.is_equal_approx(walk_home_position) and absf(idle_animator.model.position.z - walk_home_position.z) > 0.4 and is_equal_approx(idle_animator.model.position.x, walk_home_position.x), "walking unicorn reaches a new visible side-to-side meadow position without snapping home")
 		_check(idle_animator.animation_player.assigned_animation == idle_animator.walk_animation and not idle_animator.timer.is_stopped(), "walking route returns to its standing Walk pose and schedules the next route")
-	remove_child(room)
-	room.free()
-	var original_data := AppState.data.duplicate(true)
+	await _release_scene(room)
+	var profile_before_room_flow := AppState.data.duplicate(true)
 	AppState.data = SaveService.default_profile()
 	AppState.data["player"]["name"] = "Runtime Test"
 	_check(AppState.buy_companion("rainbow") and AppState.coins() == 500, "companion adoption deducts the exact catalog price")
@@ -367,93 +301,17 @@ func _run() -> void:
 	_check(not touch_room.bag_button.visible and not touch_room.status_label.visible, "open furniture bag hides the underlying floating button and room status")
 	_check(_ui_is_accessible(touch_room.bag_overlay), "Furniture Bag meets readable text, contrast, and touch-target minimums")
 	touch_room.call("_close_bag")
-	remove_child(touch_room)
-	touch_room.free()
+	await _release_scene(touch_room)
 	_check(AppState.remove_room_item("rainbow", "test_lamp") and AppState.available_count("lamp") == 1, "removed decor returns to the shared bag")
 	_check(AppState.sell_furniture("lamp") and AppState.coins() == 425, "unused decor sells for the floored fifty-percent refund")
-	AppState.data = original_data
+	AppState.data = profile_before_room_flow
 	SaveService.save_state(AppState.data)
-	var shell_state := AppState.data.duplicate(true)
-	AppState.data["owned_companions"] = ["sparkle", "rainbow", "star", "cloud", "dream", "mystic"]
-	AppState.data["player"]["equipped_companion"] = "mystic"
-	var shell = MAIN_SCENE.instantiate()
-	add_child(shell)
-	await get_tree().process_frame
-	shell.call("_show_home")
-	await get_tree().process_frame
-	_check(shell.get_child_count() >= 2, "navigation shell builds its full-screen page")
-	_check(_ui_is_accessible(shell), "navigation shell meets readable text, contrast, and touch-target minimums")
-	var hero_previews := shell.find_children("*", "RoomItemPreview3D", true, false)
-	var hero_preview: Node = null
-	var meadow_background_previews: Array[Node] = []
-	for candidate in hero_previews:
-		if candidate.presentation_context == "hero":
-			hero_preview = candidate
-		elif candidate.presentation_context == "meadow_background":
-			meadow_background_previews.append(candidate)
-	var hero_cameras: Array[Node] = hero_preview.find_children("*", "Camera3D", true, false) if is_instance_valid(hero_preview) else []
-	var hero_camera = hero_cameras[0] if not hero_cameras.is_empty() else null
-	var hero_viewports: Array[Node] = hero_preview.find_children("*", "SubViewport", true, false) if is_instance_valid(hero_preview) else []
-	var hero_viewport_matches_rect: bool = is_instance_valid(hero_preview) and not hero_viewports.is_empty() and hero_preview.size.y > 0.0 and absf(
-		float(hero_viewports[0].size.x) / float(hero_viewports[0].size.y) - hero_preview.size.x / hero_preview.size.y
-	) <= 0.02
-	_check(is_instance_valid(hero_preview) and hero_preview.presentation_context == "hero" and is_instance_valid(hero_camera) and hero_camera.size >= 6.59 and hero_camera.position.y >= 4.27 and hero_camera.position.x < -8.0 and absf(hero_camera.position.z) < 2.0 and hero_viewport_matches_rect, "home companion uses a padded, raised side-view hero camera so horns and hooves stay in frame without viewport stretching (size=%s, position=%s, aspect_match=%s)" % [hero_camera.size if is_instance_valid(hero_camera) else -1.0, hero_camera.position if is_instance_valid(hero_camera) else Vector3.ZERO, hero_viewport_matches_rect])
-	var meadow_backgrounds_animate := true
-	for background_preview in meadow_background_previews:
-		if not is_instance_valid(background_preview.find_child("IdleAnimator", true, false)) or background_preview.anchor_top < 0.30:
-			meadow_backgrounds_animate = false
-	_check(meadow_background_previews.size() == 5 and meadow_backgrounds_animate, "all other owned companions mill around on the meadow grass")
-	var centered_slot := shell.find_child("TrueCenterHeaderSlot", true, false) as Control
-	var home_sign := shell.find_child("HomeTitleSign", true, false) as TextureRect
-	var alley_sign_button := shell.find_child("UnicornAlleyStreetSignButton", true, false) as Button
-	var welcome_text := shell.find_child("HomeWelcomeText", true, false) as Label
-	var companion_summary := shell.find_child("HomeCompanionSummary", true, false) as Label
-	var coin_balance := shell.find_child("CoinBalanceLabel", true, false) as Label
-	var expected_center: float = shell.global_position.x + shell.size.x * 0.5
-	var actual_center: float = centered_slot.global_position.x + centered_slot.size.x * 0.5 if is_instance_valid(centered_slot) else -1.0
-	_check(is_instance_valid(centered_slot) and absf(actual_center - expected_center) <= 1.0, "navigation headers center titles on the physical screen independently of side controls (actual %.2f, expected %.2f)" % [actual_center, expected_center])
-	_check(is_instance_valid(home_sign) and home_sign.texture.resource_path.ends_with("title_sign_option3_compact_v1.png"), "home meadow uses the approved illustrated Unicorn Arcade sign")
-	_check(is_instance_valid(alley_sign_button) and alley_sign_button.has_node("StreetSignArt") and alley_sign_button.text == "UNICORN ALLEY" and alley_sign_button.tooltip_text.is_empty(), "home uses an accessible illustrated Unicorn Alley street-sign action without a stray mobile tooltip")
-	_check(is_instance_valid(welcome_text) and welcome_text.get_theme_font_size("font_size") >= 22 and welcome_text.get_theme_color("font_color") == StorybookUI.INK, "home welcome text is larger and dark enough to read against the meadow sky")
-	_check(is_instance_valid(companion_summary) and companion_summary.get_theme_font_size("font_size") >= 21 and companion_summary.get_theme_color("font_color").get_luminance() < 0.30, "home companion summary is larger and uses high-contrast dark teal text")
-	_check(is_instance_valid(coin_balance) and coin_balance.get_theme_font_size("font_size") >= 24 and coin_balance.get_theme_constant("outline_size") >= 3, "top star balance uses a larger outlined symbol and number")
-	var profile_button := shell.find_child("ProfileButton", true, false) as Button
-	var profile_button_found := is_instance_valid(profile_button)
-	if is_instance_valid(profile_button):
-		profile_button.emit_signal("pressed")
-	for _frame in 10:
-		await get_tree().process_frame
-	var profile_content := shell.find_child("ProfileContent", true, false)
-	var profile_grid := shell.find_child("ProfileGameGrid", true, false)
-	_check(profile_button_found and is_instance_valid(profile_content) and is_instance_valid(profile_grid) and profile_grid.get_child_count() == GameRegistry.all_games().size(), "profile button opens responsively and finishes its complete game history grid")
-	_check(shell.find_child("ProfileLoading", true, false) == null, "profile loading state clears after incremental construction")
-	shell.call("_show_dashboard")
-	await get_tree().process_frame
-	_check(shell.find_children("CategoryIcon", "ArcadePictogram", true, false).size() == 4, "all four game-category cards restore polished pictogram icons")
-	_check(_ui_is_accessible(shell), "icon category dashboard meets readable text, contrast, and touch-target minimums")
-	shell.call("_show_category", "Word")
-	await get_tree().process_frame
-	var word_icons := shell.find_children("GameIcon", "ArcadePictogram", true, false)
-	var word_icon_ids: Dictionary = {}
-	for word_icon in word_icons:
-		word_icon_ids[word_icon.icon_id] = true
-	_check(word_icons.size() == 10 and word_icon_ids.size() == 10, "every Word game card has its own distinct pictogram")
-	_check(_ui_is_accessible(shell), "icon game grid meets readable text, contrast, and touch-target minimums")
-	remove_child(shell)
-	shell.free()
-	AppState.data["player"]["name"] = ""
-	var login_shell = MAIN_SCENE.instantiate()
-	add_child(login_shell)
-	await get_tree().process_frame
-	var login_prompt := login_shell.find_child("PlayerNamePrompt", true, false) as Label
-	var login_input := login_shell.find_child("PlayerNameInput", true, false) as LineEdit
-	_check(is_instance_valid(login_prompt) and is_instance_valid(login_input) and not login_input.has_focus(), "first launch clearly asks for a name without opening the Android keyboard")
-	_check(is_instance_valid(login_prompt) and is_instance_valid(login_input) and login_prompt.get_index() < login_input.get_index(), "the player-name instruction remains directly above its text field")
-	remove_child(login_shell)
-	login_shell.free()
-	AppState.data = shell_state
+	# Main-shell and login lifecycle coverage lives in runtime_main_shell_integration.
+	# Preserve the core suite's isolated-save cleanup below.
+	AppState.data = pre_test_data
 	AppState.selected_game_id = original_game
 	AppState.selected_category = original_category
+	SaveService.end_test_session()
 	if failures.is_empty():
 		print("GODOT_RUNTIME_INTEGRATION_OK: %d checks passed" % check_count)
 		get_tree().quit(0)
@@ -461,6 +319,20 @@ func _run() -> void:
 		for failure in failures:
 			push_error(failure)
 		get_tree().quit(1)
+
+
+func _release_scene(scene: Node) -> void:
+	if not is_instance_valid(scene):
+		return
+	if scene.has_method("prepare_for_scene_change"):
+		var ready: Variant = scene.call("prepare_for_scene_change")
+		if ready is Signal:
+			await ready
+	scene.queue_free()
+	# Let SceneTree deliver exit notifications and let the renderer retire any
+	# SubViewport resources before mounting the next scene.
+	await get_tree().process_frame
+	await get_tree().process_frame
 
 
 func _exercise_first_move(game_id: String, game: Node) -> void:

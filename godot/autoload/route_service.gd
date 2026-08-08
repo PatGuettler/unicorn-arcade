@@ -29,6 +29,7 @@ func go_back() -> void:
 	if scene == null: return
 	if _dismiss_top_overlay(scene): return
 	var policy := back_policy(str(scene.scene_file_path), AppState.shell_view)
+	await _prepare_scene_for_change(scene)
 	match str(policy["kind"]):
 		"game":
 			AppState.set_shell_destination("category", AppState.selected_category)
@@ -70,3 +71,11 @@ func _dismiss_top_overlay(root: Node) -> bool:
 	if root.has_method("close_top_overlay") and bool(root.call("close_top_overlay")):
 		return true
 	return false
+
+
+func _prepare_scene_for_change(scene: Node) -> void:
+	if not scene.has_method("prepare_for_scene_change"):
+		return
+	var ready: Variant = scene.call("prepare_for_scene_change")
+	if ready is Signal:
+		await ready

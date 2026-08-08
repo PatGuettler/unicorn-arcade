@@ -17,10 +17,13 @@ var _sdk_initialized := false
 var _sdk_initializing := false
 var _banner_logical_height := 60.0
 var _banner_requested := false
+var _reservation_active := false
+var _root_bottom_offsets: Dictionary = {}
 
 
 func _ready() -> void:
 	_reload_config()
+	_connect_scene_tracking()
 	call_deferred("_ensure_overlay")
 	if _platform_supports_ads() and ads_enabled():
 		_initialize_mobile_ads()
@@ -28,6 +31,7 @@ func _ready() -> void:
 
 func _exit_tree() -> void:
 	detach()
+	_restore_all_scene_roots()
 
 
 func _reload_config() -> void:
@@ -81,6 +85,7 @@ func sync_for_player(player_name: String = "") -> void:
 
 	_ensure_overlay()
 	_ensure_disclosure()
+	_set_reservation_active(true)
 	if _banner_requested and _ad_view != null:
 		_ad_view.show()
 		return
@@ -93,6 +98,7 @@ func sync_for_player(player_name: String = "") -> void:
 func detach() -> void:
 	_banner_requested = false
 	_destroy_banner()
+	_set_reservation_active(false)
 	if is_instance_valid(_disclosure):
 		_disclosure.queue_free()
 	_disclosure = null
@@ -176,14 +182,17 @@ func _initialize_mobile_ads() -> void:
 
 func _show_banner() -> void:
 	if _ad_view != null:
+		_set_reservation_active(true)
 		_ad_view.show()
 		return
 	var unit_id := _banner_unit_id()
 	if unit_id.is_empty():
 		push_warning("AdBarService: android_banner_unit_id is missing in admob config")
+		detach()
 		return
 
 	if not Engine.has_singleton("PoingGodotAdMobAdView"):
+		detach()
 		push_warning(
 			"AdBarService: PoingGodotAdMobAdView missing — cannot show banner on this build"
 		)
@@ -191,6 +200,7 @@ func _show_banner() -> void:
 
 	_destroy_banner()
 	_banner_requested = true
+	_set_reservation_active(true)
 	_ensure_overlay()
 	_ensure_disclosure()
 
@@ -200,9 +210,8 @@ func _show_banner() -> void:
 	var ad_listener := AdListener.new()
 	ad_listener.on_ad_loaded = _on_banner_loaded
 	ad_listener.on_ad_failed_to_load = func(error: LoadAdError) -> void:
-		_banner_requested = false
 		push_warning("AdBarService: banner failed: %s" % error.message)
-		_destroy_banner()
+		detach()
 
 	_ad_view.ad_listener = ad_listener
 	print("AdBarService: loading banner unit %s" % unit_id)
@@ -220,6 +229,7 @@ func _on_banner_loaded() -> void:
 	if px > 0.0:
 		_banner_logical_height = _pixels_to_viewport_y(px)
 	_ensure_disclosure()
+	_apply_current_scene_reservation()
 	print("AdBarService: banner loaded (height_px=%.0f)" % px)
 
 
@@ -264,6 +274,77 @@ func _layout_disclosure() -> void:
 	_disclosure.offset_bottom = -_bottom_inset()
 
 
+func _connect_scene_tracking() -> void:
+	var tree := get_tree()
+	if tree != null and not tree.scene_changed.is_connected(_on_scene_changed):
+		tree.scene_changed.connect(_on_scene_changed)
+	var viewport := get_viewport()
+	if viewport != null and not viewport.size_changed.is_connected(_on_viewport_size_changed):
+		viewport.size_changed.connect(_on_viewport_size_changed)
+
+
+func _on_scene_changed() -> void:
+	call_deferred("_apply_current_scene_reservation")
+
+
+func _on_viewport_size_changed() -> void:
+	_layout_disclosure()
+	_apply_current_scene_reservation()
+
+
+func _set_reservation_active(value: bool) -> void:
+	_reservation_active = value
+	_apply_current_scene_reservation()
+
+
+func _reservation_height() -> float:
+	return _banner_logical_height + DISCLOSURE_HEIGHT + _bottom_inset() if _reservation_active else 0.0
+
+
+func _apply_current_scene_reservation() -> void:
+	var scene := get_tree().current_scene if get_tree() != null else null
+	var root := scene as Control
+	_restore_all_except(root)
+	if is_instance_valid(root) and _reservation_active:
+		apply_reservation_to_root(root, _reservation_height())
+	elif is_instance_valid(root):
+		restore_reservation_for_root(root)
+
+
+func apply_reservation_to_root(root: Control, reserve: float) -> void:
+	if not is_instance_valid(root):
+		return
+	var key := root.get_instance_id()
+	if not _root_bottom_offsets.has(key):
+		_root_bottom_offsets[key] = {"root": root, "bottom": root.offset_bottom}
+	var original := float(_root_bottom_offsets[key]["bottom"])
+	root.offset_bottom = original - maxf(0.0, reserve)
+
+
+func restore_reservation_for_root(root: Control) -> void:
+	if not is_instance_valid(root):
+		return
+	var key := root.get_instance_id()
+	if _root_bottom_offsets.has(key):
+		root.offset_bottom = float(_root_bottom_offsets[key]["bottom"])
+		_root_bottom_offsets.erase(key)
+
+
+func _restore_all_except(keep: Control = null) -> void:
+	for key in _root_bottom_offsets.keys().duplicate():
+		var record: Dictionary = _root_bottom_offsets[key]
+		var root := record.get("root") as Control
+		if not is_instance_valid(root):
+			_root_bottom_offsets.erase(key)
+		elif root != keep:
+			root.offset_bottom = float(record["bottom"])
+			_root_bottom_offsets.erase(key)
+
+
+func _restore_all_scene_roots() -> void:
+	_restore_all_except(null)
+
+
 func _pixels_to_viewport_y(pixels: float) -> float:
 	var window_h := float(DisplayServer.window_get_size().y)
 	if window_h <= 0.0:
@@ -277,4 +358,4 @@ func _bottom_inset() -> float:
 	var window_h := DisplayServer.window_get_size().y
 	if window_h <= 0:
 		return 0.0
-	return maxf(0.0, float(window_h - safe.end.y))
+	return _pixels_to_viewport_y(maxf(0.0, float(window_h - safe.end.y)))
