@@ -3,7 +3,7 @@ extends Node
 
 const Preview = preload("res://scripts/meta/room_item_preview_3d.gd")
 const IdleAnimator = preload("res://scripts/meta/unicorn_idle_animator.gd")
-const HERO_POSITION := Vector3(-5.8, 0.0, 0.95)
+const HERO_POSITION := Vector3(-5.8, -2.6, 0.95)
 const HERO_SCALE_MULTIPLIER := 3.8
 const HERO_SHADOW_RADIUS := 0.84
 
