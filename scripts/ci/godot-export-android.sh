@@ -211,6 +211,47 @@ ensure_android_build_template() {
 	echo "Android build template ready ($(du -sh "$PROJECT/android/build" | cut -f1))"
 }
 
+preflight_android_sdk() {
+	local config="$PROJECT/android/build/config.gradle"
+	local required_compile_sdk required_build_tools required_ndk
+	[[ -f "$config" ]] || { echo "ERROR: Android build template config is missing: $config" >&2; exit 1; }
+
+	required_compile_sdk="$(sed -nE 's/^[[:space:]]*compileSdk[[:space:]]*:[[:space:]]*([0-9]+).*/\1/p' "$config")"
+	required_build_tools="$(sed -nE "s/^[[:space:]]*buildTools[[:space:]]*:[[:space:]]*'([^']+)'.*/\1/p" "$config")"
+	required_ndk="$(sed -nE "s/^[[:space:]]*ndkVersion[[:space:]]*:[[:space:]]*'([^']+)'.*/\1/p" "$config")"
+	[[ "$required_compile_sdk" =~ ^[0-9]+$ ]] || { echo "ERROR: Could not read compileSdk from $config. Update this preflight for the current Godot template." >&2; exit 1; }
+	[[ -n "$required_build_tools" ]] || { echo "ERROR: Could not read buildTools from $config. Update this preflight for the current Godot template." >&2; exit 1; }
+	[[ -n "$required_ndk" ]] || { echo "ERROR: Could not read ndkVersion from $config. Update this preflight for the current Godot template." >&2; exit 1; }
+
+	if [[ -n "${CI_ANDROID_COMPILE_SDK:-}" && "$CI_ANDROID_COMPILE_SDK" != "$required_compile_sdk" ]]; then
+		echo "ERROR: Android build template requires API ${required_compile_sdk}, but CI provisions CI_ANDROID_COMPILE_SDK=${CI_ANDROID_COMPILE_SDK}. Update deploy-android.yml." >&2
+		exit 1
+	fi
+	if [[ -n "${CI_ANDROID_BUILD_TOOLS_VERSION:-}" && "$CI_ANDROID_BUILD_TOOLS_VERSION" != "$required_build_tools" ]]; then
+		echo "ERROR: Android build template requires build-tools ${required_build_tools}, but CI provisions CI_ANDROID_BUILD_TOOLS_VERSION=${CI_ANDROID_BUILD_TOOLS_VERSION}. Update deploy-android.yml." >&2
+		exit 1
+	fi
+	if [[ -n "${CI_ANDROID_NDK_VERSION:-}" && "$CI_ANDROID_NDK_VERSION" != "$required_ndk" ]]; then
+		echo "ERROR: Android build template requires NDK ${required_ndk}, but CI provisions CI_ANDROID_NDK_VERSION=${CI_ANDROID_NDK_VERSION}. Update deploy-android.yml." >&2
+		exit 1
+	fi
+
+	[[ -f "$ANDROID_SDK_ROOT/platforms/android-${required_compile_sdk}/android.jar" ]] || {
+		echo "ERROR: Android API ${required_compile_sdk} is missing from $ANDROID_SDK_ROOT. Install platforms;android-${required_compile_sdk}." >&2
+		exit 1
+	}
+	[[ -x "$ANDROID_SDK_ROOT/build-tools/${required_build_tools}/aapt2" ]] || {
+		echo "ERROR: Android build-tools ${required_build_tools} is missing from $ANDROID_SDK_ROOT. Install build-tools;${required_build_tools}." >&2
+		exit 1
+	}
+	[[ -f "$ANDROID_SDK_ROOT/ndk/${required_ndk}/source.properties" ]] || {
+		echo "ERROR: Android NDK ${required_ndk} is missing from $ANDROID_SDK_ROOT. Install ndk;${required_ndk}." >&2
+		exit 1
+	}
+
+	echo "Android SDK preflight OK (API ${required_compile_sdk}, build-tools ${required_build_tools}, NDK ${required_ndk})"
+}
+
 build_legacy_profile_bridge() {
 	local bridge="$PROJECT/android/legacy_profile_bridge"
 	local output="$PROJECT/android/plugins"
@@ -296,6 +337,7 @@ export_android() {
 	ensure_godot_import
 	# Template install before bridge + export so we only pay for one Godot project load.
 	ensure_android_build_template
+	preflight_android_sdk
 	build_legacy_profile_bridge
 
 	local ads_aar="$PROJECT/addons/admob/android/bin/ads/libs/poing-godot-admob-ads-release.aar"

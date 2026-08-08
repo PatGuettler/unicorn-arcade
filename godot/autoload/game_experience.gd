@@ -30,7 +30,9 @@ func _input(_event: InputEvent) -> void:
 
 
 func _process(delta: float) -> void:
-	var scene := get_tree().current_scene
+	var scene := AdBarService.content_scene()
+	if not is_instance_valid(scene):
+		scene = get_tree().current_scene
 	if scene != attached_scene:
 		attached_scene = scene
 		attached_game_id = ""
@@ -74,7 +76,7 @@ func _is_game_scene(scene: Node) -> bool:
 
 
 func _attach_scene(scene: Node) -> void:
-	if scene != get_tree().current_scene or not is_instance_valid(scene):
+	if scene != AdBarService.content_scene() or not is_instance_valid(scene):
 		return
 	attached_game_id = AppState.selected_game_id
 	if attached_game_id.is_empty():

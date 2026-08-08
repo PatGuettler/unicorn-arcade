@@ -14,7 +14,9 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	var current := get_tree().current_scene
+	var current := AdBarService.content_scene()
+	if not is_instance_valid(current):
+		current = get_tree().current_scene
 	if current is Control:
 		_apply_to_root(current)
 
@@ -30,7 +32,9 @@ func _apply_if_scene_root_id(instance_id: int) -> void:
 	if not candidate is Control or not is_instance_valid(candidate):
 		return
 	var node := candidate as Control
-	var current := get_tree().current_scene
+	var current := AdBarService.content_scene()
+	if not is_instance_valid(current):
+		current = get_tree().current_scene
 	if node == current or (is_instance_valid(current) and not current is Control and node.get_parent() == current):
 		_apply_to_root(node)
 

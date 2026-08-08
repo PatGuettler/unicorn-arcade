@@ -22,7 +22,9 @@ func _node_added(node: Node) -> void:
 
 
 func _apply_current_scene() -> void:
-	var scene := get_tree().current_scene
+	var scene := AdBarService.content_scene()
+	if not is_instance_valid(scene):
+		scene = get_tree().current_scene
 	if is_instance_valid(scene):
 		_apply_tree_by_id(scene.get_instance_id())
 

@@ -40,6 +40,7 @@ var roaming_actor: RoomItemPreview3D
 var roam_target := Vector2.ZERO
 var roam_pause := 0.0
 var roam_rng := RandomNumberGenerator.new()
+var roam_floor_y := 0.0
 
 
 func _ready() -> void:
@@ -49,7 +50,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if not is_instance_valid(roaming_actor) or not is_instance_valid(room_canvas):
+	if not is_instance_valid(roaming_actor) or not is_instance_valid(room_canvas) or room_canvas.size.x < roaming_actor.size.x or room_canvas.size.y < roaming_actor.size.y:
 		return
 	if not dragging_id.is_empty() or not selected_id.is_empty() or is_instance_valid(bag_overlay) or AppState.setting("reduced_motion", false):
 		return
@@ -146,8 +147,7 @@ func _build_editor() -> void:
 	room_canvas.add_child(room_bg)
 	for item in local_items:
 		_create_item_button(item)
-	_create_roaming_actor()
-	room_canvas.resized.connect(_position_items)
+	room_canvas.resized.connect(_on_room_canvas_resized)
 	room_stage.resized.connect(_fit_room_canvas.bind(room_stage, room_texture.get_size()))
 	_fit_room_canvas.call_deferred(room_stage, room_texture.get_size())
 	status_label = Label.new()
@@ -176,6 +176,16 @@ func _fit_room_canvas(stage: Control, source_size: Vector2) -> void:
 	room_canvas.size = source_size * fit_scale
 	room_canvas.position = Vector2((stage.size.x - room_canvas.size.x) * 0.5, 12.0)
 	_position_items()
+	if not is_instance_valid(roaming_actor):
+		_create_roaming_actor()
+	else:
+		_reflow_roaming_actor()
+
+
+func _on_room_canvas_resized() -> void:
+	_position_items()
+	if is_instance_valid(roaming_actor):
+		_reflow_roaming_actor()
 
 
 func _create_item_button(item: Dictionary) -> void:
@@ -203,7 +213,8 @@ func _create_item_button(item: Dictionary) -> void:
 
 
 func _create_roaming_actor() -> void:
-	if not is_instance_valid(room_canvas): return
+	if not is_instance_valid(room_canvas) or room_canvas.size.x < 1.0 or room_canvas.size.y < 1.0:
+		return
 	roaming_actor = RoomItemPreviewScene.new()
 	roaming_actor.name = "RoamingRoomCompanion"
 	roaming_actor.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -212,21 +223,40 @@ func _create_roaming_actor() -> void:
 	roaming_actor.setup({"id": "companion_%s" % companion_id, "category": "companions", "animate": true, "presentation": "marketplace"})
 	room_canvas.add_child(roaming_actor)
 	var home := _local_item("room_companion_%s" % companion_id)
-	roaming_actor.position = Vector2(float(home.get("x", 50.0)) * room_canvas.size.x / 100.0, float(home.get("y", 65.0)) * room_canvas.size.y / 100.0) - roaming_actor.size * 0.5
+	roaming_actor.position = _roam_home_position(home)
+	roam_floor_y = roaming_actor.position.y
 	roam_target = roaming_actor.position
 
 
+func _roam_home_position(home: Dictionary) -> Vector2:
+	var max_position := Vector2(maxf(0.0, room_canvas.size.x - roaming_actor.size.x), maxf(0.0, room_canvas.size.y - roaming_actor.size.y))
+	var saved_center := Vector2(float(home.get("x", 50.0)) * room_canvas.size.x / 100.0, float(home.get("y", 65.0)) * room_canvas.size.y / 100.0)
+	return (saved_center - roaming_actor.size * 0.5).clamp(Vector2.ZERO, max_position)
+
+
+func _reflow_roaming_actor() -> void:
+	if not is_instance_valid(roaming_actor):
+		return
+	var home := _local_item("room_companion_%s" % companion_id)
+	var home_position := _roam_home_position(home)
+	roam_floor_y = home_position.y
+	var max_x := maxf(0.0, room_canvas.size.x - roaming_actor.size.x)
+	roaming_actor.position = Vector2(clampf(roaming_actor.position.x, 0.0, max_x), roam_floor_y)
+	roam_target = Vector2(clampf(roam_target.x, 0.0, max_x), roam_floor_y)
+
+
 func _safe_roam_target() -> Vector2:
-	var padding := Vector2(80, 92)
+	var horizontal_padding := minf(80.0, maxf(0.0, (room_canvas.size.x - roaming_actor.size.x) * 0.25))
+	var max_x := maxf(0.0, room_canvas.size.x - roaming_actor.size.x)
 	for attempt in 10:
-		var candidate := Vector2(roam_rng.randf_range(padding.x, maxf(padding.x, room_canvas.size.x - padding.x)), roam_rng.randf_range(room_canvas.size.y * 0.48, maxf(room_canvas.size.y * 0.48, room_canvas.size.y - padding.y))) - roaming_actor.size * 0.5
+		var candidate := Vector2(roam_rng.randf_range(horizontal_padding, maxf(horizontal_padding, max_x - horizontal_padding)), roam_floor_y)
 		var rect := Rect2(candidate, roaming_actor.size)
 		var blocked := false
 		for instance_id in item_buttons:
 			var placed := item_buttons[instance_id] as Button
 			if is_instance_valid(placed) and placed.visible and rect.grow(18).intersects(placed.get_rect()): blocked = true; break
 		if not blocked: return candidate
-	return roaming_actor.position
+	return Vector2(clampf(roaming_actor.position.x, 0.0, max_x), roam_floor_y)
 
 
 func _position_items() -> void:
