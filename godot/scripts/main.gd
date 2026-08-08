@@ -68,7 +68,7 @@ func _reset_page(use_meadow: bool = false) -> VBoxContainer:
 	var generation := _page_generation
 	var outgoing: Array[Node] = []
 	for child in get_children():
-		if child.name == "AdDisclosure" or child == _meadow_stage:
+		if child == _meadow_stage:
 			continue
 		outgoing.append(child)
 		if child is CanvasItem:

@@ -25,7 +25,9 @@ func _notification(what: int) -> void:
 
 func go_back() -> void:
 	_handling = false
-	var scene := get_tree().current_scene
+	var scene := AdBarService.content_scene()
+	if not is_instance_valid(scene):
+		scene = get_tree().current_scene
 	if scene == null: return
 	if _dismiss_top_overlay(scene): return
 	var policy := back_policy(str(scene.scene_file_path), AppState.shell_view)

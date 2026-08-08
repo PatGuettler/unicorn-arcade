@@ -1,37 +1,35 @@
 extends Node
 
 ## Bottom banner via Poing AdMob (Android). Config: res://config/admob.json (see admob.example.json).
-## Hosts disclosure on a persistent CanvasLayer so ads survive shell → game scene changes.
+## Games render into a persistent content viewport that sits above a separate ad slot.
 
 const CONFIG_PATH := "res://config/admob.json"
 const EXAMPLE_PATH := "res://config/admob.example.json"
-const DISCLOSURE_HEIGHT := 14.0
-const OVERLAY_LAYER := 100
-
 var _config: Dictionary = {}
 var _ad_view: AdView
-var _disclosure: Label
-var _overlay: CanvasLayer
-var _overlay_root: Control
 var _sdk_initialized := false
 var _sdk_initializing := false
 var _banner_logical_height := 60.0
 var _banner_requested := false
 var _reservation_active := false
-var _root_bottom_offsets: Dictionary = {}
+var _app_layout: VBoxContainer
+var _game_render_area: SubViewportContainer
+var _app_content_viewport: SubViewport
+var _ad_bar_area: Control
+var _hosted_scene: Node
 
 
 func _ready() -> void:
 	_reload_config()
 	_connect_scene_tracking()
-	call_deferred("_ensure_overlay")
+	call_deferred("_ensure_app_layout")
+	call_deferred("_host_current_scene")
 	if _platform_supports_ads() and ads_enabled():
 		_initialize_mobile_ads()
 
 
 func _exit_tree() -> void:
 	detach()
-	_restore_all_scene_roots()
 
 
 func _reload_config() -> void:
@@ -64,7 +62,7 @@ func ads_enabled() -> bool:
 func banner_height() -> float:
 	if not _should_show_ads():
 		return 0.0
-	return _banner_logical_height + DISCLOSURE_HEIGHT + _bottom_inset()
+	return _banner_logical_height + _bottom_inset()
 
 
 func should_show_for_player_logged_in(player_name: String) -> bool:
@@ -83,8 +81,6 @@ func sync_for_player(player_name: String = "") -> void:
 		detach()
 		return
 
-	_ensure_overlay()
-	_ensure_disclosure()
 	_set_reservation_active(true)
 	if _banner_requested and _ad_view != null:
 		_ad_view.show()
@@ -99,9 +95,6 @@ func detach() -> void:
 	_banner_requested = false
 	_destroy_banner()
 	_set_reservation_active(false)
-	if is_instance_valid(_disclosure):
-		_disclosure.queue_free()
-	_disclosure = null
 
 
 func _should_show_ads() -> bool:
@@ -115,23 +108,6 @@ func _platform_supports_ads() -> bool:
 
 func _banner_unit_id() -> String:
 	return str(_config.get("android_banner_unit_id", "")).strip_edges()
-
-
-func _ensure_overlay() -> void:
-	if is_instance_valid(_overlay) and is_instance_valid(_overlay_root):
-		return
-	var root := get_tree().root
-	if root == null:
-		return
-	_overlay = CanvasLayer.new()
-	_overlay.name = "AdBarOverlay"
-	_overlay.layer = OVERLAY_LAYER
-	_overlay_root = Control.new()
-	_overlay_root.name = "AdBarRoot"
-	_overlay_root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	_overlay_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_child(_overlay)
-	_overlay.add_child(_overlay_root)
 
 
 func _initialize_mobile_ads() -> void:
@@ -201,8 +177,6 @@ func _show_banner() -> void:
 	_destroy_banner()
 	_banner_requested = true
 	_set_reservation_active(true)
-	_ensure_overlay()
-	_ensure_disclosure()
 
 	var ad_size := AdSize.get_current_orientation_anchored_adaptive_banner_ad_size(AdSize.FULL_WIDTH)
 	_ad_view = AdView.new(unit_id, ad_size, AdPosition.BOTTOM)
@@ -228,8 +202,7 @@ func _on_banner_loaded() -> void:
 	var px := float(_ad_view.get_height_in_pixels())
 	if px > 0.0:
 		_banner_logical_height = _pixels_to_viewport_y(px)
-	_ensure_disclosure()
-	_apply_current_scene_reservation()
+	_update_app_layout()
 	print("AdBarService: banner loaded (height_px=%.0f)" % px)
 
 
@@ -247,33 +220,6 @@ func _destroy_banner() -> void:
 	_ad_view = null
 
 
-func _ensure_disclosure() -> void:
-	_ensure_overlay()
-	if not is_instance_valid(_overlay_root):
-		return
-	if is_instance_valid(_disclosure) and _disclosure.get_parent() == _overlay_root:
-		_layout_disclosure()
-		return
-	if is_instance_valid(_disclosure):
-		_disclosure.queue_free()
-	_disclosure = Label.new()
-	_disclosure.name = "AdDisclosure"
-	_disclosure.text = "Ad"
-	_disclosure.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_disclosure.add_theme_font_size_override("font_size", 10)
-	_disclosure.add_theme_color_override("font_color", Color(1, 1, 1, 0.7))
-	_overlay_root.add_child(_disclosure)
-	_layout_disclosure()
-
-
-func _layout_disclosure() -> void:
-	if not is_instance_valid(_disclosure):
-		return
-	_disclosure.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-	_disclosure.offset_top = -DISCLOSURE_HEIGHT - _bottom_inset()
-	_disclosure.offset_bottom = -_bottom_inset()
-
-
 func _connect_scene_tracking() -> void:
 	var tree := get_tree()
 	if tree != null and not tree.scene_changed.is_connected(_on_scene_changed):
@@ -284,65 +230,88 @@ func _connect_scene_tracking() -> void:
 
 
 func _on_scene_changed() -> void:
-	call_deferred("_apply_current_scene_reservation")
+	call_deferred("_host_current_scene")
 
 
 func _on_viewport_size_changed() -> void:
-	_layout_disclosure()
-	_apply_current_scene_reservation()
+	_update_app_layout()
 
 
 func _set_reservation_active(value: bool) -> void:
 	_reservation_active = value
-	_apply_current_scene_reservation()
+	_update_app_layout()
 
 
 func _reservation_height() -> float:
-	return _banner_logical_height + DISCLOSURE_HEIGHT + _bottom_inset() if _reservation_active else 0.0
+	return _banner_logical_height + _bottom_inset() if _reservation_active else 0.0
 
 
-func _apply_current_scene_reservation() -> void:
-	var scene := get_tree().current_scene if get_tree() != null else null
-	var root := scene as Control
-	_restore_all_except(root)
-	if is_instance_valid(root) and _reservation_active:
-		apply_reservation_to_root(root, _reservation_height())
-	elif is_instance_valid(root):
-		restore_reservation_for_root(root)
-
-
-func apply_reservation_to_root(root: Control, reserve: float) -> void:
-	if not is_instance_valid(root):
+func _ensure_app_layout() -> void:
+	if is_instance_valid(_app_layout) and not _app_layout.is_queued_for_deletion():
 		return
-	var key := root.get_instance_id()
-	if not _root_bottom_offsets.has(key):
-		_root_bottom_offsets[key] = {"root": root, "bottom": root.offset_bottom}
-	var original := float(_root_bottom_offsets[key]["bottom"])
-	root.offset_bottom = original - maxf(0.0, reserve)
-
-
-func restore_reservation_for_root(root: Control) -> void:
-	if not is_instance_valid(root):
+	_app_layout = null
+	_game_render_area = null
+	_app_content_viewport = null
+	_ad_bar_area = null
+	_hosted_scene = null
+	var tree := get_tree()
+	if tree == null or tree.root == null:
 		return
-	var key := root.get_instance_id()
-	if _root_bottom_offsets.has(key):
-		root.offset_bottom = float(_root_bottom_offsets[key]["bottom"])
-		_root_bottom_offsets.erase(key)
+	_app_layout = VBoxContainer.new()
+	_app_layout.name = "AppViewportLayout"
+	_app_layout.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	_app_layout.add_theme_constant_override("separation", 0)
+	tree.root.add_child(_app_layout)
+	_game_render_area = SubViewportContainer.new()
+	_game_render_area.name = "GameRenderArea"
+	_game_render_area.stretch = true
+	_game_render_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_game_render_area.mouse_filter = Control.MOUSE_FILTER_STOP
+	_app_layout.add_child(_game_render_area)
+	_app_content_viewport = SubViewport.new()
+	_app_content_viewport.name = "AppContentViewport"
+	_app_content_viewport.transparent_bg = false
+	_app_content_viewport.handle_input_locally = false
+	_game_render_area.add_child(_app_content_viewport)
+	_ad_bar_area = Control.new()
+	_ad_bar_area.name = "AdBarArea"
+	_ad_bar_area.mouse_filter = Control.MOUSE_FILTER_STOP
+	_app_layout.add_child(_ad_bar_area)
+	_update_app_layout()
 
 
-func _restore_all_except(keep: Control = null) -> void:
-	for key in _root_bottom_offsets.keys().duplicate():
-		var record: Dictionary = _root_bottom_offsets[key]
-		var root := record.get("root") as Control
-		if not is_instance_valid(root):
-			_root_bottom_offsets.erase(key)
-		elif root != keep:
-			root.offset_bottom = float(record["bottom"])
-			_root_bottom_offsets.erase(key)
+func _update_app_layout() -> void:
+	_ensure_app_layout()
+	if not is_instance_valid(_ad_bar_area):
+		return
+	_ad_bar_area.custom_minimum_size.y = _reservation_height()
+	# Keep this transparent layout child visible so VBoxContainer immediately
+	# reallocates it to zero height when inactive instead of retaining its old rect.
+	_ad_bar_area.visible = true
 
 
-func _restore_all_scene_roots() -> void:
-	_restore_all_except(null)
+func _host_current_scene() -> void:
+	_ensure_app_layout()
+	if not is_instance_valid(_app_content_viewport):
+		return
+	var tree := get_tree()
+	var scene := tree.current_scene if tree != null else null
+	if not is_instance_valid(scene) or scene == _app_layout:
+		return
+	if scene.get_parent() == _app_content_viewport:
+		_hosted_scene = scene
+		return
+	scene.reparent(_app_content_viewport)
+	_hosted_scene = scene
+	# SceneTree only accepts a direct root child as current_scene. The persistent
+	# wrapper keeps that contract while content_scene() exposes the actual route.
+	tree.current_scene = _app_layout
+	if scene is Control:
+		(scene as Control).set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+
+
+func content_scene() -> Node:
+	return _hosted_scene if is_instance_valid(_hosted_scene) else null
 
 
 func _pixels_to_viewport_y(pixels: float) -> float:

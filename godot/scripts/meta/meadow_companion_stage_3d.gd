@@ -25,15 +25,15 @@ func setup(equipped_id: String, companion_ids: Array) -> void:
 	stage.add_child(camera)
 	camera.look_at_from_position(Vector3(-12.0, 6.0, 3.0), Vector3(0.0, 1.4, 0.0), Vector3.UP)
 	_add_lights(stage)
-	var positions := [Vector3(-4.0, 0.0, -1.8), Vector3(4.2, 0.0, -1.4), Vector3(-2.7, 0.0, 0.8), Vector3(2.8, 0.0, 0.9), Vector3(0.0, 0.0, -2.5)]
+	var positions := [Vector3(-0.8, 0.0, -3.0), Vector3(-0.8, 0.0, 3.4), Vector3(3.1, 0.0, -6.9), Vector3(3.3, 0.0, -0.1), Vector3(3.5, 0.0, 5.9)]
 	var background_index := 0
 	for raw_id in companion_ids:
 		var id := str(raw_id)
 		var front := id == equipped_id
-		var position: Vector3 = Vector3(0.0, 0.0, 2.0) if front else positions[background_index]
+		var position: Vector3 = Vector3(-3.8, 0.0, 0.95) if front else positions[background_index]
 		if not front:
 			background_index += 1
-		_add_companion(stage, id, position, front)
+		_add_companion(stage, id, position, front, "hero" if front else ("mid" if background_index <= 2 else "rear"), background_index)
 
 
 func create_display() -> TextureRect:
@@ -47,12 +47,14 @@ func create_display() -> TextureRect:
 	return display
 
 
-func _add_companion(stage: Node3D, id: String, position: Vector3, hero: bool) -> void:
+func _add_companion(stage: Node3D, id: String, position: Vector3, hero: bool, formation_row: String, formation_slot: int) -> void:
 	var root := Node3D.new()
 	root.name = "MeadowTravelRoot_%s" % id
 	root.position = position
 	root.set_meta("source_model_id", id)
 	root.set_meta("hero", hero)
+	root.set_meta("formation_row", formation_row)
+	root.set_meta("formation_slot", formation_slot)
 	stage.add_child(root)
 	var model := Preview.CHARACTER_SCENES[id].instantiate() as Node3D
 	model.name = "LiveUnicornModel_%s" % id
@@ -72,7 +74,7 @@ func _add_companion(stage: Node3D, id: String, position: Vector3, hero: bool) ->
 	var animator := IdleAnimator.new()
 	animator.name = "IdleAnimator"
 	stage.add_child(animator)
-	animator.setup(root, {"seed": "meadow:%s" % id, "roam_radius": 0.65 if hero else 0.95})
+	animator.setup(root, {"seed": "meadow:%s" % id, "roam_radius": 0.5 if hero else 0.6})
 
 
 func _add_lights(stage: Node3D) -> void:
