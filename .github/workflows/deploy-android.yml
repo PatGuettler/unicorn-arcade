@@ -11,6 +11,9 @@ env:
   GODOT_VERSION: "4.7.1"
   GODOT_CHANNEL: stable
   EXPORT_PRESET: Android Alpha
+  CI_ANDROID_COMPILE_SDK: "36"
+  CI_ANDROID_BUILD_TOOLS_VERSION: "36.1.0"
+  CI_ANDROID_NDK_VERSION: "29.0.14206865"
 
 jobs:
   build-and-deploy:
@@ -94,9 +97,9 @@ jobs:
           set -o pipefail
           "$SDKMANAGER" --sdk_root="$SDK_ROOT" --install \
             "platform-tools" \
-            "platforms;android-34" \
-            "build-tools;34.0.0" \
-            "ndk;23.2.8568313" \
+            "platforms;android-${CI_ANDROID_COMPILE_SDK}" \
+            "build-tools;${CI_ANDROID_BUILD_TOOLS_VERSION}" \
+            "ndk;${CI_ANDROID_NDK_VERSION}" \
             "cmake;3.10.2.4988404"
 
       - name: Install Godot export tooling
