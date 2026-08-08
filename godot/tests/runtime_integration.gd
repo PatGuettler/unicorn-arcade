@@ -73,6 +73,8 @@ func _run() -> void:
 	_check(_storybook_action_count(coin_count) >= 2, "Coin Count styles retry and navigation with the shared storybook action treatment")
 	_check(coin_count.coin_buttons.size() == 4 and coin_count.coin_buttons.all(func(button: Button) -> bool: return button is CoinChoiceButton), "Coin Count uses four illustrated denomination coins instead of text boxes")
 	_check(coin_count.coin_buttons[0].custom_minimum_size.y >= 170.0 and coin_count.coin_buttons[0].tooltip_text.contains("worth"), "illustrated coins retain large accessible tap targets and denomination descriptions")
+	var official_coin := coin_count.coin_buttons[0].find_child("OfficialCoinPortrait", true, false) as TextureRect
+	_check(is_instance_valid(official_coin) and official_coin.texture != null and not coin_count.coin_buttons[0].has_method("_draw_coin_face"), "Coin Count presents only the official coin portrait, while retaining accessible labels and focus treatment")
 	await _release_scene(coin_count)
 	var rhyme = RHYME_SCENE.instantiate()
 	add_child(rhyme)
@@ -107,6 +109,11 @@ func _run() -> void:
 	_check(is_instance_valid(trail_companion) and trail_companion.source_model_id == AppState.equipped_companion(), "the equipped 3D companion stands on the current stepping stone")
 	_check((jump.node_buttons[0].get_node("JumpValue") as Label).text.is_empty() and jump.find_children("*Zoom*", "Button", true, false).is_empty(), "landing stones stay unlabeled and zoom buttons are removed for pinch zoom")
 	_check(jump.node_buttons.size() == jump.level_data.size() + 1, "every intermediate wrong landing remains visible between the current stone and later correct destinations")
+	var jump_viewport_rect: Rect2 = jump.world_viewport.get_global_rect()
+	var first_five_centers_visible := true
+	for index in range(mini(5, jump.node_buttons.size())):
+		first_five_centers_visible = first_five_centers_visible and jump_viewport_rect.has_point(jump.node_buttons[index].get_global_rect().get_center())
+	_check(jump.world_viewport.zoom < 1.0 and first_five_centers_visible, "Unicorn Jump starts zoomed out enough to view the current stone and four forward stones when the viewport permits")
 	var landing: int = jump.level_data[0]
 	_check(jump.node_buttons[landing].self_modulate == Color.WHITE, "Unicorn Jump does not reveal the counted landing with a highlight")
 	AppState.data["settings"]["reduced_motion"] = false
@@ -181,12 +188,17 @@ func _run() -> void:
 	_check(_ui_is_accessible(galaxy), "Galaxy Unicorn meets readable text, contrast, and touch-target minimums")
 	_check(_storybook_action_count(galaxy) >= 2, "Galaxy Unicorn styles retry/next and Arcade navigation with the shared storybook action treatment")
 	_check(galaxy.active and galaxy.target_kills == 10 and galaxy.lives == 3, "Galaxy Unicorn launches with the React target and lives")
+	var galaxy_safe_band := galaxy.find_child("GalaxyBottomSafeBand", true, false) as PanelContainer
+	var galaxy_actions := galaxy.find_child("GalaxyBottomSafeActions", true, false) as HBoxContainer
+	_check(is_instance_valid(galaxy_safe_band) and galaxy_safe_band.get_parent() == galaxy and is_instance_valid(galaxy_actions) and galaxy_actions.get_parent().get_parent() == galaxy_safe_band, "Galaxy message and retry/next actions live in an explicit bottom-safe band inside the game viewport")
 	_check(is_equal_approx(galaxy.player_x, 0.5), "Galaxy Unicorn centers the player for its opening wave")
 	galaxy.call("_spawn_enemy", false)
 	_check(float(galaxy.enemies[0]["speed"]) <= 0.00009, "Galaxy Unicorn's opening enemies use the gentle level-one speed curve")
 	_check(str(galaxy.enemies[0]["kind"]) in ["storm_cloud", "shadow_star", "enchanted_comet", "cursed_moon"], "Galaxy Unicorn spawns magical celestial threats instead of unrelated placeholder objects")
 	galaxy.enemies.clear()
 	galaxy.size = Vector2(720, 1280)
+	await get_tree().process_frame
+	_check(galaxy_safe_band.get_global_rect().end.y <= galaxy.get_global_rect().end.y and galaxy_safe_band.get_global_rect().position.y >= galaxy.get_global_rect().position.y, "Galaxy's bottom-safe action band stays within the render viewport above the native ad sibling")
 	var galaxy_drag := InputEventScreenDrag.new()
 	galaxy_drag.position = Vector2(576, 900)
 	galaxy.call("_input", galaxy_drag)

@@ -15,6 +15,8 @@ const PATH_WIDTH := 520.0
 const BASE_STONE_SIZE := Vector2(150.0, 101.0)
 const BASE_ROW_HEIGHT := 132.0
 const BASE_TOP_CLEARANCE := 88.0
+const INITIAL_TRAIL_MAX_ZOOM := 0.72
+const INITIAL_TRAIL_MIN_ZOOM := 0.42
 
 var level := 1
 var level_data: Array[int] = []
@@ -283,7 +285,22 @@ func _update_path() -> void:
 func _focus_current_stone() -> void:
 	if not is_instance_valid(world_viewport) or current_index < 0 or current_index >= node_buttons.size():
 		return
+	if current_index == 0:
+		world_viewport.set_camera(Vector2.ZERO, _initial_trail_zoom(), false)
 	world_viewport.focus_control(node_buttons[current_index], Vector2(0.5, 0.34))
+
+
+func _initial_trail_zoom() -> float:
+	if not is_instance_valid(world_viewport) or node_buttons.is_empty():
+		return INITIAL_TRAIL_MAX_ZOOM
+	var forward_index := mini(current_index + 4, node_buttons.size() - 1)
+	var current_center := node_buttons[current_index].global_position.y + node_buttons[current_index].size.y * 0.5
+	var forward_center := node_buttons[forward_index].global_position.y + node_buttons[forward_index].size.y * 0.5
+	var span := maxf(BASE_ROW_HEIGHT, absf(forward_center - current_center))
+	# Current is focused about one-third down the viewport, leaving roughly 60%
+	# of its height for the next four landings. Clamp only for tiny viewports.
+	var available := maxf(1.0, world_viewport.size.y * 0.60)
+	return clampf(available / span, INITIAL_TRAIL_MIN_ZOOM, INITIAL_TRAIL_MAX_ZOOM)
 
 
 func _insert_non_obstructing_dialog(dialog: Control) -> void:
@@ -428,6 +445,9 @@ func _build_ui() -> void:
 	mission_stack.add_child(jump_mission_value)
 	world_viewport = GameWorldViewportScene.new()
 	world_viewport.name = "GameWorldViewport"
+	# Begin wide enough to count several stones at once; players can still pan
+	# and pinch all the way into the existing close view.
+	world_viewport.min_zoom = INITIAL_TRAIL_MIN_ZOOM
 	world_viewport.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	world_viewport.custom_minimum_size.y = 320
 	root.add_child(world_viewport)

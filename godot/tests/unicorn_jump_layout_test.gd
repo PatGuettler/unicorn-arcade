@@ -22,6 +22,11 @@ func _run() -> void:
 	_check(jump.world_viewport != null and jump.world_viewport is Control, "Unicorn Jump uses a pan/pinch game camera instead of a scrollbar")
 	_check(jump.find_child("GameWorldViewport", true, false) != null, "the playfield is a clipped GameWorldViewport")
 	_check(not (jump.world_viewport is ScrollContainer), "the playfield does not expose a ScrollContainer scrollbar")
+	var view_rect: Rect2 = jump.world_viewport.get_global_rect()
+	var first_five_centers_visible := true
+	for index in range(mini(5, jump.node_buttons.size())):
+		first_five_centers_visible = first_five_centers_visible and view_rect.has_point(jump.node_buttons[index].get_global_rect().get_center())
+	_check(jump.world_viewport.zoom < 1.0 and first_five_centers_visible, "the initial camera frames the current stone and four forward stones while keeping pinch zoom available")
 
 	var experience = get_tree().root.get_node("GameExperience")
 	var previous_scene = experience.attached_scene
@@ -30,6 +35,12 @@ func _run() -> void:
 	experience.set_process(false)
 	experience.attached_scene = jump
 	experience.attached_game_id = "unicorn_jump"
+	var objective_plaque := experience.call("_build_objective_plaque") as PanelContainer
+	var hud_mascot := objective_plaque.find_child("EquippedCompanionMascot", true, false) as RoomItemPreview3D
+	var hud_cameras := hud_mascot.find_children("*", "Camera3D", true, false) if is_instance_valid(hud_mascot) else []
+	var hud_camera: Camera3D = hud_cameras[0] as Camera3D if not hud_cameras.is_empty() else null
+	_check(is_instance_valid(hud_mascot) and hud_mascot.presentation_context == "game_hud" and hud_mascot.custom_minimum_size.x >= 96.0 and is_instance_valid(hud_camera) and hud_camera.size >= 8.8, "the shared objective HUD uses an isolated padded companion framing without clipping other preview contexts")
+	objective_plaque.queue_free()
 	experience.call("_show_notice", "Lucky Rainbow", "Gives a chance at bonus coins.")
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -42,6 +53,17 @@ func _run() -> void:
 		_check(not notice_rect.intersects(jump.node_buttons[0].get_global_rect()), "the dialog does not cover the unicorn's current stone")
 		_check(not notice_rect.intersects(jump.node_buttons[landing].get_global_rect()), "the dialog does not cover the upcoming landing stone")
 		notice.queue_free()
+
+	experience.call("_request_leave", false)
+	await get_tree().process_frame
+	var leave_overlay := jump.find_child("LeaveRunOverlay", true, false) as Control
+	var leave_copy := jump.find_child("LeaveRunCopy", true, false) as Label
+	var leave_button := jump.find_child("LeaveRunConfirm", true, false) as Button
+	var keep_button := jump.find_child("LeaveRunCancel", true, false) as Button
+	_check(is_instance_valid(leave_overlay) and is_instance_valid(leave_copy) and leave_copy.get_theme_font_size("font_size") >= 23 and is_instance_valid(leave_button) and leave_button.text == "LEAVE RUN" and is_instance_valid(keep_button) and keep_button.text == "KEEP PLAYING", "leaving an active run uses the readable in-game storybook modal and styled choices")
+	_check(jump.find_children("*", "ConfirmationDialog", true, false).is_empty(), "leave confirmation never opens a system ConfirmationDialog")
+	if is_instance_valid(keep_button):
+		keep_button.emit_signal("pressed")
 
 	experience.attached_scene = previous_scene
 	experience.attached_game_id = previous_game_id

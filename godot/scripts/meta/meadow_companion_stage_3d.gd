@@ -3,6 +3,7 @@ extends Node
 
 const Preview = preload("res://scripts/meta/room_item_preview_3d.gd")
 const IdleAnimator = preload("res://scripts/meta/unicorn_idle_animator.gd")
+const HERO_POSITION := Vector3(-5.0, 0.0, 0.95)
 
 var viewport: SubViewport
 
@@ -30,7 +31,7 @@ func setup(equipped_id: String, companion_ids: Array) -> void:
 	for raw_id in companion_ids:
 		var id := str(raw_id)
 		var front := id == equipped_id
-		var position: Vector3 = Vector3(-3.8, 0.0, 0.95) if front else positions[background_index]
+		var position: Vector3 = HERO_POSITION if front else positions[background_index]
 		if not front:
 			background_index += 1
 		_add_companion(stage, id, position, front, "hero" if front else ("mid" if background_index <= 2 else "rear"), background_index)

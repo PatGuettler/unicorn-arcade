@@ -5,6 +5,7 @@ extends Node
 
 const CONFIG_PATH := "res://config/admob.json"
 const EXAMPLE_PATH := "res://config/admob.example.json"
+const CONTENT_TO_BANNER_GUTTER_LOGICAL_PIXELS := 12
 var _config: Dictionary = {}
 var _ad_view: AdView
 var _sdk_initialized := false
@@ -63,7 +64,9 @@ func ads_enabled() -> bool:
 func banner_height() -> float:
 	if not _should_show_ads():
 		return 0.0
-	return _banner_logical_height + _bottom_inset()
+	# The native anchored banner owns Android's navigation/safe-area placement.
+	# Reserving that inset here as well leaves an extra blank strip above it.
+	return _banner_logical_height
 
 
 func should_show_for_player_logged_in(player_name: String) -> bool:
@@ -244,7 +247,13 @@ func _set_reservation_active(value: bool) -> void:
 
 
 func _reservation_height() -> float:
-	return _banner_logical_height + _bottom_inset() if _reservation_active else 0.0
+	# The sibling slot reserves only the measured adaptive-banner height.  Native
+	# AdMob handles any device bottom inset inside its own placement.
+	return _banner_logical_height if _reservation_active else 0.0
+
+
+func _content_to_banner_gutter_height() -> int:
+	return CONTENT_TO_BANNER_GUTTER_LOGICAL_PIXELS if _reservation_active else 0
 
 
 func _ensure_app_layout() -> void:
@@ -279,6 +288,8 @@ func _ensure_app_layout() -> void:
 	_ad_bar_area = Control.new()
 	_ad_bar_area.name = "AdBarArea"
 	_ad_bar_area.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Keep this as a full-width sibling of GameRenderArea.  It is intentionally
+	# not part of the content SubViewport, so app UI cannot render behind AdMob.
 	_ad_bar_area.mouse_filter = Control.MOUSE_FILTER_STOP
 	_app_layout.add_child(_ad_bar_area)
 	_app_layout.minimum_size_changed.connect(_schedule_layout_sync)
@@ -289,8 +300,11 @@ func _ensure_app_layout() -> void:
 
 func _update_app_layout() -> void:
 	_ensure_app_layout()
-	if not is_instance_valid(_ad_bar_area):
+	if not is_instance_valid(_app_layout) or not is_instance_valid(_ad_bar_area):
 		return
+	# The separation is deliberately outside both children: it keeps game content
+	# clear of the native banner without inflating the measured banner reservation.
+	_app_layout.add_theme_constant_override("separation", _content_to_banner_gutter_height())
 	_ad_bar_area.custom_minimum_size.y = _reservation_height()
 	# Keep this transparent layout child visible so VBoxContainer immediately
 	# reallocates it to zero height when inactive instead of retaining its old rect.
@@ -356,11 +370,3 @@ func _pixels_to_viewport_y(pixels: float) -> float:
 		return pixels
 	var viewport_h := float(get_viewport().get_visible_rect().size.y)
 	return pixels * (viewport_h / window_h)
-
-
-func _bottom_inset() -> float:
-	var safe := DisplayServer.get_display_safe_area()
-	var window_h := DisplayServer.window_get_size().y
-	if window_h <= 0:
-		return 0.0
-	return _pixels_to_viewport_y(maxf(0.0, float(window_h - safe.end.y)))

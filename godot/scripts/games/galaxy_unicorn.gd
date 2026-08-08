@@ -11,6 +11,7 @@ const ENEMIES := [
 	{"kind": "cursed_moon", "hp": 2, "speed": 0.00040, "score": 30, "radius": 18.0},
 	{"kind": "eclipse_crown", "hp": 8, "speed": 0.00015, "score": 100, "radius": 32.0, "boss": true},
 ]
+const BOTTOM_SAFE_BAND_HEIGHT := 148.0
 
 var level := 1
 var target_kills := 0
@@ -34,6 +35,7 @@ var hud_label: Label
 var message_label: Label
 var action_button: Button
 var player_preview: RoomItemPreview3D
+var bottom_safe_band: PanelContainer
 
 
 func _ready() -> void:
@@ -57,7 +59,7 @@ func _process(delta: float) -> void:
 		opening_timer = 400.0
 	if fire_cooldown <= 0.0:
 		fire_cooldown = Rules.galaxy_fire_ms(level)
-		var muzzle := Vector2(player_x * size.x, size.y * 0.88 - 28.0)
+		var muzzle := Vector2(player_x * size.x, _player_y() - 28.0)
 		bullets.append({"position": muzzle, "previous_position": muzzle, "speed": -0.55 - level * 0.02})
 		# The original physics speed crosses most of a tall phone in one frame. Keep
 		# that gameplay timing, but retain a short visual echo so the rainbow blast is
@@ -72,7 +74,7 @@ func _process(delta: float) -> void:
 	_resolve_collisions()
 	_update_hud()
 	if is_instance_valid(player_preview):
-		player_preview.position = Vector2(player_x * size.x - 78.0, size.y * 0.88 - 92.0)
+		player_preview.position = Vector2(player_x * size.x - 78.0, _player_y() - 92.0)
 	queue_redraw()
 
 
@@ -181,7 +183,7 @@ func _resolve_collisions() -> void:
 	for bullet in spent_bullets:
 		bullets.erase(bullet)
 	enemies = enemies.filter(func(item: Dictionary) -> bool: return int(item["hp"]) > 0 and item["position"].y < size.y + 50.0)
-	var player := Vector2(player_x * size.x, size.y * 0.88)
+	var player := Vector2(player_x * size.x, _player_y())
 	for pickup in pickups.duplicate():
 		if pickup["position"].distance_to(player) < 36.0:
 			if pickup["kind"] == "heal":
@@ -269,8 +271,14 @@ func _draw() -> void:
 			draw_rect(Rect2(enemy["position"] + Vector2(-width / 2, -float(enemy["radius"]) - 9), Vector2(width * float(enemy["hp"]) / float(enemy["max_hp"]), 4)), Color("f472b6"))
 	for pickup in pickups:
 		_draw_themed_pickup(pickup)
-	var player := Vector2(player_x * size.x, size.y * 0.88)
+	var player := Vector2(player_x * size.x, _player_y())
 	draw_circle(player + Vector2(0, 31), 20.0, Color(0.04, 0.02, 0.14, 0.46))
+
+
+func _player_y() -> float:
+	# Keep the companion and collision line above the persistent instruction and
+	# action band. The band itself lives in this render viewport, not in AdMob.
+	return minf(size.y * 0.82, size.y - BOTTOM_SAFE_BAND_HEIGHT - 24.0)
 
 
 func _draw_themed_enemy(enemy: Dictionary) -> void:
@@ -362,18 +370,32 @@ func _build_ui() -> void:
 	hud_label.add_theme_font_size_override("font_size", 21)
 	hud_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(hud_label)
+	bottom_safe_band = PanelContainer.new()
+	bottom_safe_band.name = "GalaxyBottomSafeBand"
+	bottom_safe_band.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	bottom_safe_band.offset_left = 14.0
+	bottom_safe_band.offset_right = -14.0
+	bottom_safe_band.offset_top = -BOTTOM_SAFE_BAND_HEIGHT
+	bottom_safe_band.offset_bottom = -14.0
+	bottom_safe_band.z_index = 40
+	bottom_safe_band.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254d"), Color("6857b7"), 18))
+	add_child(bottom_safe_band)
+	var band_stack := VBoxContainer.new()
+	band_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	band_stack.add_theme_constant_override("separation", 8)
+	bottom_safe_band.add_child(band_stack)
 	message_label = Label.new()
-	message_label.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	message_label.position.y = -100
+	message_label.name = "GalaxyMessage"
 	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message_label.add_theme_color_override("font_color", Color("ffe172"))
 	message_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(message_label)
+	message_label.add_theme_font_size_override("font_size", 18)
+	band_stack.add_child(message_label)
 	var actions := HBoxContainer.new()
-	actions.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
-	actions.position.y = -62
+	actions.name = "GalaxyBottomSafeActions"
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
-	add_child(actions)
+	band_stack.add_child(actions)
 	action_button = Button.new()
 	StorybookUI.apply_game_action(action_button, 160)
 	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Sector" else level))

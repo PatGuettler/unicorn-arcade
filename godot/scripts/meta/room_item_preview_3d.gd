@@ -16,6 +16,7 @@ const ANIMATED_CAMERA_SIZE := 6.80
 const STATIC_CAMERA_SIZE := 6.80
 const HERO_CAMERA_SIZE := 6.60
 const BACKGROUND_CAMERA_SIZE := 8.40
+const GAME_HUD_CAMERA_SIZE := 8.80
 const ANIMATION_FRAME_LIFT := Vector3(0.0, 1.10, 0.0)
 const STATIC_FRAME_LIFT := Vector3(0.0, 1.10, 0.0)
 const HERO_FRAME_LIFT := Vector3(0.0, 1.10, 0.0)
@@ -129,7 +130,7 @@ func _build_companion(stage: Node3D) -> void:
 	var camera := Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	if not animate_character:
-		camera.size = STATIC_CAMERA_SIZE
+		camera.size = GAME_HUD_CAMERA_SIZE if presentation_context == "game_hud" else STATIC_CAMERA_SIZE
 	elif presentation_context == "hero":
 		camera.size = HERO_CAMERA_SIZE
 	elif presentation_context == "meadow_background":

@@ -77,14 +77,19 @@ func _run() -> void:
 		await get_tree().process_frame
 	var window_size := tree.root.get_visible_rect().size
 	var slot_height := ad_bar_area.size.y if is_instance_valid(ad_bar_area) else 0.0
+	var gutter_height := ad_bar_area.position.y - render_area.position.y - render_area.size.y
 	var content_scene := AdBarService.content_scene()
-	_check(slot_height > 0.0 and is_equal_approx(app_layout.size.y, window_size.y) and is_equal_approx(render_area.size.y, window_size.y - slot_height) and content_viewport.get_visible_rect().size.is_equal_approx(render_area.size), "active banner keeps the app layout root-sized while the render viewport is exactly the window minus its separate slot")
+	_check(slot_height > 0.0 and is_equal_approx(app_layout.size.y, window_size.y) and is_equal_approx(render_area.size.y, window_size.y - slot_height - 12.0) and content_viewport.get_visible_rect().size.is_equal_approx(render_area.size), "active banner keeps the app layout root-sized while the render viewport is exactly the window minus its separate slot and gutter")
+	_check(is_equal_approx(gutter_height, 12.0) and is_equal_approx(float(app_layout.get_theme_constant("separation")), gutter_height) and is_equal_approx(content_viewport.get_visible_rect().size.y, render_area.size.y), "the active 12-pixel gutter is a VBox gap outside AppContentViewport, between game content and the native banner slot")
+	_check(ad_bar_area.get_parent() == app_layout and is_equal_approx(ad_bar_area.size.x, app_layout.size.x) and is_equal_approx(render_area.size.x, app_layout.size.x), "the native ad slot remains a full-width sibling of the game render area")
+	_check(is_equal_approx(slot_height, float(AdBarService.call("_reservation_height"))) and is_equal_approx(float(AdBarService.call("_reservation_height")), float(AdBarService.get("_banner_logical_height"))), "the ad slot reserves the actual native banner height without double-counting Android's bottom safe inset")
 	_check(tree.current_scene == app_layout and content_scene == home and content_scene.get_parent() == content_viewport and content_scene.get_viewport() == content_viewport, "persistent app wrapper stays current while the actual Main scene is hosted in the content viewport")
 	_check(home.find_children("CategoryIcon", "ArcadePictogram", true, false).size() == 4 and home.is_visible_in_tree() and get_tree().root.find_child("AdDisclosure", true, false) == null, "dashboard remains visibly built inside the reduced content viewport without a duplicate Godot disclosure")
 	AdBarService.call("_set_reservation_active", false)
 	for _frame in 2:
 		await get_tree().process_frame
-	_check(is_zero_approx(ad_bar_area.size.y) and is_equal_approx(app_layout.size.y, window_size.y) and is_equal_approx(render_area.size.y, window_size.y) and content_viewport.get_visible_rect().size.is_equal_approx(window_size), "disabling ads collapses only the ad slot and restores full-height content without shrinking the app layout")
+	gutter_height = ad_bar_area.position.y - render_area.position.y - render_area.size.y
+	_check(is_zero_approx(ad_bar_area.size.y) and is_zero_approx(gutter_height) and is_zero_approx(float(app_layout.get_theme_constant("separation"))) and is_equal_approx(app_layout.size.y, window_size.y) and is_equal_approx(render_area.size.y, window_size.y) and content_viewport.get_visible_rect().size.is_equal_approx(window_size), "disabling ads collapses both the ad slot and gutter, restoring full-height content without shrinking the app layout")
 	home.call("_show_home")
 	await home.page_build_complete
 	AdBarService.call("_set_reservation_active", true)
