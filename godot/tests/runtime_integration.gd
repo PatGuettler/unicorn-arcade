@@ -221,9 +221,23 @@ func _run() -> void:
 	var room = ROOM_SCENE.instantiate()
 	add_child(room)
 	await get_tree().process_frame
+	await get_tree().process_frame
 	_check(_ui_is_accessible(room), "room editor meets readable text, contrast, and touch-target minimums")
 	_check(room.companion_id == "sparkle" and is_instance_valid(room.room_canvas), "Sparkle's room editor launches")
 	_check(room.grid_snap, "room editor starts with eight-percent grid snapping enabled")
+	var roaming_actor = room.roaming_actor
+	var room_bounds := Rect2(Vector2.ZERO, room.room_canvas.size)
+	_check(is_instance_valid(roaming_actor) and room_bounds.encloses(Rect2(roaming_actor.position, roaming_actor.size)) and is_equal_approx(room.roam_target.y, roaming_actor.position.y), "room companion initializes after the fitted canvas, fully inside its floor lane")
+	if is_instance_valid(roaming_actor):
+		room.roam_target = room.call("_safe_roam_target")
+		var floor_y: float = roaming_actor.position.y
+		for _step in 6:
+			room.call("_process", 0.25)
+		_check(is_equal_approx(room.roam_target.y, floor_y) and is_equal_approx(roaming_actor.position.y, floor_y) and room_bounds.encloses(Rect2(roaming_actor.position, roaming_actor.size)), "room companion walking changes horizontal position only and stays inside the room canvas")
+		var stage := room.room_canvas.get_parent() as Control
+		room.call("_fit_room_canvas", stage, room.room_canvas.size / 0.5)
+		var resized_bounds := Rect2(Vector2.ZERO, room.room_canvas.size)
+		_check(is_equal_approx(roaming_actor.position.y, room.roam_target.y) and resized_bounds.encloses(Rect2(roaming_actor.position, roaming_actor.size)), "room companion preserves its floor baseline and bounds after canvas reflow")
 	_check(room.call("_item_base_size", "companion_sparkle") == Vector2(252, 180), "room companions use an expanded transparent canvas for horn and hoof clearance")
 	var companion_button: Button = room.item_buttons.get("room_companion_sparkle")
 	var companion_preview = companion_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(companion_button) else null

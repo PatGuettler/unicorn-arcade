@@ -54,7 +54,17 @@ func _run() -> void:
 			hero_root = root
 	_check(is_instance_valid(meadow_stage) and shared_viewports.size() == 1 and shared_cameras.size() == 1 and shared_lights.size() >= 2, "home meadow uses one shared SubViewport with one camera and shared lights")
 	_check(travel_roots.size() == 6 and live_models.size() == 6 and animators.size() == 6 and meadow_ids.size() == 6, "home meadow keeps six distinct live GLBs with travel roots and Walk animators")
-	_check(is_instance_valid(hero_root) and hero_root.position.z > 1.0 and hero_root.get_child(0).scale.x > 3.0, "equipped hero is larger and front-center in the shared meadow stage")
+	var mid_count := 0
+	var rear_count := 0
+	var background_z: Array[float] = []
+	for root in travel_roots:
+		if str(root.get_meta("formation_row", "")) == "mid": mid_count += 1
+		if str(root.get_meta("formation_row", "")) == "rear": rear_count += 1
+		if not bool(root.get_meta("hero", false)): background_z.append(root.position.z)
+	background_z.sort()
+	var lateral_safe := background_z.size() == 5
+	for index in range(1, background_z.size()): lateral_safe = lateral_safe and background_z[index] - background_z[index - 1] >= 2.4
+	_check(is_instance_valid(hero_root) and hero_root.position.x < -3.0 and hero_root.get_child(0).scale.x > 3.0 and mid_count == 2 and rear_count == 3 and lateral_safe, "equipped hero is camera-near with separated two-mid/three-rear meadow formation")
 	var centered_slot := shell.find_child("TrueCenterHeaderSlot", true, false) as Control
 	var home_sign := shell.find_child("HomeTitleSign", true, false) as TextureRect
 	var alley_sign_button := shell.find_child("UnicornAlleyStreetSignButton", true, false) as Button

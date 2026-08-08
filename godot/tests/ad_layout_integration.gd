@@ -18,7 +18,6 @@ const CONTROL_ROOT_SCENES := [
 	"res://scenes/meta/unicorn_alley.tscn",
 ]
 
-const TEST_RESERVE := 91.25
 var failures: Array[String] = []
 var checks := 0
 
@@ -38,20 +37,42 @@ func _run() -> void:
 	# future signature drift fails this focused runner before device testing.
 	AdBarService.call("_on_scene_changed")
 	_check(true, "AdBarService accepts the zero-argument scene_changed callback")
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var app_layout := get_tree().root.find_child("AppViewportLayout", true, false) as VBoxContainer
+	var render_area := get_tree().root.find_child("GameRenderArea", true, false) as SubViewportContainer
+	var content_viewport := get_tree().root.find_child("AppContentViewport", true, false) as SubViewport
+	var ad_bar_area := get_tree().root.find_child("AdBarArea", true, false) as Control
+	_check(is_instance_valid(app_layout) and is_instance_valid(render_area) and is_instance_valid(content_viewport) and is_instance_valid(ad_bar_area), "AdBarService owns a persistent content viewport and a separate ad-slot sibling")
+	var hosted_scene := Control.new()
+	hosted_scene.name = "AdLayoutHostedScene"
+	hosted_scene.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	get_tree().root.add_child(hosted_scene)
+	get_tree().current_scene = hosted_scene
+	AdBarService.call("_host_current_scene")
+	await get_tree().process_frame
 	for path in CONTROL_ROOT_SCENES:
 		var packed := load(path) as PackedScene
 		var root := packed.instantiate()
 		_check(root is Control, "%s has a Control scene root" % path)
 		if root is Control:
 			var control := root as Control
-			var original := control.offset_bottom
-			AdBarService.apply_reservation_to_root(control, TEST_RESERVE)
-			_check(is_equal_approx(control.offset_bottom, original - TEST_RESERVE), "%s reserves the banner, disclosure, and safe inset" % path)
-			AdBarService.apply_reservation_to_root(control, TEST_RESERVE)
-			_check(is_equal_approx(control.offset_bottom, original - TEST_RESERVE), "%s does not accumulate shared ad reservation" % path)
-			AdBarService.restore_reservation_for_root(control)
-			_check(is_equal_approx(control.offset_bottom, original), "%s restores its original bottom offset" % path)
+			_check(is_equal_approx(control.anchor_left, 0.0) and is_equal_approx(control.anchor_top, 0.0) and is_equal_approx(control.anchor_right, 1.0) and is_equal_approx(control.anchor_bottom, 1.0), "%s remains full-rect inside the app content viewport" % path)
 		root.free()
+	AdBarService.call("_set_reservation_active", true)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var window_size := get_tree().root.get_visible_rect().size
+	var slot_height := ad_bar_area.size.y if is_instance_valid(ad_bar_area) else 0.0
+	var scene := get_tree().current_scene
+	var content_scene := AdBarService.content_scene()
+	_check(slot_height > 0.0 and is_equal_approx(app_layout.size.y - render_area.size.y, slot_height) and is_equal_approx(content_viewport.get_visible_rect().size.y, render_area.size.y), "active banner reserves a separate bottom slot and makes the game viewport exactly the remaining render area")
+	_check(scene == app_layout and content_scene == hosted_scene and content_scene.get_parent() == content_viewport and is_equal_approx(render_area.size.x, window_size.x) and is_equal_approx(app_layout.size.y, window_size.y), "persistent app wrapper stays current while content_scene is hosted inside the content viewport")
+	_check(is_instance_valid(content_scene) and content_scene.get_viewport() == content_viewport and get_tree().root.find_child("AdDisclosure", true, false) == null, "games see only the content viewport and native banners add no duplicate Godot disclosure")
+	AdBarService.call("_set_reservation_active", false)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check(is_zero_approx(ad_bar_area.size.y) and is_equal_approx(render_area.size.y, app_layout.size.y) and is_equal_approx(content_viewport.get_visible_rect().size.y, window_size.y), "disabling ads collapses the ad slot and restores full-height game content")
 	var original_data := AppState.data.duplicate(true)
 	AppState.data = SaveService.default_profile("Ad Layout Hero")
 	AppState.data["owned_companions"] = ["sparkle", "rainbow", "star", "cloud", "dream", "mystic"]
@@ -69,12 +90,24 @@ func _run() -> void:
 		models = meadow.find_children("LiveUnicornModel_*", "Node3D", true, false)
 	var hero_root: Node3D = null
 	var background_scale := 0.0
+	var mid_count := 0
+	var rear_count := 0
+	var background_z: Array[float] = []
 	for root in roots:
 		if bool(root.get_meta("hero", false)):
 			hero_root = root
 		elif root.get_child_count() > 0:
 			background_scale = maxf(background_scale, (root.get_child(0) as Node3D).scale.x)
-	_check(is_instance_valid(meadow) and is_instance_valid(display) and roots.size() == 6 and models.size() == 6 and is_instance_valid(hero_root) and hero_root.position.z > 1.0 and hero_root.get_child(0).scale.x > background_scale, "home shared meadow keeps the equipped hero front and larger than every background companion")
+			background_z.append(root.position.z)
+			if str(root.get_meta("formation_row", "")) == "mid":
+				mid_count += 1
+			elif str(root.get_meta("formation_row", "")) == "rear":
+				rear_count += 1
+	background_z.sort()
+	var laterally_spread := true
+	for index in range(1, background_z.size()):
+		laterally_spread = laterally_spread and background_z[index] - background_z[index - 1] >= 2.4
+	_check(is_instance_valid(meadow) and is_instance_valid(display) and roots.size() == 6 and models.size() == 6 and is_instance_valid(hero_root) and hero_root.position.x < 0.0 and hero_root.get_child(0).scale.x > background_scale and mid_count == 2 and rear_count == 3 and laterally_spread, "home shared meadow keeps the equipped hero camera-near, with a staggered two-mid/three-rear companion formation")
 	var ready: Variant = home.call("prepare_for_scene_change")
 	if ready is Signal:
 		await ready
