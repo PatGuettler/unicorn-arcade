@@ -21,7 +21,8 @@ func _run() -> void:
 	var grid := shell.find_child("ProfileGameGrid", true, false)
 	var settings := shell.find_child("ProfileSettings", true, false)
 	var meadow := shell.find_child("MeadowCompanionStage3D", true, false)
-	if not is_instance_valid(grid) or grid.get_child_count() != GameRegistry.all_games().size() or not is_instance_valid(settings) or meadow != null:
+	var alley := shell.find_child("ProfileAlleyButton", true, false) as Button
+	if not is_instance_valid(grid) or grid.get_child_count() != GameRegistry.all_games().size() or not is_instance_valid(settings) or meadow != null or not is_instance_valid(alley) or not alley.pressed.is_connected(Callable(shell, "_open_unicorn_alley")):
 		push_error("Profile-only integration assertions failed")
 		get_tree().quit(1)
 		return

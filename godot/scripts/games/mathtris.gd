@@ -26,6 +26,7 @@ var swipe_start := Vector2.ZERO
 var swipe_consumed := false
 var equation_charge := 0
 var slow_until_ms := 0
+var _repairing_board := false
 
 
 func _ready() -> void:
@@ -137,15 +138,19 @@ func _seed_bottom_pile() -> void:
 func _spawn_wave() -> void:
 	if not active:
 		return
+	if falling.is_empty() and _needs_dead_board_repair():
+		_perform_emergency_repair(false)
 	var elapsed := (Time.get_ticks_msec() - started_ms) / 1000
 	var wanted := Rules.mathtris_concurrent(elapsed, level)
-	var open: Array[int] = []
-	for col in COLS:
-		if board[0][col] == "" and not _falling_at(0, col):
-			open.append(col)
+	var open := _open_spawn_columns()
 	if open.is_empty():
-		_game_over()
-		return
+		# Only a genuinely dense, dead board earns a last-chance top-row repair;
+		# sparse or solvable top-outs still finish normally.
+		if _needs_dead_board_repair() and _perform_emergency_repair(true):
+			open = _open_spawn_columns()
+		if open.is_empty():
+			_game_over()
+			return
 	for count in mini(wanted, open.size()):
 		var choices := open.filter(func(col: int) -> bool: return col != last_spawn_col)
 		if choices.is_empty():
@@ -155,6 +160,76 @@ func _spawn_wave() -> void:
 		last_spawn_col = col
 		falling.append({"row": 0, "col": col, "value": _next_token()})
 	_refresh()
+
+
+func _open_spawn_columns() -> Array[int]:
+	var open: Array[int] = []
+	for col in COLS:
+		if board[0][col] == "" and not _falling_at(0, col):
+			open.append(col)
+	return open
+
+
+func _occupied_settled_count() -> int:
+	var occupied := 0
+	for row in ROWS:
+		for col in COLS:
+			occupied += 1 if board[row][col] != "" else 0
+	return occupied
+
+
+func _has_adjacent_clearing_swap() -> bool:
+	for row in ROWS:
+		for col in COLS:
+			var first := Vector2i(col, row)
+			if board[row][col] == "":
+				continue
+			for direction: Vector2i in [Vector2i.RIGHT, Vector2i.DOWN]:
+				var second: Vector2i = first + direction
+				if second.x >= COLS or second.y >= ROWS or board[second.y][second.x] == "":
+					continue
+				var value: String = board[first.y][first.x]
+				board[first.y][first.x] = board[second.y][second.x]
+				board[second.y][second.x] = value
+				var clears := not _find_matches([first, second]).is_empty()
+				value = board[first.y][first.x]
+				board[first.y][first.x] = board[second.y][second.x]
+				board[second.y][second.x] = value
+				if clears:
+					return true
+	return false
+
+
+func _needs_dead_board_repair() -> bool:
+	return not _repairing_board and _occupied_settled_count() >= 28 and _find_matches().is_empty() and not _has_adjacent_clearing_swap()
+
+
+func _perform_emergency_repair(prefer_top_row: bool) -> bool:
+	if _repairing_board:
+		return false
+	var repair: Dictionary = {}
+	if prefer_top_row:
+		var kits := _equation_kits()
+		if not kits.is_empty():
+			for segment in _segments():
+				if (segment[0] as Vector2i).y == 0:
+					repair = {"cells": segment, "kit": kits[0]}
+					break
+	if repair.is_empty():
+		repair = _most_filled_segment()
+	if repair.is_empty():
+		return false
+	_repairing_board = true
+	_apply_equation_kit(repair["cells"], repair["kit"])
+	var matches := _find_matches(repair["cells"])
+	if matches.is_empty():
+		_repairing_board = false
+		return false
+	_clear_matches([matches[0]], 100, true)
+	message_label.text = "Rainbow repair! A true equation cleared a blocked board."
+	_repairing_board = false
+	_refresh()
+	return true
 
 
 func _next_token() -> String:

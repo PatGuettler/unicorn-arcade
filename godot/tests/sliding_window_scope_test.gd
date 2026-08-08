@@ -31,6 +31,15 @@ func _run() -> void:
 	_check(game.value_buttons[0].disabled and game.value_buttons[4].disabled, "numbers outside the current window are disabled")
 	_check(not game.value_buttons[1].disabled and not game.value_buttons[3].disabled, "only numbers inside the current window are selectable")
 	_check(game.track_viewport != null and not (game.track_viewport is ScrollContainer), "the number track uses a pan/pinch camera without scrollbars")
+	game.track_viewport.set_camera(Vector2(220, -80), 1.3)
+	game.call("_start_level", 1)
+	await get_tree().process_frame
+	var opening_center := game.value_buttons[1].get_global_rect().get_center()
+	var viewport_rect := game.track_viewport.get_global_rect()
+	var opening_ratio := (opening_center.x - viewport_rect.position.x) / maxf(1.0, viewport_rect.size.x)
+	var player_labels := game.player_marker.find_children("*", "Label", true, false)
+	_check(is_equal_approx(game.track_viewport.zoom, 1.0) and opening_ratio >= 0.10 and opening_ratio <= 0.28, "a new Sliding Window level resets stale camera state and places its first window toward the left")
+	_check(player_labels.is_empty(), "the player unicorn marker has no redundant YOU caption")
 
 	game.call("_choose", 4)
 	_check(game.active and game.window_pos == 1, "the global maximum is ignored while it is outside the window")

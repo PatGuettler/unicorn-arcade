@@ -74,7 +74,9 @@ static func sight_flash_ms(level: int) -> int:
 
 
 static func blast_speed(level: int) -> float:
-	return 0.12 + maxi(level, 1) * 0.015
+	# The early words now have enough readable, tappable fall time while the
+	# level curve still gets meaningfully quicker.
+	return 0.075 + maxi(level, 1) * 0.008
 
 
 static func blast_spawn_ms(level: int) -> int:

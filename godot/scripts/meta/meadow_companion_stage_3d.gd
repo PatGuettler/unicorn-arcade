@@ -58,6 +58,8 @@ func _add_companion(stage: Node3D, id: String, position: Vector3, hero: bool, fo
 	root.set_meta("hero", hero)
 	root.set_meta("formation_row", formation_row)
 	root.set_meta("formation_slot", formation_slot)
+	var behavior := _behavior_options(id, hero, formation_slot)
+	root.set_meta("roam_behavior_signature", "%s|%.2f|%.2f|%.2f|%.2f|%.2f" % [id, behavior["walk_speed"], behavior["roam_radius_x"], behavior["roam_radius_z"], behavior["min_idle_seconds"], behavior["max_idle_seconds"]])
 	stage.add_child(root)
 	var model := Preview.CHARACTER_SCENES[id].instantiate() as Node3D
 	model.name = "LiveUnicornModel_%s" % id
@@ -77,7 +79,23 @@ func _add_companion(stage: Node3D, id: String, position: Vector3, hero: bool, fo
 	var animator := IdleAnimator.new()
 	animator.name = "IdleAnimator"
 	stage.add_child(animator)
-	animator.setup(root, {"seed": "meadow:%s" % id, "roam_radius": 0.5 if hero else 0.6})
+	animator.setup(root, behavior)
+
+
+func _behavior_options(id: String, hero: bool, formation_slot: int) -> Dictionary:
+	# Stable per-unicorn options prevent shared routes and make all six walkers
+	# feel individually alive after a page rebuild.
+	var index := clampi(formation_slot, 0, 5)
+	var base := 0.42 if hero else 0.55
+	return {
+		"seed": "meadow:%s" % id,
+		"roam_2d": true,
+		"roam_radius_x": base + 0.06 * index,
+		"roam_radius_z": base + 0.05 * ((index + formation_slot) % 6),
+		"walk_speed": 0.46 + 0.055 * ((index + 2) % 6),
+		"min_idle_seconds": 1.3 + 0.16 * index,
+		"max_idle_seconds": 3.0 + 0.22 * ((index + formation_slot) % 6),
+	}
 
 
 func _add_lights(stage: Node3D) -> void:

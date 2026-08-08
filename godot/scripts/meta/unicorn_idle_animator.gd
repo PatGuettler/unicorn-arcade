@@ -22,6 +22,13 @@ var walk_tween: Tween
 var home_position := Vector3.ZERO
 var home_rotation_y := 0.0
 var roam_radius := DEFAULT_ROAM_RADIUS
+var roam_radius_x := DEFAULT_ROAM_RADIUS
+var roam_radius_z := DEFAULT_ROAM_RADIUS
+var min_idle_seconds := MIN_IDLE_SECONDS
+var max_idle_seconds := MAX_IDLE_SECONDS
+var walk_speed := WALK_SPEED
+var roam_2d := false
+var last_destination := Vector3.ZERO
 
 
 func setup(target: Node3D, options: Dictionary = {}) -> void:
@@ -29,6 +36,12 @@ func setup(target: Node3D, options: Dictionary = {}) -> void:
 	home_position = model.position
 	home_rotation_y = model.rotation.y
 	roam_radius = maxf(MIN_WALK_DISTANCE, float(options.get("roam_radius", DEFAULT_ROAM_RADIUS)))
+	roam_radius_x = maxf(MIN_WALK_DISTANCE, float(options.get("roam_radius_x", roam_radius)))
+	roam_radius_z = maxf(MIN_WALK_DISTANCE, float(options.get("roam_radius_z", roam_radius)))
+	min_idle_seconds = float(options.get("min_idle_seconds", MIN_IDLE_SECONDS))
+	max_idle_seconds = maxf(min_idle_seconds, float(options.get("max_idle_seconds", MAX_IDLE_SECONDS)))
+	walk_speed = maxf(0.15, float(options.get("walk_speed", WALK_SPEED)))
+	roam_2d = bool(options.get("roam_2d", false))
 	var roaming_seed := str(options.get("seed", target.name))
 	# A stable seed gives every unicorn its own route without changing its
 	# behavior every time a page is rebuilt.
@@ -111,6 +124,35 @@ func _start_walk() -> void:
 func _start_walk_journey() -> void:
 	if not is_instance_valid(model):
 		return
+	if not roam_2d:
+		_start_floor_lane_journey()
+		return
+	var current_offset := Vector2(model.position.x - home_position.x, model.position.z - home_position.z)
+	var destination_offset := Vector2(rng.randf_range(-roam_radius_x, roam_radius_x), rng.randf_range(-roam_radius_z, roam_radius_z))
+	var attempts := 0
+	while destination_offset.distance_to(current_offset) < MIN_WALK_DISTANCE and attempts < 6:
+		destination_offset = Vector2(rng.randf_range(-roam_radius_x, roam_radius_x), rng.randf_range(-roam_radius_z, roam_radius_z))
+		attempts += 1
+	if destination_offset.distance_to(current_offset) < MIN_WALK_DISTANCE:
+		destination_offset = Vector2(-roam_radius_x if current_offset.x > 0.0 else roam_radius_x, -roam_radius_z if current_offset.y > 0.0 else roam_radius_z)
+	var direction := destination_offset - current_offset
+	var destination := Vector3(home_position.x + destination_offset.x, home_position.y, home_position.z + destination_offset.y)
+	last_destination = destination
+	# The model's yaw follows its X/Z travel vector; Y remains exactly on its
+	# own floor/home plane throughout a meadow walk.
+	var facing_rotation := home_rotation_y + atan2(direction.x, direction.y)
+	var walk_seconds := maxf(0.65, direction.length() / walk_speed)
+	walk_tween = create_tween()
+	walk_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	walk_tween.tween_property(model, "rotation:y", facing_rotation, WALK_TURN_SECONDS)
+	walk_tween.set_trans(Tween.TRANS_LINEAR).set_ease(Tween.EASE_IN_OUT)
+	walk_tween.tween_property(model, "position", destination, walk_seconds)
+	walk_tween.tween_callback(_finish_walk_journey)
+
+
+func _start_floor_lane_journey() -> void:
+	# Other previews retain their established one-axis floor lane. Meadow opts
+	# into the 2D branch above; this keeps Room Editor's separate roaming intact.
 	var current_offset := model.position.z - home_position.z
 	var destination_offset := rng.randf_range(-roam_radius, roam_radius)
 	var attempts := 0
@@ -121,8 +163,9 @@ func _start_walk_journey() -> void:
 		destination_offset = -roam_radius if current_offset > 0.0 else roam_radius
 	var direction := signf(destination_offset - current_offset)
 	var destination := home_position + Vector3(0.0, 0.0, destination_offset)
+	last_destination = destination
 	var facing_rotation := home_rotation_y if direction > 0.0 else home_rotation_y + PI
-	var walk_seconds := maxf(0.65, absf(destination_offset - current_offset) / WALK_SPEED)
+	var walk_seconds := maxf(0.65, absf(destination_offset - current_offset) / walk_speed)
 	walk_tween = create_tween()
 	walk_tween.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	walk_tween.tween_property(model, "rotation:y", facing_rotation, WALK_TURN_SECONDS)
@@ -156,7 +199,7 @@ func _pose_standing() -> void:
 func _schedule_next() -> void:
 	if not is_instance_valid(timer):
 		return
-	next_delay_seconds = rng.randf_range(MIN_IDLE_SECONDS, MAX_IDLE_SECONDS)
+	next_delay_seconds = rng.randf_range(min_idle_seconds, max_idle_seconds)
 	timer.wait_time = next_delay_seconds
 	if timer.is_inside_tree():
 		timer.start()

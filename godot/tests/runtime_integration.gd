@@ -127,6 +127,10 @@ func _run() -> void:
 	_check(jump.current_index == landing and jump.active, "Unicorn Jump accepts the exact indexed landing")
 	_check(trail_companion.get_parent() == jump.node_buttons[landing], "the active companion moves to the newly reached stone")
 	_check(jump.fx_layer.burst_amount > 0.0 and jump.find_child("JumpingCompanion", true, false) == null, "Unicorn Jump leaves a rainbow tail-puff landing burst after its animated arc")
+	jump.call("_choose_node", jump.current_index)
+	GameExperience.attached_scene = jump
+	GameExperience.attached_game_id = "unicorn_jump"
+	_check(not jump.active and jump.can_retry_failure() and GameExperience.call("_is_retry_failure"), "Unicorn Jump loss is classified as a shared retry failure")
 	await _release_scene(jump)
 	var sliding = SLIDING_SCENE.instantiate()
 	add_child(sliding)
@@ -208,6 +212,12 @@ func _run() -> void:
 	galaxy_drag.position = Vector2(576, 900)
 	galaxy.call("_input", galaxy_drag)
 	_check(is_equal_approx(galaxy.player_x, 0.8), "Galaxy Unicorn responds to Android screen dragging")
+	var paused_spawn_timer: float = galaxy.spawn_timer
+	var paused_enemy_count := galaxy.enemies.size()
+	galaxy.call("set_gameplay_paused", true)
+	galaxy.call("_process", 1.0)
+	_check(is_equal_approx(galaxy.spawn_timer, paused_spawn_timer) and galaxy.enemies.size() == paused_enemy_count, "Galaxy tutorial pause freezes spawning and simulation")
+	galaxy.call("set_gameplay_paused", false)
 	galaxy.call("_process", 0.016)
 	_check(galaxy.fire_cooldown > 0.0 and galaxy.bolt_flashes.size() > 0, "Galaxy Unicorn auto-fires a visible rainbow bolt")
 	_check(galaxy.call("_segment_hits_circle", Vector2(576, 1000), Vector2(576, 300), Vector2(576, 650), 26.0), "Galaxy Unicorn fast bolts use swept collision instead of tunneling through targets")
@@ -219,10 +229,40 @@ func _run() -> void:
 	comet.call("_update_comet_positions")
 	_check(comet.active and comet.lane_buttons.size() == 3 and comet.target_rescues > 0, "Comet Math Rescue launches a three-lane Rescue mission")
 	_check(_ui_is_accessible(comet), "Comet Math Rescue meets readable text, contrast, and touch-target minimums")
+	_check(is_instance_valid(comet.fire_button) and comet.fire_button.visible, "Comet Math Rescue presents a dedicated FIRE RAINBOW action")
+	comet.call("_select_lane", comet.correct_lane)
+	_check(not comet.wave_resolved and comet.rescues == 0, "Comet lane aiming alone does not resolve the wave")
+	comet.fire_button.pressed.emit()
+	_check(comet.wave_resolved and comet.rescues == 1, "FIRE RAINBOW resolves the aimed lane immediately")
+	comet.call("_start_level", 1)
 	comet.call("_show_hint")
 	_check(comet.hint_ms > 0.0 and not comet.wave_resolved, "Comet Math Rescue hint highlights without resolving its wave")
 	comet.selected_lane = comet.correct_lane
 	_check(comet.call("_resolve_wave") and comet.rescues == 1 and comet.score > 0, "Comet Math Rescue resolves only the selected correct lane")
+	GameExperience.attached_scene = comet
+	GameExperience.attached_game_id = "comet_math_rescue"
+	comet.call("_start_level", 1)
+	comet.lives = 1
+	comet.selected_lane = (comet.correct_lane + 1) % 3
+	comet.call("_resolve_wave")
+	GameExperience.call("_show_game_outcome")
+	await get_tree().process_frame
+	var failure_overlay := comet.find_child("GameOutcomeOverlay", true, false) as Control
+	var failure_primary := failure_overlay.find_child("GameOutcomePrimaryAction", true, false) as Button if is_instance_valid(failure_overlay) else null
+	_check(is_instance_valid(failure_overlay) and failure_primary.text == "TRY AGAIN" and not comet.action_button.visible, "shared outcome failure overlay replaces the legacy retry button")
+	if is_instance_valid(failure_primary): failure_primary.pressed.emit()
+	await get_tree().process_frame
+	_check(comet.active, "shared outcome primary action drives the legacy retry signal")
+	comet.target_rescues = 1
+	comet.selected_lane = comet.correct_lane
+	comet.call("_resolve_wave")
+	GameExperience.call("_show_game_outcome")
+	await get_tree().process_frame
+	var success_overlay := comet.find_child("GameOutcomeOverlay", true, false) as Control
+	var success_primary := success_overlay.find_child("GameOutcomePrimaryAction", true, false) as Button if is_instance_valid(success_overlay) else null
+	_check(is_instance_valid(success_overlay) and success_primary.text == "KEEP GOING" and not comet.action_button.visible, "shared outcome success overlay supplies a keep-going primary action")
+	if is_instance_valid(success_primary): success_primary.pressed.emit()
+	GameExperience.outcome_overlay = null
 	await _release_scene(comet)
 	var alley = ALLEY_SCENE.instantiate()
 	add_child(alley)
@@ -385,9 +425,11 @@ func _exercise_first_move(game_id: String, game: Node) -> void:
 		return
 	if game_id == "unicorn_blast":
 		_check(not game.blast_words.is_empty(), "Unicorn Blast spawns an initial word")
+		_check(game.play_area.custom_minimum_size.y >= 430 and is_instance_valid(game.cannon_assembly) and game.cannon_assembly.has_node("CannonCanvas/CannonRainbowBarrel") and game.cannon_assembly.has_node("CannonCanvas/CannonEquippedUnicornAmmo"), "Unicorn Blast has a tall field and an equipped-unicorn cannon assembly with a stable inner canvas")
 		var word := str(game.blast_words[0]["text"])
+		var target: Button = game.blast_words[0]["button"]
 		game.call("_handle_blast_input", word)
-		_check(game.round_index == 1, "Unicorn Blast destroys an exactly typed word")
+		_check(game.round_index == 1 and game.blast_words.is_empty() and is_instance_valid(target) and target.disabled and game.pending_blast_targets.has(target) and not game.blast_projectiles.is_empty(), "Unicorn Blast removes a matched word from gameplay while preserving its hit visual for the projectile")
 		return
 	var answer := ""
 	match game_id:

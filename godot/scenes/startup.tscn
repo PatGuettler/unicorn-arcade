@@ -34,6 +34,7 @@ grow_vertical = 2
 mouse_filter = 2
 stream = ExtResource("3_video")
 expand = true
+autoplay = true
 
 [node name="Poster" type="TextureRect" parent="."]
 layout_mode = 1
@@ -48,7 +49,7 @@ expand_mode = 1
 stretch_mode = 6
 
 [node name="PlaybackGuard" type="Timer" parent="."]
-wait_time = 4.0
+wait_time = 1.5
 one_shot = true
 
 [node name="LoadingCover" type="Control" parent="."]

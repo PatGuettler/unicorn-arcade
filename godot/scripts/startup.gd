@@ -1,9 +1,10 @@
 extends Control
 
 const MAIN_SCENE := "res://scenes/main.tscn"
-const VIDEO_START_TIMEOUT_SECONDS := 4.0
+const VIDEO_START_TIMEOUT_SECONDS := 1.5
 const VIDEO_FINISH_GRACE_SECONDS := 0.35
 const VIDEO_END_EARLY_SECONDS := 0.12
+const VIDEO_STALL_SECONDS := 1.25
 
 @onready var poster: TextureRect = $Poster
 @onready var video: VideoStreamPlayer = $Video
@@ -16,6 +17,8 @@ var _playback_started := false
 var _fallback_started := false
 var _threaded_load_attempted := false
 var _threaded_load_requested := false
+var _last_stream_position := 0.0
+var _last_progress_msec := 0
 
 
 func _ready() -> void:
@@ -23,7 +26,14 @@ func _ready() -> void:
 	playback_guard.timeout.connect(_finish_intro)
 	skip_button.button_down.connect(_finish_intro)
 	playback_guard.start(VIDEO_START_TIMEOUT_SECONDS)
-	video.play()
+	# Autoplay starts Android's decoder as early as possible. This deferred call
+	# only covers renderers that did not honour the scene setting.
+	_ensure_video_playing.call_deferred()
+
+
+func _ensure_video_playing() -> void:
+	if not video.is_playing() and not _is_finishing:
+		video.play()
 
 
 func _process(_delta: float) -> void:
@@ -36,6 +46,8 @@ func _process(_delta: float) -> void:
 	var length := video.get_stream_length()
 	if not _playback_started and video.is_playing() and position > 0.0:
 		_playback_started = true
+		_last_stream_position = position
+		_last_progress_msec = Time.get_ticks_msec()
 		poster.hide()
 		# Do not stream the main scene while the Theora decoder is active. The
 		# scene contains several GLBs and texture-heavy screens; loading it in
@@ -43,7 +55,14 @@ func _process(_delta: float) -> void:
 		# The loading cover handles the short scene load after the visual ends.
 		# Once decoding starts, replace the startup timeout with a playback
 		# failsafe based on the real stream length.
-		playback_guard.start(maxf(length + VIDEO_FINISH_GRACE_SECONDS, 0.5))
+		playback_guard.start(maxf(length * 2.0 + VIDEO_FINISH_GRACE_SECONDS, 0.5))
+	if _playback_started:
+		if position > _last_stream_position + 0.01:
+			_last_stream_position = position
+			_last_progress_msec = Time.get_ticks_msec()
+		elif Time.get_ticks_msec() - _last_progress_msec >= int(VIDEO_STALL_SECONDS * 1000.0):
+			_finish_intro()
+			return
 	if _is_playback_complete(position, length, video.is_playing(), _playback_started):
 		_finish_intro()
 

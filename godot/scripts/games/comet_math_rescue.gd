@@ -28,6 +28,7 @@ var equation_label: Label
 var meter_label: Label
 var status_label: Label
 var action_button: Button
+var fire_button: Button
 var player_preview: RoomItemPreview3D
 var bolt_lane := -1
 var bolt_ms := 0.0
@@ -141,7 +142,9 @@ func _start_level(for_level: int) -> void:
 	active = true
 	CompanionAbilityService.begin_level("comet_math_rescue", level)
 	action_button.hide()
-	status_label.text = "Drag or tap a lane. Your rainbow bolt checks that comet."
+	status_label.text = "Aim at a lane, then FIRE RAINBOW to check that comet."
+	fire_button.show()
+	fire_button.disabled = false
 	_spawn_wave()
 
 
@@ -153,6 +156,8 @@ func _spawn_wave() -> void:
 	wave_elapsed_ms = 0.0
 	decision_ms = Rules.comet_decision_ms(level)
 	wave_resolved = false
+	fire_button.show()
+	fire_button.disabled = false
 	feedback_ms = 0.0
 	bolt_lane = -1
 	equation_label.text = "%d %s %d = ?" % [int(current_problem["left"]), display_operation(str(current_problem["operation"])), int(current_problem["right"])]
@@ -176,6 +181,8 @@ func _resolve_wave(force_correct := false) -> bool:
 	if not active or wave_resolved or current_problem.is_empty():
 		return false
 	wave_resolved = true
+	fire_button.disabled = true
+	fire_button.hide()
 	for button in lane_buttons:
 		button.disabled = true
 	if force_correct:
@@ -335,6 +342,12 @@ func _build_ui() -> void:
 	actions.position.y = -58
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	add_child(actions)
+	fire_button = Button.new()
+	fire_button.name = "CometFireRainbowButton"
+	fire_button.text = "FIRE RAINBOW"
+	StorybookUI.apply_game_action(fire_button, 210)
+	fire_button.pressed.connect(_resolve_wave)
+	actions.add_child(fire_button)
 	action_button = Button.new()
 	StorybookUI.apply_game_action(action_button, 170)
 	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Mission" else level))

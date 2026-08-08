@@ -479,9 +479,14 @@ func _build_profile_unicorn_banner() -> PanelContainer:
 	power.add_theme_color_override("font_color", Color("c9d3ef"))
 	identity.add_child(power)
 	var alley := _make_button("VISIT UNICORN ALLEY", Color("c45186"), 54)
-	alley.pressed.connect(func() -> void: _show_dashboard())
+	alley.name = "ProfileAlleyButton"
+	alley.pressed.connect(_open_unicorn_alley)
 	stack.add_child(alley)
 	return banner
+
+
+func _open_unicorn_alley() -> void:
+	_change_scene_safely.call_deferred("res://scenes/meta/unicorn_alley.tscn")
 
 
 func _build_profile_stat_strip() -> GridContainer:

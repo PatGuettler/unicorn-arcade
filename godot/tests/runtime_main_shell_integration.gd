@@ -47,13 +47,20 @@ func _run() -> void:
 		live_models = meadow_stage.find_children("LiveUnicornModel_*", "Node3D", true, false)
 		animators = meadow_stage.find_children("*", "UnicornIdleAnimator", true, false)
 	var meadow_ids: Dictionary = {}
+	var meadow_behaviors: Dictionary = {}
 	var hero_root: Node3D = null
 	for root in travel_roots:
 		meadow_ids[str(root.get_meta("source_model_id", ""))] = true
+		meadow_behaviors[str(root.get_meta("roam_behavior_signature", ""))] = true
 		if bool(root.get_meta("hero", false)):
 			hero_root = root
 	_check(is_instance_valid(meadow_stage) and shared_viewports.size() == 1 and shared_cameras.size() == 1 and shared_lights.size() >= 2, "home meadow uses one shared SubViewport with one camera and shared lights")
 	_check(travel_roots.size() == 6 and live_models.size() == 6 and animators.size() == 6 and meadow_ids.size() == 6, "home meadow keeps six distinct live GLBs with travel roots and Walk animators")
+	_check(meadow_behaviors.size() == 6, "each meadow unicorn receives a unique stable roaming behavior signature")
+	if not animators.is_empty():
+		var sampled = animators[0]
+		sampled.play_random_animation_now()
+		_check(sampled.roam_2d and is_equal_approx(sampled.last_destination.y, sampled.home_position.y) and not is_equal_approx(sampled.last_destination.x, sampled.home_position.x), "meadow roaming samples a two-dimensional destination while preserving the home floor height")
 	var mid_count := 0
 	var rear_count := 0
 	var background_z: Array[float] = []
