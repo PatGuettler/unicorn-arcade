@@ -161,10 +161,19 @@ func _window_maximum() -> int:
 
 func _rebuild_tracks() -> void:
 	for button in value_buttons:
-		button.queue_free()
+		if is_instance_valid(button):
+			# queue_free alone leaves an old control participating in the HBox layout
+			# until the end of the frame. Detach it now so camera placement sees only
+			# the freshly created race track.
+			if button.get_parent() == value_row:
+				value_row.remove_child(button)
+			button.queue_free()
 	value_buttons.clear()
 	for node in rival_nodes:
-		node.queue_free()
+		if is_instance_valid(node):
+			if node.get_parent() == rival_row:
+				rival_row.remove_child(node)
+			node.queue_free()
 	rival_nodes.clear()
 	for index in level_data.size():
 		var button := Button.new()
@@ -285,8 +294,10 @@ func _update_window() -> void:
 		value_buttons[index].modulate = Color.WHITE
 		_style_track_node(value_buttons[index], _index_is_in_window(index), index < window_pos)
 	_update_race_bars()
-	_layout_overlays.call_deferred(layout_generation)
-	_center_window.call_deferred(layout_generation, window_pos == 0)
+	# Keep placement and camera targeting in the same deferred operation. The
+	# first and last active nodes provide the exact full-window center, avoiding
+	# a biased midpoint for even-sized windows.
+	_layout_and_center_player_window.call_deferred(layout_generation, window_pos == 0)
 
 
 func _update_rival() -> void:
@@ -351,6 +362,18 @@ func _layout_overlays(generation: int) -> void:
 	_place_marker(rival_marker, rival_nodes, opponent_pos, -112.0)
 
 
+func _layout_and_center_player_window(generation: int, opening: bool) -> void:
+	_layout_overlays(generation)
+	if generation != layout_generation or not is_instance_valid(track_viewport) or value_buttons.is_empty():
+		return
+	var first_index := clampi(window_pos, 0, value_buttons.size() - 1)
+	var last_index := clampi(window_pos + window_size - 1, 0, value_buttons.size() - 1)
+	var first_rect := value_buttons[first_index].get_global_rect()
+	var last_rect := value_buttons[last_index].get_global_rect()
+	var window_center := Vector2((first_rect.position.x + last_rect.end.x) * 0.5, (first_rect.get_center().y + last_rect.get_center().y) * 0.5)
+	track_viewport.focus_global_point(window_center, Vector2(0.18 if opening else 0.5, 0.42))
+
+
 func _place_window(frame: PanelContainer, nodes: Array, start_index: int) -> void:
 	if not is_instance_valid(frame) or nodes.is_empty():
 		return
@@ -376,13 +399,6 @@ func _place_marker(marker: Control, nodes: Array, start_index: int, y_lift: floa
 	marker.position = center + Vector2(-marker.custom_minimum_size.x * 0.5, y_lift)
 	marker.visible = active
 	marker.move_to_front()
-
-
-func _center_window(generation: int, opening: bool) -> void:
-	if generation != layout_generation or not is_instance_valid(track_viewport) or value_buttons.is_empty():
-		return
-	var mid_index := mini(value_buttons.size() - 1, window_pos + window_size / 2)
-	track_viewport.focus_control(value_buttons[mid_index], Vector2(0.18 if opening else 0.5, 0.42))
 
 
 func _build_ui() -> void:
