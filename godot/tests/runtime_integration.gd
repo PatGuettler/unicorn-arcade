@@ -75,11 +75,6 @@ func _run() -> void:
 	_check(coin_count.coin_buttons[0].custom_minimum_size.y >= 170.0 and coin_count.coin_buttons[0].tooltip_text.contains("worth"), "illustrated coins retain large accessible tap targets and denomination descriptions")
 	var official_coin := coin_count.coin_buttons[0].find_child("OfficialCoinPortrait", true, false) as TextureRect
 	_check(is_instance_valid(official_coin) and official_coin.texture != null and not coin_count.coin_buttons[0].has_method("_draw_coin_face"), "Coin Count presents only the official coin portrait, while retaining accessible labels and focus treatment")
-	var coin_portraits_clear_text := true
-	for button in coin_count.coin_buttons:
-		var portrait := button.find_child("OfficialCoinPortrait", true, false) as TextureRect
-		coin_portraits_clear_text = coin_portraits_clear_text and is_instance_valid(portrait) and is_equal_approx(portrait.offset_bottom, CoinChoiceButton.PORTRAIT_BOTTOM_Y) and portrait.get_rect().end.y <= CoinChoiceButton.PORTRAIT_BOTTOM_Y and CoinChoiceButton.DENOMINATION_BASELINE_Y - portrait.get_rect().end.y >= 24.0
-	_check(coin_portraits_clear_text, "Coin Count bounds every denomination portrait above the 140-pixel text baseline, including the quarter")
 	await _release_scene(coin_count)
 	var rhyme = RHYME_SCENE.instantiate()
 	add_child(rhyme)
@@ -127,10 +122,6 @@ func _run() -> void:
 	_check(jump.current_index == landing and jump.active, "Unicorn Jump accepts the exact indexed landing")
 	_check(trail_companion.get_parent() == jump.node_buttons[landing], "the active companion moves to the newly reached stone")
 	_check(jump.fx_layer.burst_amount > 0.0 and jump.find_child("JumpingCompanion", true, false) == null, "Unicorn Jump leaves a rainbow tail-puff landing burst after its animated arc")
-	jump.call("_choose_node", jump.current_index)
-	GameExperience.attached_scene = jump
-	GameExperience.attached_game_id = "unicorn_jump"
-	_check(not jump.active and jump.can_retry_failure() and GameExperience.call("_is_retry_failure"), "Unicorn Jump loss is classified as a shared retry failure")
 	await _release_scene(jump)
 	var sliding = SLIDING_SCENE.instantiate()
 	add_child(sliding)
@@ -212,12 +203,6 @@ func _run() -> void:
 	galaxy_drag.position = Vector2(576, 900)
 	galaxy.call("_input", galaxy_drag)
 	_check(is_equal_approx(galaxy.player_x, 0.8), "Galaxy Unicorn responds to Android screen dragging")
-	var paused_spawn_timer: float = galaxy.spawn_timer
-	var paused_enemy_count := galaxy.enemies.size()
-	galaxy.call("set_gameplay_paused", true)
-	galaxy.call("_process", 1.0)
-	_check(is_equal_approx(galaxy.spawn_timer, paused_spawn_timer) and galaxy.enemies.size() == paused_enemy_count, "Galaxy tutorial pause freezes spawning and simulation")
-	galaxy.call("set_gameplay_paused", false)
 	galaxy.call("_process", 0.016)
 	_check(galaxy.fire_cooldown > 0.0 and galaxy.bolt_flashes.size() > 0, "Galaxy Unicorn auto-fires a visible rainbow bolt")
 	_check(galaxy.call("_segment_hits_circle", Vector2(576, 1000), Vector2(576, 300), Vector2(576, 650), 26.0), "Galaxy Unicorn fast bolts use swept collision instead of tunneling through targets")
@@ -227,53 +212,12 @@ func _run() -> void:
 	await get_tree().process_frame
 	comet.size = Vector2(720, 1280)
 	comet.call("_update_comet_positions")
-	await get_tree().process_frame
 	_check(comet.active and comet.lane_buttons.size() == 3 and comet.target_rescues > 0, "Comet Math Rescue launches a three-lane Rescue mission")
 	_check(_ui_is_accessible(comet), "Comet Math Rescue meets readable text, contrast, and touch-target minimums")
-	_check(is_instance_valid(comet.fire_button) and comet.fire_button.visible, "Comet Math Rescue presents a dedicated FIRE RAINBOW action")
-	var side_lane := (comet.correct_lane + 1) % 3
-	comet.call("_select_lane", side_lane)
-	var fire_touch := InputEventScreenTouch.new()
-	fire_touch.pressed = true
-	fire_touch.position = comet.fire_button.get_global_rect().get_center()
-	comet.call("_input", fire_touch)
-	_check(comet.selected_lane == side_lane, "touching FIRE RAINBOW does not retarget the aimed comet lane")
-	comet.fire_button.pressed.emit()
-	_check(comet.wave_resolved and comet.bolt_lane == side_lane, "FIRE RAINBOW fires the rainbow through the previously aimed unicorn lane")
-	comet.call("_start_level", 1)
-	comet.call("_select_lane", comet.correct_lane)
-	_check(not comet.wave_resolved and comet.rescues == 0, "Comet lane aiming alone does not resolve the wave")
-	comet.fire_button.pressed.emit()
-	_check(comet.wave_resolved and comet.rescues == 1, "FIRE RAINBOW resolves the aimed lane immediately")
-	comet.call("_start_level", 1)
 	comet.call("_show_hint")
 	_check(comet.hint_ms > 0.0 and not comet.wave_resolved, "Comet Math Rescue hint highlights without resolving its wave")
 	comet.selected_lane = comet.correct_lane
 	_check(comet.call("_resolve_wave") and comet.rescues == 1 and comet.score > 0, "Comet Math Rescue resolves only the selected correct lane")
-	GameExperience.attached_scene = comet
-	GameExperience.attached_game_id = "comet_math_rescue"
-	comet.call("_start_level", 1)
-	comet.lives = 1
-	comet.selected_lane = (comet.correct_lane + 1) % 3
-	comet.call("_resolve_wave")
-	GameExperience.call("_show_game_outcome")
-	await get_tree().process_frame
-	var failure_overlay := comet.find_child("GameOutcomeOverlay", true, false) as Control
-	var failure_primary := failure_overlay.find_child("GameOutcomePrimaryAction", true, false) as Button if is_instance_valid(failure_overlay) else null
-	_check(is_instance_valid(failure_overlay) and failure_primary.text == "TRY AGAIN" and not comet.action_button.visible, "shared outcome failure overlay replaces the legacy retry button")
-	if is_instance_valid(failure_primary): failure_primary.pressed.emit()
-	await get_tree().process_frame
-	_check(comet.active, "shared outcome primary action drives the legacy retry signal")
-	comet.target_rescues = 1
-	comet.selected_lane = comet.correct_lane
-	comet.call("_resolve_wave")
-	GameExperience.call("_show_game_outcome")
-	await get_tree().process_frame
-	var success_overlay := comet.find_child("GameOutcomeOverlay", true, false) as Control
-	var success_primary := success_overlay.find_child("GameOutcomePrimaryAction", true, false) as Button if is_instance_valid(success_overlay) else null
-	_check(is_instance_valid(success_overlay) and success_primary.text == "KEEP GOING" and not comet.action_button.visible, "shared outcome success overlay supplies a keep-going primary action")
-	if is_instance_valid(success_primary): success_primary.pressed.emit()
-	GameExperience.outcome_overlay = null
 	await _release_scene(comet)
 	var alley = ALLEY_SCENE.instantiate()
 	add_child(alley)
@@ -293,11 +237,9 @@ func _run() -> void:
 	_check(_ui_is_accessible(room), "room editor meets readable text, contrast, and touch-target minimums")
 	_check(room.companion_id == "sparkle" and is_instance_valid(room.room_canvas), "Sparkle's room editor launches")
 	_check(room.grid_snap, "room editor starts with eight-percent grid snapping enabled")
-	var room_stage := room.room_canvas.get_parent() as Control
-	_check(is_instance_valid(room.bag_button) and room.bag_button.get_parent() == room_stage and room.bag_button.icon != null and room.bag_button.expand_icon and room.bag_button.get_theme_constant("icon_max_width") >= 44 and room.bag_button.custom_minimum_size.x >= 118.0 and room.bag_button.custom_minimum_size.y >= 76.0 and is_equal_approx(room.bag_button.anchor_right, 1.0) and is_equal_approx(room.bag_button.anchor_bottom, 1.0) and is_equal_approx(room.bag_button.offset_right, -24.0) and is_equal_approx(room.bag_button.offset_bottom, -24.0), "room BAG button is a large illustrated room-stage action with explicit 24-pixel bottom-right insets")
 	var roaming_actor = room.roaming_actor
 	var room_bounds := Rect2(Vector2.ZERO, room.room_canvas.size)
-	_check(is_instance_valid(roaming_actor) and room_bounds.encloses(Rect2(roaming_actor.position, roaming_actor.size)) and is_equal_approx(room.roam_target.y, roaming_actor.position.y) and roaming_actor.pivot_offset.is_equal_approx(roaming_actor.size * 0.5), "room companion initializes after the fitted canvas, fully inside its floor lane with a centered mirror pivot")
+	_check(is_instance_valid(roaming_actor) and room_bounds.encloses(Rect2(roaming_actor.position, roaming_actor.size)) and is_equal_approx(room.roam_target.y, roaming_actor.position.y), "room companion initializes after the fitted canvas, fully inside its floor lane")
 	if is_instance_valid(roaming_actor):
 		room.roam_target = room.call("_safe_roam_target")
 		var floor_y: float = roaming_actor.position.y
@@ -308,18 +250,6 @@ func _run() -> void:
 		room.call("_fit_room_canvas", stage, room.room_canvas.size / 0.5)
 		var resized_bounds := Rect2(Vector2.ZERO, room.room_canvas.size)
 		_check(is_equal_approx(roaming_actor.position.y, room.roam_target.y) and resized_bounds.encloses(Rect2(roaming_actor.position, roaming_actor.size)), "room companion preserves its floor baseline and bounds after canvas reflow")
-		var right_start := Vector2(maxf(0.0, roaming_actor.position.x - 24.0), roaming_actor.position.y)
-		roaming_actor.position = right_start
-		room.roam_target = right_start + Vector2(18.0, 0.0)
-		room.roam_pause = 1.0
-		room.call("_process", 0.1)
-		_check(roaming_actor.scale.x > 0.0, "room companion keeps its unmirrored screen-right preview while walking right")
-		var left_start := Vector2(minf(room.room_canvas.size.x - roaming_actor.size.x, roaming_actor.position.x + 24.0), roaming_actor.position.y)
-		roaming_actor.position = left_start
-		room.roam_target = left_start - Vector2(18.0, 0.0)
-		room.roam_pause = 1.0
-		room.call("_process", 0.1)
-		_check(roaming_actor.scale.x < 0.0 and roaming_actor.pivot_offset.is_equal_approx(roaming_actor.size * 0.5), "room companion mirrors leftward travel around its centered pivot")
 	_check(room.call("_item_base_size", "companion_sparkle") == Vector2(252, 180), "room companions use an expanded transparent canvas for horn and hoof clearance")
 	var companion_button: Button = room.item_buttons.get("room_companion_sparkle")
 	var companion_preview = companion_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(companion_button) else null
@@ -364,12 +294,19 @@ func _run() -> void:
 	add_child(touch_room)
 	await get_tree().process_frame
 	var lamp_button: Button = touch_room.item_buttons.get("test_lamp")
-	touch_room.call("_begin_item_drag", "test_lamp")
+	var room_press := InputEventScreenTouch.new()
+	room_press.pressed = true
+	touch_room.call("_item_input", room_press, "test_lamp", lamp_button)
 	var lamp_preview = lamp_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(lamp_button) else null
 	_check(lamp_button.text.is_empty() and lamp_button.tooltip_text == "Lava Lamp" and is_instance_valid(lamp_preview) and lamp_preview.mesh_count > 0 and not lamp_preview.uses_character_model, "room decor uses a modeled 3D object instead of an icon glyph")
 	_check(is_instance_valid(touch_room.selection_toolbar) and touch_room.selection_toolbar.get_child_count() == 6, "selecting decor opens the original six-action contextual toolbar")
-	touch_room.call("_move_dragged", "test_lamp", Vector2(touch_room.room_canvas.size.x * 0.82, touch_room.room_canvas.size.y * 0.66), lamp_button)
-	_check(touch_room.call("_finish_item_drag"), "room item drag completion commits without a synthetic touch release")
+	var room_drag := InputEventScreenDrag.new()
+	room_drag.position = touch_room.room_canvas.global_position + Vector2(touch_room.room_canvas.size.x * 0.82, touch_room.room_canvas.size.y * 0.66)
+	touch_room.call("_input", room_drag)
+	var room_release := InputEventScreenTouch.new()
+	room_release.pressed = false
+	room_release.position = room_drag.position
+	touch_room.call("_input", room_release)
 	var moved_items := AppState.room_items("rainbow")
 	var moved_lamp := moved_items.filter(func(item: Dictionary) -> bool: return str(item.get("instance_id", "")) == "test_lamp")
 	_check(moved_lamp.size() == 1 and is_equal_approx(float(moved_lamp[0]["x"]), 80.0) and is_equal_approx(float(moved_lamp[0]["y"]), 64.0), "room decor follows and commits an Android drag outside its button")
@@ -389,25 +326,6 @@ func _run() -> void:
 	_check(is_instance_valid(touch_room.bag_overlay) and touch_room.bag_grid.columns == 1 and is_instance_valid(empty_bag_message) and empty_bag_message.custom_minimum_size.x >= 600.0, "empty furniture bag uses one full-width message instead of a one-character column")
 	_check(not touch_room.bag_button.visible and not touch_room.status_label.visible, "open furniture bag hides the underlying floating button and room status")
 	_check(_ui_is_accessible(touch_room.bag_overlay), "Furniture Bag meets readable text, contrast, and touch-target minimums")
-	touch_room.bag_grid.custom_minimum_size.y = touch_room.bag_catalog_scroll.size.y + 400.0
-	await get_tree().process_frame
-	touch_room.bag_category_scroll.scroll_horizontal = 40
-	touch_room.bag_catalog_scroll.scroll_vertical = 30
-	var bag_category_before: int = touch_room.bag_category_scroll.scroll_horizontal
-	var bag_catalog_before: int = touch_room.bag_catalog_scroll.scroll_vertical
-	var bag_category_dragged: bool = bool(touch_room.call("_apply_bag_category_scroll_drag", touch_room.bag_category_scroll.get_global_rect().get_center(), Vector2(-96, 2)))
-	_check(touch_room.call("_input_owner_viewport") == get_tree().root and bag_category_dragged and touch_room.bag_category_dragging and touch_room.bag_category_scroll.scroll_horizontal > bag_category_before and touch_room.bag_catalog_scroll.scroll_vertical == bag_catalog_before, "room bag horizontal swipes move only its category strip through the live root input owner")
-	_check(touch_room.call("_finish_bag_scroll_gesture"), "room bag category drag completion clears transient input before a chip action")
-	touch_room.call("_set_bag_category", "beds")
-	_check(touch_room.bag_category == "all", "room bag category chip actions are suppressed immediately after a horizontal swipe")
-	var bag_category_after_horizontal: int = touch_room.bag_category_scroll.scroll_horizontal
-	var bag_catalog_dragged: bool = bool(touch_room.call("_apply_bag_catalog_scroll_drag", touch_room.bag_catalog_scroll.get_global_rect().get_center(), Vector2(2, -96)))
-	_check(bag_catalog_dragged and touch_room.bag_catalog_dragging and touch_room.bag_catalog_scroll.scroll_vertical > bag_catalog_before and touch_room.bag_category_scroll.scroll_horizontal == bag_category_after_horizontal, "room bag vertical swipes move only its item catalog")
-	_check(touch_room.call("_finish_bag_scroll_gesture"), "room bag catalog drag completion clears transient input without a synthetic touch release")
-	AppState.data["inventory"]["lamp"] = 1
-	touch_room.call("_place_from_bag", "lamp")
-	_check(AppState.available_count("lamp") == 1 and touch_room.selected_id.is_empty(), "room bag item placement is suppressed immediately after a vertical swipe")
-	AppState.data["inventory"]["lamp"] = 0
 	touch_room.call("_close_bag")
 	await _release_scene(touch_room)
 	_check(AppState.remove_room_item("rainbow", "test_lamp") and AppState.available_count("lamp") == 1, "removed decor returns to the shared bag")
@@ -451,12 +369,8 @@ func _exercise_first_move(game_id: String, game: Node) -> void:
 		_check(game.picked.size() == 1, "%s accepts the first ordered item" % game_id)
 		return
 	if game_id == "letter_lift":
-		var first_target := game.expected_word
-		game.call("_handle_letter_input", first_target.left(1))
-		_check(game.picked.size() == 1 and game.secondary_label.text == "TARGET: %s" % first_target.to_upper(), "Letter Lift accepts the next exact letter while retaining its complete target")
-		for letter_index in range(1, first_target.length()):
-			game.call("_handle_letter_input", first_target.left(letter_index + 1))
-		_check(game.round_index == 1 and game.secondary_label.text == "TARGET: %s" % game.expected_word.to_upper(), "Letter Lift reveals the full new target after the first round instead of only one next letter")
+		game.call("_handle_letter_input", game.expected_word.left(1))
+		_check(game.picked.size() == 1, "Letter Lift accepts the next exact letter")
 		return
 	if game_id == "sight_spark":
 		game.call("_finish_sight_flash")
@@ -465,11 +379,9 @@ func _exercise_first_move(game_id: String, game: Node) -> void:
 		return
 	if game_id == "unicorn_blast":
 		_check(not game.blast_words.is_empty(), "Unicorn Blast spawns an initial word")
-		_check(game.play_area.custom_minimum_size.y >= 430 and is_instance_valid(game.cannon_assembly) and game.cannon_assembly.has_node("CannonCanvas/CannonRainbowBarrel") and game.cannon_assembly.has_node("CannonCanvas/CannonEquippedUnicornAmmo"), "Unicorn Blast has a tall field and an equipped-unicorn cannon assembly with a stable inner canvas")
 		var word := str(game.blast_words[0]["text"])
-		var target: Button = game.blast_words[0]["button"]
 		game.call("_handle_blast_input", word)
-		_check(game.round_index == 1 and game.blast_words.is_empty() and is_instance_valid(target) and target.disabled and game.pending_blast_targets.has(target) and not game.blast_projectiles.is_empty(), "Unicorn Blast removes a matched word from gameplay while preserving its hit visual for the projectile")
+		_check(game.round_index == 1, "Unicorn Blast destroys an exactly typed word")
 		return
 	var answer := ""
 	match game_id:

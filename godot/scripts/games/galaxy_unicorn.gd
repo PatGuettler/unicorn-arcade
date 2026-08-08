@@ -36,7 +36,6 @@ var message_label: Label
 var action_button: Button
 var player_preview: RoomItemPreview3D
 var bottom_safe_band: PanelContainer
-var gameplay_paused := false
 
 
 func _ready() -> void:
@@ -47,7 +46,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
-	if not active or gameplay_paused or size.x < 1.0 or size.y < 1.0:
+	if not active or size.x < 1.0 or size.y < 1.0:
 		return
 	var ms := delta * 1000.0 * CompanionAbilityService.time_scale()
 	fire_cooldown -= ms
@@ -80,7 +79,7 @@ func _process(delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not active or gameplay_paused:
+	if not active:
 		return
 	if event is InputEventScreenTouch or event is InputEventScreenDrag:
 		player_x = clampf(event.position.x / maxf(1.0, size.x), 0.08, 0.92)
@@ -107,9 +106,7 @@ func _start_level(for_level: int) -> void:
 	invulnerable = 0.0
 	boss_spawned = false
 	opening_left = 3 + level
-	# Give GameExperience enough time to mount the first guided overlay before
-	# this live wave can move or spawn.
-	opening_timer = 1500.0
+	opening_timer = 0.0
 	started_ms = Time.get_ticks_msec()
 	active = true
 	CompanionAbilityService.begin_level("galaxy_unicorn", level)
@@ -117,10 +114,6 @@ func _start_level(for_level: int) -> void:
 	message_label.text = "Drag %s left and right. Rainbow bolts fire automatically." % companion_name
 	action_button.hide()
 	_update_hud()
-
-
-func set_gameplay_paused(paused: bool) -> void:
-	gameplay_paused = paused
 
 
 func _spawn_enemy(force_boss: bool) -> void:

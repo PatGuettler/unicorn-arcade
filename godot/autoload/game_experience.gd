@@ -18,7 +18,6 @@ var inactivity_seconds := 0.0
 var last_level := -1
 var update_accumulator := 0.0
 var was_active := false
-var outcome_overlay: Control
 
 
 func _ready() -> void:
@@ -44,7 +43,6 @@ func _process(delta: float) -> void:
 		hint_button = null
 		last_level = -1
 		was_active = false
-		outcome_overlay = null
 		inactivity_seconds = 0.0
 		# Keep AdMob banner attached when leaving main.tscn for a game scene.
 		AdBarService.sync_for_player(AppState.player_name())
@@ -59,11 +57,8 @@ func _process(delta: float) -> void:
 		update_accumulator = 0.0
 		_update_runtime_ui()
 	var scene_active := bool(attached_scene.get("active")) if _has_property(attached_scene, "active") else true
-	if was_active and not scene_active:
-		if _is_retry_failure() and CompanionAbilityService.consume_checkpoint_retry():
-			_restart_after_sparkle.call_deferred()
-		else:
-			_show_game_outcome.call_deferred()
+	if was_active and not scene_active and _is_retry_failure() and CompanionAbilityService.consume_checkpoint_retry():
+		_restart_after_sparkle.call_deferred()
 	was_active = scene_active
 	var current_level := _scene_int(scene, "level", 1)
 	if current_level != last_level:
@@ -89,18 +84,7 @@ func _attach_scene(scene: Node) -> void:
 	var game := GameRegistry.get_game(attached_game_id)
 	if game.is_empty():
 		return
-	var layout: VBoxContainer = null
-	if attached_game_id == "galaxy_unicorn":
-		layout = VBoxContainer.new()
-		layout.name = "GalaxyStandardGameHeaderOverlay"
-		layout.set_anchors_preset(Control.PRESET_TOP_WIDE)
-		layout.offset_left = 14
-		layout.offset_right = -14
-		layout.offset_top = 14
-		layout.z_index = 900
-		scene.add_child(layout)
-	else:
-		layout = _find_primary_layout(scene)
+	var layout := _find_primary_layout(scene)
 	if layout == null:
 		layout = VBoxContainer.new()
 		layout.name = "GameExperienceOverlayLayout"
@@ -485,7 +469,7 @@ func _can_apply_mystic() -> bool:
 
 
 func _is_retry_failure() -> bool:
-	if not is_instance_valid(attached_scene):
+	if not is_instance_valid(attached_scene) or attached_game_id == "unicorn_jump":
 		return false
 	if attached_scene.has_method("can_retry_failure"):
 		return bool(attached_scene.call("can_retry_failure"))
@@ -499,91 +483,6 @@ func _is_retry_failure() -> bool:
 		if retry is Button:
 			return "RETRY" in str((retry as Button).text).to_upper()
 	return false
-
-
-func _outcome_action_button() -> Button:
-	if not is_instance_valid(attached_scene):
-		return null
-	for property in ["action_button", "retry_button"]:
-		if _has_property(attached_scene, property):
-			var candidate = attached_scene.get(property)
-			if candidate is Button and is_instance_valid(candidate):
-				return candidate
-	for button in attached_scene.find_children("*", "Button", true, false):
-		var copy := str((button as Button).text).to_upper()
-		if "RETRY" in copy or "NEXT" in copy or "PLAY AGAIN" in copy:
-			return button as Button
-	return null
-
-
-func _outcome_message() -> String:
-	for property in ["message_label", "status_label"]:
-		if _has_property(attached_scene, property):
-			var label = attached_scene.get(property)
-			if label is Label and not str((label as Label).text).is_empty():
-				return (label as Label).text
-	return "Your next adventure is ready."
-
-
-func _show_game_outcome() -> void:
-	if not is_instance_valid(attached_scene) or is_instance_valid(outcome_overlay) or _scene_has_dialog("GameOutcomeOverlay"):
-		return
-	var legacy := _outcome_action_button()
-	var retry := _is_retry_failure()
-	if is_instance_valid(legacy):
-		legacy.hide()
-	var overlay := _modal_backdrop("GameOutcomeOverlay")
-	overlay.z_index = 1500
-	attached_scene.add_child(overlay)
-	outcome_overlay = overlay
-	var card := _modal_card(overlay, 0.08, 0.92, 0.23, 0.77)
-	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("3b1638") if retry else Color("123c4b"), Color("ff6f9b") if retry else Color("62e6b5"), 28))
-	var stack := VBoxContainer.new()
-	stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	stack.add_theme_constant_override("separation", 16)
-	card.add_child(stack)
-	var icon := Label.new()
-	icon.text = "💔" if retry else "✨🦄✨"
-	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.add_theme_font_size_override("font_size", 46)
-	stack.add_child(icon)
-	var title := _modal_title("TRY AGAIN" if retry else "LEVEL COMPLETE!")
-	title.add_theme_color_override("font_color", Color("ffb2cf") if retry else Color("bffff1"))
-	title.add_theme_font_size_override("font_size", 34)
-	stack.add_child(title)
-	var message := Label.new()
-	message.name = "GameOutcomeMessage"
-	message.text = _outcome_message()
-	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message.add_theme_font_size_override("font_size", 21)
-	message.add_theme_color_override("font_color", Color("fff3d6"))
-	stack.add_child(message)
-	var primary := Button.new()
-	primary.name = "GameOutcomePrimaryAction"
-	primary.text = "TRY AGAIN" if retry else "KEEP GOING"
-	StorybookUI.apply_game_action(primary, 260)
-	primary.pressed.connect(func() -> void:
-		if is_instance_valid(legacy):
-			legacy.pressed.emit()
-		if is_instance_valid(overlay):
-			overlay.queue_free()
-	)
-	stack.add_child(primary)
-	var category := Button.new()
-	category.name = "GameOutcomeReturnToCategory"
-	category.text = "RETURN TO CATEGORY"
-	StorybookUI.apply_game_action(category, 260)
-	category.pressed.connect(func() -> void:
-		if is_instance_valid(overlay):
-			overlay.queue_free()
-		_leave_game(false)
-	)
-	stack.add_child(category)
-	overlay.tree_exited.connect(func() -> void:
-		if outcome_overlay == overlay:
-			outcome_overlay = null
-	)
 
 
 func _restart_after_sparkle() -> void:
@@ -750,13 +649,6 @@ func _maybe_show_tutorial(force_replay: bool) -> void:
 	var dialog := _create_game_dialog("GuidedTutorialOverlay", 0.07, 0.93, 0.20, 0.80)
 	var overlay := dialog["owner"] as Control
 	var card := dialog["card"] as PanelContainer
-	if attached_game_id == "galaxy_unicorn" and attached_scene.has_method("set_gameplay_paused"):
-		var tutorial_scene := attached_scene
-		tutorial_scene.call("set_gameplay_paused", true)
-		overlay.tree_exited.connect(func() -> void:
-			if is_instance_valid(tutorial_scene) and tutorial_scene.has_method("set_gameplay_paused"):
-				tutorial_scene.call("set_gameplay_paused", false)
-		)
 	overlay.set_meta("lessons", lessons)
 	overlay.set_meta("step", 0)
 	overlay.set_meta("game_id", attached_game_id)

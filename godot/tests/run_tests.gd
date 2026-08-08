@@ -115,7 +115,7 @@ func _init() -> void:
 	_check(WordRules.words_for_level(15).size() == 21, "expert word pool begins at level fifteen")
 	_check(WordRules.sight_flash_ms(1) == 2120, "Sight Spark level-one flash duration matches React")
 	_check(WordRules.sight_flash_ms(18) == 800, "Sight Spark flash duration floors at 800 ms")
-	_check(is_equal_approx(WordRules.blast_speed(1), 0.083) and WordRules.blast_speed(12) > WordRules.blast_speed(1), "Unicorn Blast begins with a gentler fall curve while retaining progression")
+	_check(is_equal_approx(WordRules.blast_speed(1), 0.135), "Unicorn Blast speed formula matches level one")
 	_check(WordRules.blast_spawn_ms(1) == 2680, "Unicorn Blast spawn formula matches level one")
 	_check(WordRules.blast_spawn_ms(20) == 1400, "Unicorn Blast spawn interval floors at 1400 ms")
 	_check(WordRules.is_chain_link("cat", "top"), "Chain Link accepts the last-to-first letter rule")

@@ -35,7 +35,6 @@ var target_rounds := 0
 var challenge: Dictionary = {}
 var started_ms := 0
 var failed := false
-var active := false
 var prompt_label: Label
 var progress_label: Label
 var message_label: Label
@@ -55,7 +54,6 @@ func _ready() -> void:
 func _start_level() -> void:
 	round_index = 0
 	failed = false
-	active = true
 	target_rounds = target_for_level(level)
 	started_ms = Time.get_ticks_msec()
 	message_label.text = "Pick the word that rhymes. One wrong answer ends the level."
@@ -79,13 +77,11 @@ func _show_round() -> void:
 func _pick(answer: String) -> void:
 	if answer != challenge["answer"]:
 		failed = true
-		active = false
 		message_label.text = "Pick the word that rhymes! Try this level again."
 		_set_enabled(false)
 		return
 	round_index += 1
 	if round_index >= target_rounds:
-		active = false
 		var reward := AppState.complete_level("rhyme_rally", level, Time.get_ticks_msec() - started_ms)
 		message_label.text = "Rhyme Rally complete! +%d coins" % reward
 		level += 1

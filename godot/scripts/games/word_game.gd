@@ -2,7 +2,6 @@ extends Control
 
 const Rules = preload("res://scripts/games/word_game_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
-const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
 const CYAN := Color("58d6e8")
@@ -46,10 +45,6 @@ var play_area: Control
 var hint_button: Button
 var retry_button: Button
 var flash_timer: Timer
-var cannon_preview: Control
-var cannon_assembly: PanelContainer
-var blast_projectiles: Array[Control] = []
-var pending_blast_targets: Array[Button] = []
 
 
 func _ready() -> void:
@@ -310,9 +305,7 @@ func _render_sequence() -> void:
 func _render_letter_lift() -> void:
 	var typed := "".join(picked)
 	prompt_label.text = typed.to_upper() + "_".repeat(maxi(0, expected_word.length() - typed.length()))
-	# Letter Lift is an ordered typing game, not a memory test. Keep the entire
-	# round target visible after every correct letter and on every later round.
-	secondary_label.text = "TARGET: %s" % expected_word.to_upper()
+	secondary_label.text = "Spell: %s" % expected_word.to_upper() if hint_visible else "Next letter: %s" % expected_word.substr(picked.size(), 1).to_upper()
 
 
 func _choose(payload) -> void:
@@ -395,8 +388,7 @@ func _handle_blast_input(value: String) -> void:
 	var candidate := value.strip_edges().to_lower()
 	for index in blast_words.size():
 		if blast_words[index].get("text", "") == candidate:
-			_launch_blast_projectile(index)
-			_remove_blast_word(index, true)
+			_remove_blast_word(index)
 			_set_input_text("")
 			message_label.text = "BLAST!"
 			_successful_round(false)
@@ -508,7 +500,7 @@ func _update_blast(delta: float) -> void:
 		var entry: Dictionary = blast_words[index]
 		entry["y"] = float(entry.get("y", 8.0)) + Rules.blast_speed(level) * delta * 60.0
 		_position_blast_word(entry)
-		if entry["y"] > 90.0:
+		if entry["y"] > 78.0:
 			escaped.append(index)
 	for position in range(escaped.size() - 1, -1, -1):
 		_remove_blast_word(escaped[position])
@@ -539,57 +531,13 @@ func _position_blast_word(entry: Dictionary) -> void:
 	var width := maxf(play_area.size.x, 430.0)
 	var height := maxf(play_area.size.y, 330.0)
 	button.position = Vector2(width * float(entry["x"]) / 100.0 - 52.0, height * float(entry["y"]) / 100.0)
-	_position_cannon()
 
 
-func _position_cannon() -> void:
-	if is_instance_valid(cannon_assembly):
-		cannon_assembly.position = Vector2(maxf(0.0, play_area.size.x * 0.5 - cannon_assembly.size.x * 0.5), maxf(0.0, play_area.size.y - cannon_assembly.size.y - 8.0))
-
-
-func _launch_blast_projectile(index: int) -> void:
-	if index < 0 or index >= blast_words.size() or not is_instance_valid(cannon_preview):
-		return
-	var target: Button = blast_words[index].get("button")
-	if not is_instance_valid(target):
-		return
-	target.disabled = true
-	target.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pending_blast_targets.append(target)
-	var projectile := RoomItemPreviewScene.new()
-	projectile.name = "UnicornBlastProjectile"
-	projectile.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	projectile.size = Vector2(64, 52)
-	projectile.position = _cannon_muzzle_position() - projectile.size * 0.5
-	projectile.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": true, "presentation": "marketplace"})
-	play_area.add_child(projectile)
-	blast_projectiles.append(projectile)
-	var target_position := target.position + target.size * 0.5 - projectile.size * 0.5
-	var duration := 0.10 if AppState.setting("reduced_motion", false) else 0.32
-	var tween := create_tween()
-	tween.tween_property(projectile, "position", target_position, duration).set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
-	tween.tween_property(projectile, "modulate:a", 0.0, 0.08)
-	tween.finished.connect(func() -> void:
-		blast_projectiles.erase(projectile)
-		if is_instance_valid(projectile):
-			projectile.queue_free()
-		pending_blast_targets.erase(target)
-		if is_instance_valid(target):
-			target.queue_free()
-	)
-
-
-func _cannon_muzzle_position() -> Vector2:
-	if is_instance_valid(cannon_assembly):
-		return cannon_assembly.position + Vector2(cannon_assembly.size.x - 18.0, cannon_assembly.size.y * 0.38)
-	return play_area.size * Vector2(0.5, 0.9)
-
-
-func _remove_blast_word(index: int, preserve_visual := false) -> void:
+func _remove_blast_word(index: int) -> void:
 	if index < 0 or index >= blast_words.size():
 		return
 	var button: Button = blast_words[index].get("button")
-	if is_instance_valid(button) and not preserve_visual:
+	if is_instance_valid(button):
 		button.queue_free()
 	blast_words.remove_at(index)
 
@@ -600,14 +548,6 @@ func _clear_blast_words() -> void:
 		if is_instance_valid(button):
 			button.queue_free()
 	blast_words.clear()
-	for projectile in blast_projectiles:
-		if is_instance_valid(projectile):
-			projectile.queue_free()
-	blast_projectiles.clear()
-	for target in pending_blast_targets:
-		if is_instance_valid(target):
-			target.queue_free()
-	pending_blast_targets.clear()
 
 
 func _urgent_blast_word() -> String:
@@ -745,49 +685,13 @@ func _build_ui() -> void:
 	play_frame.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("14214a"), Color("e1ae4f"), 18))
 	content.add_child(play_frame)
 	play_area = Control.new()
-	play_area.custom_minimum_size = Vector2(0, 430)
+	play_area.custom_minimum_size = Vector2(0, 350)
 	play_area.clip_contents = true
 	var play_bg := ColorRect.new()
 	play_bg.color = Color("0d1738")
 	play_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	play_bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	play_area.add_child(play_bg)
-	cannon_assembly = PanelContainer.new()
-	cannon_assembly.name = "UnicornBlastCannon"
-	cannon_assembly.custom_minimum_size = Vector2(172, 106)
-	cannon_assembly.size = Vector2(172, 106)
-	cannon_assembly.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cannon_assembly.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("26366d"), Color("ffe172"), 18))
-	play_area.add_child(cannon_assembly)
-	# PanelContainer owns exactly one layout child. The inner canvas is a plain
-	# Control so the barrel, muzzle, and equipped-unicorn art retain their
-	# authored positions rather than being reflowed by the panel container.
-	var cannon_canvas := Control.new()
-	cannon_canvas.name = "CannonCanvas"
-	cannon_canvas.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cannon_assembly.add_child(cannon_canvas)
-	var barrel := ColorRect.new()
-	barrel.name = "CannonRainbowBarrel"
-	barrel.color = Color("58d6e8")
-	barrel.position = Vector2(92, 25)
-	barrel.size = Vector2(76, 26)
-	barrel.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cannon_canvas.add_child(barrel)
-	var muzzle := ColorRect.new()
-	muzzle.name = "CannonMuzzle"
-	muzzle.color = Color("ffe172")
-	muzzle.position = Vector2(152, 20)
-	muzzle.size = Vector2(20, 36)
-	muzzle.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cannon_canvas.add_child(muzzle)
-	cannon_preview = RoomItemPreviewScene.new()
-	cannon_preview.name = "CannonEquippedUnicornAmmo"
-	cannon_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	cannon_preview.size = Vector2(98, 82)
-	cannon_preview.position = Vector2(4, 12)
-	cannon_preview.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": true, "presentation": "marketplace"})
-	cannon_canvas.add_child(cannon_preview)
-	play_area.resized.connect(_position_cannon)
 	play_frame.add_child(play_area)
 	input_line = LineEdit.new()
 	input_line.custom_minimum_size = Vector2(0, 58)
