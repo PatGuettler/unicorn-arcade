@@ -232,14 +232,12 @@ func _mathtris_power_contract(game: Node) -> void:
 
 func _meta_suite() -> void:
 	var market: Node = await _mount(MARKET_SCENE)
-	await market.catalog_build_complete
-	_check(market.tab == "companions" and market.content.get_child_count() > 0, "Marketplace opens its companion catalog")
+	_check(market.catalog_ready and market.tab == "companions" and market._companion_cards.size() == 6, "Marketplace opens its fixed six-card companion catalog")
 	_check(MetaCatalog.filtered_furniture("all", "").size() == 107 and MetaCatalog.furniture_item("bed_race").get("id", "") == "bed_race", "Marketplace catalog retains all 107 authored decor entries")
 	market.call("_show_decor")
-	await market.catalog_build_complete
-	var item_list := market.find_child("DecorItemList", true, false) as ItemList
-	_check(market.tab == "decor" and is_instance_valid(item_list) and item_list.item_count == 24, "Marketplace switches to its bounded 24-item native decor list")
-	await market.prepare_for_scene_change()
+	var decor_cards := market.find_children("DecorCard_*", "Panel", true, false)
+	_check(market.tab == "decor" and market._decor_cards.size() == 8 and decor_cards.size() == 8 and market.find_children("*", "ItemList", true, false).is_empty(), "Marketplace opens Decor with a bounded fixed pool and no nested vertical list")
+	market.prepare_for_scene_change()
 	market.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame

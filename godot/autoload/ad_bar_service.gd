@@ -7,12 +7,16 @@ const CONFIG_PATH := "res://config/admob.json"
 const EXAMPLE_PATH := "res://config/admob.example.json"
 const GOOGLE_TEST_BANNER_UNIT_ID := "ca-app-pub-3940256099942544/6300978111"
 const CONTENT_TO_BANNER_GUTTER_LOGICAL_PIXELS := 24
+const BANNER_REQUEST_STALE_MS := 8000
 var _config: Dictionary = {}
 var _ad_view: AdView
 var _sdk_initialized := false
 var _sdk_initializing := false
 var _banner_logical_height := 60.0
 var _banner_requested := false
+var _banner_loaded := false
+var _banner_request_started_ms := 0
+var _banner_restore_queued := false
 var _reservation_active := false
 var _app_layout: VBoxContainer
 var _game_render_area: SubViewportContainer
@@ -106,11 +110,8 @@ func sync_for_player(player_name: String = "") -> void:
 		return
 
 	_set_reservation_active(true)
-	if _banner_requested and _ad_view != null:
-		_ad_view.show()
-		return
 	if _sdk_initialized:
-		_show_banner()
+		_restore_banner_if_eligible()
 	else:
 		_initialize_mobile_ads()
 
@@ -187,10 +188,16 @@ func _initialize_mobile_ads() -> void:
 func _show_banner() -> void:
 	if _shutting_down:
 		return
-	if _ad_view != null:
+	if _ad_view != null and _banner_loaded:
 		_set_reservation_active(true)
 		_ad_view.show()
 		return
+	if _ad_view != null:
+		if not _banner_loaded and not _banner_request_is_stale():
+			# A valid native AdView can spend several seconds loading. Keep that
+			# request alive across a route/focus event instead of replacing it.
+			return
+		_destroy_banner()
 	var unit_id := _banner_unit_id()
 	if unit_id.is_empty():
 		push_warning("AdBarService: android_banner_unit_id is missing in admob config")
@@ -206,6 +213,8 @@ func _show_banner() -> void:
 
 	_destroy_banner()
 	_banner_requested = true
+	_banner_loaded = false
+	_banner_request_started_ms = Time.get_ticks_msec()
 	_set_reservation_active(true)
 
 	var ad_size := AdSize.get_current_orientation_anchored_adaptive_banner_ad_size(AdSize.FULL_WIDTH)
@@ -229,6 +238,8 @@ func _on_banner_loaded() -> void:
 	# Explicitly show it so a prior hidden or background-created banner cannot
 	# remain invisible on Android.
 	_ad_view.show()
+	_banner_loaded = true
+	_banner_request_started_ms = 0
 	var px := float(_ad_view.get_height_in_pixels())
 	if px > 0.0:
 		_banner_logical_height = _pixels_to_viewport_y(px)
@@ -246,10 +257,50 @@ func _show_banner_if_attached() -> void:
 		_show_banner()
 
 
+func _banner_needs_recovery() -> bool:
+	return _ad_view == null or _banner_request_is_stale()
+
+
+func _banner_request_is_stale(now_ms := Time.get_ticks_msec()) -> bool:
+	return _banner_requested and not _banner_loaded and _banner_request_started_ms > 0 and now_ms - _banner_request_started_ms >= BANNER_REQUEST_STALE_MS
+
+
+func _schedule_banner_restore() -> void:
+	if _shutting_down or _banner_restore_queued:
+		return
+	if not _should_show_ads() or not should_show_for_player_logged_in(AppState.player_name()):
+		return
+	_banner_restore_queued = true
+	call_deferred("_restore_banner_if_eligible")
+
+
+func _restore_banner_if_eligible() -> void:
+	_banner_restore_queued = false
+	if _shutting_down or not _should_show_ads() or not should_show_for_player_logged_in(AppState.player_name()):
+		return
+	_set_reservation_active(true)
+	if not _sdk_initialized:
+		_initialize_mobile_ads()
+		return
+	if _ad_view != null and _banner_loaded:
+		_ad_view.show()
+		return
+	if _ad_view != null and not _banner_request_is_stale():
+		return
+	# One recovery attempt per focus/route event. This recreates a native view
+	# lost while backgrounded without a timer or recursive retry loop.
+	if _banner_needs_recovery():
+		_destroy_banner()
+		_banner_requested = false
+	_show_banner()
+
+
 func _destroy_banner() -> void:
 	if _ad_view != null:
 		_ad_view.destroy()
 	_ad_view = null
+	_banner_loaded = false
+	_banner_request_started_ms = 0
 
 
 func _connect_scene_tracking() -> void:
@@ -259,12 +310,20 @@ func _connect_scene_tracking() -> void:
 	var viewport := get_viewport()
 	if viewport != null and not viewport.size_changed.is_connected(_on_viewport_size_changed):
 		viewport.size_changed.connect(_on_viewport_size_changed)
+	var window := get_window()
+	if window != null and not window.focus_entered.is_connected(_on_window_focus_entered):
+		window.focus_entered.connect(_on_window_focus_entered)
 
 
 func _on_scene_changed() -> void:
 	if _shutting_down:
 		return
 	call_deferred("_host_current_scene")
+	_schedule_banner_restore()
+
+
+func _on_window_focus_entered() -> void:
+	_schedule_banner_restore()
 
 
 func _on_viewport_size_changed() -> void:
