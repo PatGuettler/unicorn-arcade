@@ -52,6 +52,7 @@ func _run() -> void:
 	var market_home := header.find_child("MarketplaceHome", true, false) as Button
 	var market_star := header.find_child("MarketplaceCoinIcon", true, false) as Label
 	_check(header != null and is_equal_approx(header.size.x, 502.0) and _header_parts_fit(header_parts, header.size.x) and is_equal_approx(market_title.get_rect().get_center().x, header.size.x * 0.5) and market_home != null and market_star != null and market_star.text == "★" and market_star.get_theme_color("font_color") == Color("e1ae4f") and header.find_child("EquippedCompanionIcon", true, false) == null, "Marketplace has one centered-title plaque with only Home, gold star, and balance in the right cluster")
+	_check(_marketplace_home_is_centered(header, market_home), "Marketplace Home is compact, glyph-backed, and vertically centered inside the 58px plaque at narrow width")
 	_check(is_equal_approx(market.message_label.position.x, 14.0) and is_equal_approx(market.message_label.get_rect().end.x, 520.0), "Marketplace status feedback follows the narrow 14px margins")
 	var narrow_right_companion := market._companion_cards[1]["card"] as Control
 	_check(narrow_right_companion.get_rect().end.x >= market.content.size.x - 5.0, "Companion grid reaches the narrow catalog right margin")
@@ -140,6 +141,7 @@ func _run() -> void:
 	host.size = Vector2(704, 1200)
 	await get_tree().process_frame
 	_check(is_equal_approx(header.size.x, 672.0) and _header_parts_fit(header_parts, header.size.x) and is_equal_approx(market_title.get_rect().get_center().x, header.size.x * 0.5) and market_home.get_rect().position.x < market_star.get_rect().position.x and market_star.get_rect().end.x < (header.find_child("MarketplaceCoinBalance", true, false) as Control).position.x, "Marketplace top bar stays centered and ordered Home-star-balance at native phone width")
+	_check(_marketplace_home_is_centered(header, market_home), "Marketplace Home remains compact, contained, and vertically centered at native phone width")
 	_check(is_equal_approx(market.message_label.position.x, 14.0) and is_equal_approx(market.message_label.get_rect().end.x, 690.0), "Marketplace status feedback follows the wide 14px margins")
 	_check(market._companions_tab.get_rect().end.x <= market._decor_tab.position.x and is_equal_approx(market._decor_tab.get_rect().end.x, 688.0), "Marketplace tabs split the full wide phone width without clipping")
 	_check((market._companion_cards[1]["card"] as Control).get_rect().end.x >= market.content.size.x - 5.0 and (market._decor_cards[0]["card"] as Control).get_rect().end.x >= market.content.size.x - 3.0 and alley.get_rect().end.x >= market.content.size.x - 3.0, "Fixed card pools expand to the wide native catalog right margin")
@@ -190,7 +192,8 @@ func _descendant_count(root: Node) -> int:
 
 
 func _header_parts_fit(parts: Array, width: float) -> bool:
-	if not parts.all(func(part: Control) -> bool: return part != null and part.position.x >= 0.0 and part.get_rect().end.x <= width):
+	var header := parts[0].get_parent() as Control if not parts.is_empty() and parts[0] != null else null
+	if header == null or not parts.all(func(part: Control) -> bool: return part != null and part.position.x >= 0.0 and part.get_rect().end.x <= width and part.position.y >= 0.0 and part.get_rect().end.y <= header.size.y):
 		return false
 	for first_index in parts.size():
 		for second_index in range(first_index + 1, parts.size()):
@@ -199,6 +202,13 @@ func _header_parts_fit(parts: Array, width: float) -> bool:
 			if first.get_rect().intersects(second.get_rect()):
 				return false
 	return true
+
+
+func _marketplace_home_is_centered(header: Panel, home: Button) -> bool:
+	if header == null or home == null:
+		return false
+	var glyph := home.find_child("MarketplaceHomeGlyph", true, false) as TextureRect
+	return home.has_meta("compact_header_control") and home.has_meta("standard_game_chrome") and home.custom_minimum_size == Vector2(48, 48) and is_equal_approx(home.size.x, 48.0) and is_equal_approx(home.size.y, 48.0) and is_equal_approx(home.position.y, 5.0) and is_equal_approx(home.get_rect().get_center().y, header.size.y * 0.5) and home.position.y >= 0.0 and home.get_rect().end.y <= header.size.y and glyph != null and glyph.texture != null and glyph.mouse_filter == Control.MOUSE_FILTER_IGNORE
 
 
 func _decor_chrome_ordered(market: Control) -> bool:

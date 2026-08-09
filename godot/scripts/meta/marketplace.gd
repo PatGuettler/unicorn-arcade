@@ -133,8 +133,22 @@ func _build_header() -> void:
 	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	var home := Button.new()
 	home.name = "MarketplaceHome"
-	StorybookUI.apply_home_button(home, 30)
-	_anchor_rect(home, 1.0, 1.0, -146, -90, 5, 53)
+	home.set_meta("compact_header_control", true)
+	home.set_meta("standard_game_chrome", true)
+	home.tooltip_text = "Home"
+	home.text = ""
+	StorybookUI.apply_button(home, Color("22345f"), false, 12)
+	_compact_header_button(home)
+	home.custom_minimum_size = Vector2(48, 48)
+	_anchor_rect(home, 1.0, 1.0, -138, -90, 5, 53)
+	var home_glyph := TextureRect.new()
+	home_glyph.name = "MarketplaceHomeGlyph"
+	home_glyph.texture = load(StorybookUI.UNICORN_HOUSE_HOME_ICON_PATH) as Texture2D
+	home_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	home_glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	home_glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_anchor_rect(home_glyph, 0.5, 0.5, -12, 12, 12, 36)
+	home.add_child(home_glyph)
 	home.pressed.connect(_go_home)
 	header.add_child(home)
 	var coin_icon := _label("MarketplaceCoinIcon", "★", Vector2.ZERO, Vector2.ZERO, GOLD, 26, header)
@@ -545,6 +559,20 @@ func _anchor_rect(control: Control, left_anchor: float, right_anchor: float, lef
 	control.offset_right = right_offset
 	control.offset_top = top_offset
 	control.offset_bottom = bottom_offset
+
+
+func _compact_header_button(button: Button) -> void:
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
+		var style := button.get_theme_stylebox(state)
+		if style is StyleBoxFlat:
+			var compact := (style as StyleBoxFlat).duplicate() as StyleBoxFlat
+			compact.content_margin_left = 4
+			compact.content_margin_right = 4
+			compact.content_margin_top = 2
+			compact.content_margin_bottom = 2
+			compact.shadow_size = 0
+			compact.shadow_offset = Vector2.ZERO
+			button.add_theme_stylebox_override(state, compact)
 
 
 func _button(node_name: String, text: String, position_value: Vector2, size_value: Vector2, fill: Color, parent: Control = self) -> Button:
