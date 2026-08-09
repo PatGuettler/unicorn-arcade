@@ -1,4 +1,4 @@
-extends Control
+extends ArcadeGameController
 
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
@@ -45,6 +45,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	super(delta)
 	if not active:
 		return
 	rival_elapsed += delta * 1000.0 * CompanionAbilityService.time_scale()

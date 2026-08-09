@@ -1,6 +1,7 @@
-extends Control
+extends ArcadeGameController
 
 const Rules = preload("res://scripts/games/word_game_rules.gd")
+const RoundCatalog = preload("res://scripts/games/word_round_catalog.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 const NAVY := Color("08112f")
@@ -67,6 +68,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	super(delta)
 	if active:
 		timer_label.text = "%.1fs" % ((Time.get_ticks_msec() - started_ms) / 1000.0)
 	if active and game_id == "unicorn_blast":
@@ -156,10 +158,10 @@ func _load_round() -> void:
 
 
 func _load_sequence(key: String, field: String, instruction: String, mode: String) -> void:
-	current = Rules.pick_for_level(key, level + round_index, rng)
-	sequence = current.get(field, []).duplicate()
-	pool = sequence.duplicate()
-	pool.shuffle()
+	current = RoundCatalog.pick_rule_round(Rules, key, level, round_index, rng)
+	var round := RoundCatalog.sequence_round(current, field)
+	sequence = round["sequence"]
+	pool = round["pool"]
 	phase = mode
 	instruction_label.text = instruction
 	_render_sequence()
@@ -167,7 +169,7 @@ func _load_sequence(key: String, field: String, instruction: String, mode: Strin
 
 func _load_sight_spark() -> void:
 	var words := Rules.words_for_level(level)
-	expected_word = words[(round_index + level) % words.size()]
+	expected_word = RoundCatalog.word_for_round(words, level, round_index)
 	phase = "flash"
 	instruction_label.text = "Remember this word"
 	prompt_label.text = expected_word
@@ -186,30 +188,17 @@ func _finish_sight_flash() -> void:
 
 
 func _load_vowel_vines() -> void:
-	var vowel: String = VOWELS[(round_index + level) % VOWELS.size()]
+	var prepared := RoundCatalog.vowel_round(Rules.data(), VOWELS, level, round_index, rng)
+	var vowel: String = prepared["vowel"]
 	current = {"vowel": vowel}
 	instruction_label.text = "Choose a word beginning with"
 	prompt_label.text = vowel.to_upper()
-	var all_vowels: Dictionary = Rules.data().get("vowel_words", {})
-	var good: Array = all_vowels.get(vowel, [])
-	var choices: Array = [good[rng.randi_range(0, good.size() - 1)]]
-	var wrong_pool: Array = []
-	for other in VOWELS:
-		if other != vowel:
-			wrong_pool.append_array(all_vowels.get(other, []))
-	wrong_pool.shuffle()
-	for word in wrong_pool:
-		if not choices.has(word):
-			choices.append(word)
-		if choices.size() == 4:
-			break
-	choices.shuffle()
-	_render_choice_buttons(choices)
+	_render_choice_buttons(prepared["choices"])
 
 
 func _load_letter_lift() -> void:
 	var words := Rules.words_for_level(level)
-	expected_word = words[(round_index + level) % words.size()]
+	expected_word = RoundCatalog.word_for_round(words, level, round_index)
 	phase = "letter"
 	picked.clear()
 	instruction_label.text = "Type each letter in order"

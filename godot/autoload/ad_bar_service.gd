@@ -258,11 +258,16 @@ func _show_banner_if_attached() -> void:
 
 
 func _banner_needs_recovery() -> bool:
-	return _ad_view == null or _banner_request_is_stale()
+	return AdBannerRecoveryPolicy.needs_recovery(_ad_view != null, _banner_requested, _banner_loaded, _banner_request_started_ms, Time.get_ticks_msec(), BANNER_REQUEST_STALE_MS)
 
 
-func _banner_request_is_stale(now_ms := Time.get_ticks_msec()) -> bool:
-	return _banner_requested and not _banner_loaded and _banner_request_started_ms > 0 and now_ms - _banner_request_started_ms >= BANNER_REQUEST_STALE_MS
+func _banner_request_is_stale(now_ms := -1) -> bool:
+	# Sample a monotonic clock inside the function. Early startup can produce a
+	# negative synthetic start time in tests, so elapsed arithmetic must not use
+	# the start-time sign as a validity signal.
+	if now_ms < 0:
+		now_ms = Time.get_ticks_msec()
+	return AdBannerRecoveryPolicy.is_stale(_banner_requested, _banner_loaded, _banner_request_started_ms, now_ms, BANNER_REQUEST_STALE_MS)
 
 
 func _schedule_banner_restore() -> void:

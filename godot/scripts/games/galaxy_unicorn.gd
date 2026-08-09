@@ -1,4 +1,4 @@
-extends Control
+extends ArcadeGameController
 
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
@@ -47,6 +47,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	super(delta)
 	if not active or gameplay_paused or size.x < 1.0 or size.y < 1.0:
 		return
 	var ms := delta * 1000.0 * CompanionAbilityService.time_scale()

@@ -52,6 +52,10 @@ func _run() -> void:
 	_check(copy is Label and copy.text == "Gives a chance at bonus coins." and copy.get_theme_font_size("font_size") >= 24, "companion power popup uses large child-friendly text")
 	_check(close is Button and close.has_meta("storybook_game_action"), "companion power popup has a large storybook close button")
 	_check(host.find_children("*", "AcceptDialog", true, false).is_empty(), "companion power does not use an unstyled system dialog")
+	var experience_source := FileAccess.get_file_as_string("res://autoload/game_experience.gd")
+	var mathtris_source := FileAccess.get_file_as_string("res://scripts/games/mathtris.gd")
+	_check(experience_source.contains("if CompanionAbilityService.companion_id() == \"mystic\"") and experience_source.contains("_show_assist(true)"), "unhandled Mystic controller actions route to the public assist path")
+	_check(mathtris_source.contains("func request_companion_action(companion_id: String) -> bool:") and mathtris_source.contains("return apply_companion_power(companion_id)"), "Mathtris exposes its public companion action and reports success only from apply_companion_power")
 
 	if close is Button:
 		close.pressed.emit()
