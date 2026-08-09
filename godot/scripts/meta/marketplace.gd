@@ -276,10 +276,12 @@ func _build_decor_pool() -> void:
 		thumbnail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(thumbnail)
 		var name := _label("DecorName", "", Vector2.ZERO, Vector2.ZERO, CREAM, 18, card)
-		_anchor_rect(name, 0.0, 1.0, 142, -128, 12, 36)
-		var rarity := _label("DecorRarity", "", Vector2.ZERO, Vector2.ZERO, GOLD, 15, card)
-		_anchor_rect(rarity, 1.0, 1.0, -116, -12, 12, 36)
+		_anchor_rect(name, 0.0, 1.0, 142, -164, 12, 36)
+		var rarity := _label("DecorRarity", "", Vector2.ZERO, Vector2.ZERO, GOLD, 14, card)
+		_anchor_rect(rarity, 1.0, 1.0, -156, -12, 12, 36)
 		rarity.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		rarity.clip_text = false
+		_restore_catalog_rarity_font.call_deferred(rarity)
 		var description := _label("DecorDescription", "", Vector2.ZERO, Vector2.ZERO, MUTED, 15, card)
 		_anchor_rect(description, 0.0, 1.0, 142, -12, 40, 83)
 		var counts := _label("DecorCounts", "", Vector2.ZERO, Vector2.ZERO, CYAN, 14, card)
@@ -573,6 +575,11 @@ func _compact_header_button(button: Button) -> void:
 			compact.shadow_size = 0
 			compact.shadow_offset = Vector2.ZERO
 			button.add_theme_stylebox_override(state, compact)
+
+
+func _restore_catalog_rarity_font(rarity: Label) -> void:
+	if is_instance_valid(rarity):
+		rarity.add_theme_font_size_override("font_size", 14)
 
 
 func _button(node_name: String, text: String, position_value: Vector2, size_value: Vector2, fill: Color, parent: Control = self) -> Button:

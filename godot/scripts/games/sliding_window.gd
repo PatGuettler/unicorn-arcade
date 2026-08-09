@@ -7,6 +7,8 @@ const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd
 
 const NODE_SIZE := Vector2(105, 105)
 const NODE_GAP := 10.0
+const ACTIVE_WINDOW_SIDE_PADDING := 24.0
+const VERTICAL_FRAME_PADDING := 12.0
 
 var level := 1
 var level_data: Array[int] = []
@@ -364,14 +366,43 @@ func _layout_overlays(generation: int) -> void:
 
 func _layout_and_center_player_window(generation: int, opening: bool) -> void:
 	_layout_overlays(generation)
-	if generation != layout_generation or not is_instance_valid(track_viewport) or value_buttons.is_empty():
+	if generation != layout_generation or not is_instance_valid(track_viewport) or not is_instance_valid(track_viewport.world) or value_buttons.is_empty() or rival_nodes.is_empty() or track_viewport.size.x <= 1.0 or track_viewport.size.y <= 1.0:
 		return
-	var first_index := clampi(window_pos, 0, value_buttons.size() - 1)
-	var last_index := clampi(window_pos + window_size - 1, 0, value_buttons.size() - 1)
-	var first_rect := value_buttons[first_index].get_global_rect()
-	var last_rect := value_buttons[last_index].get_global_rect()
-	var window_center := Vector2((first_rect.position.x + last_rect.end.x) * 0.5, (first_rect.get_center().y + last_rect.get_center().y) * 0.5)
-	track_viewport.focus_global_point(window_center, Vector2(0.18 if opening else 0.5, 0.42))
+	var player_bounds := _window_world_bounds(value_buttons, window_pos)
+	var rival_bounds := _window_world_bounds(rival_nodes, opponent_pos)
+	if player_bounds.size.x <= 0.0 or player_bounds.size.y <= 0.0:
+		return
+	var vertical_bounds := player_bounds.merge(rival_bounds)
+	if is_instance_valid(player_marker):
+		vertical_bounds = vertical_bounds.merge(_control_world_rect(player_marker))
+	var available_width := maxf(1.0, track_viewport.size.x - ACTIVE_WINDOW_SIDE_PADDING * 2.0)
+	var available_height := maxf(1.0, track_viewport.size.y - VERTICAL_FRAME_PADDING * 2.0)
+	var fit_zoom := minf(available_width / player_bounds.size.x, available_height / maxf(1.0, vertical_bounds.size.y))
+	fit_zoom = clampf(fit_zoom, track_viewport.min_zoom, track_viewport.max_zoom)
+	# Starting or retrying discards stale user camera state. During play, retain a
+	# wider (zoomed-out) user view but clamp closer zoom down to the required fit.
+	var next_zoom := fit_zoom if opening else minf(track_viewport.zoom, fit_zoom)
+	var target_center := Vector2(player_bounds.get_center().x, vertical_bounds.get_center().y)
+	var next_pan: Vector2 = track_viewport.size * 0.5 - target_center * next_zoom
+	track_viewport.set_camera(next_pan, next_zoom)
+
+
+func _window_world_bounds(nodes: Array, start_index: int) -> Rect2:
+	if nodes.is_empty():
+		return Rect2()
+	var first_index := clampi(start_index, 0, nodes.size() - 1)
+	var last_index := clampi(start_index + window_size - 1, 0, nodes.size() - 1)
+	return _control_world_rect(nodes[first_index] as Control).merge(_control_world_rect(nodes[last_index] as Control))
+
+
+func _control_world_rect(control: Control) -> Rect2:
+	if not is_instance_valid(control) or not is_instance_valid(track_viewport) or not is_instance_valid(track_viewport.world):
+		return Rect2()
+	var inverse: Transform2D = track_viewport.world.get_global_transform_with_canvas().affine_inverse()
+	var global_rect := control.get_global_rect()
+	var top_left: Vector2 = inverse * global_rect.position
+	var bottom_right: Vector2 = inverse * global_rect.end
+	return Rect2(top_left, bottom_right - top_left)
 
 
 func _place_window(frame: PanelContainer, nodes: Array, start_index: int) -> void:
@@ -393,10 +424,14 @@ func _place_window(frame: PanelContainer, nodes: Array, start_index: int) -> voi
 func _place_marker(marker: Control, nodes: Array, start_index: int, y_lift: float) -> void:
 	if not is_instance_valid(marker) or nodes.is_empty():
 		return
-	var mid := clampi(start_index + window_size / 2, 0, nodes.size() - 1)
-	var node: Control = nodes[mid]
-	var center := lanes.get_global_transform_with_canvas().affine_inverse() * (node.get_global_rect().get_center())
-	marker.position = center + Vector2(-marker.custom_minimum_size.x * 0.5, y_lift)
+	var first_index := clampi(start_index, 0, nodes.size() - 1)
+	var last_index := clampi(start_index + window_size - 1, 0, nodes.size() - 1)
+	var first: Control = nodes[first_index]
+	var last: Control = nodes[last_index]
+	var active_center_global := Vector2((first.get_global_rect().position.x + last.get_global_rect().end.x) * 0.5, (first.get_global_rect().get_center().y + last.get_global_rect().get_center().y) * 0.5)
+	var center := lanes.get_global_transform_with_canvas().affine_inverse() * active_center_global
+	var marker_width := marker.size.x if marker.size.x > 0.0 else marker.custom_minimum_size.x
+	marker.position = center + Vector2(-marker_width * 0.5, y_lift)
 	marker.visible = active
 	marker.move_to_front()
 

@@ -172,6 +172,16 @@ func _reset_bag_scroll_gesture() -> void:
 
 
 func _clear_ui() -> void:
+	# A rebuild queues the old canvas for deletion, so its actor remains valid
+	# through this frame. Retire the reference and motion state explicitly or the
+	# new canvas will reflow that stale actor instead of creating its own.
+	if is_instance_valid(roaming_actor):
+		roaming_actor.set_motion_state(false)
+		roaming_actor.queue_free()
+	roaming_actor = null
+	roam_target = Vector2.ZERO
+	roam_pause = 0.0
+	roam_floor_y = 0.0
 	for child in get_children():
 		remove_child(child)
 		child.queue_free()

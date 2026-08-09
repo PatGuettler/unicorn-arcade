@@ -91,6 +91,7 @@ func _run() -> void:
 	var narrow_decor_card := market._decor_cards[0]["card"] as Control
 	_check(narrow_decor_card.get_rect().end.x >= market.content.size.x - 3.0 and alley.get_rect().end.x >= market.content.size.x - 3.0, "Decor cards and Unicorn Alley reach the narrow catalog right margin")
 	_check(_decor_card_usable(market._decor_cards[0]), "Decor card text and buy/sell actions remain non-overlapping and touch-sized at narrow width")
+	_check(_decor_rarity_field_usable(market._decor_cards[0]), "Decor rarity reserves 144px with an eight-pixel name gap and fully renders UNCOMMON and LEGENDARY at narrow width")
 	var decor_scroll_before: int = market.catalog_scroll.scroll_vertical
 	var decor_catalog_center: Vector2 = market.catalog_scroll.get_global_rect().get_center()
 	var decor_press := InputEventScreenTouch.new()
@@ -146,6 +147,7 @@ func _run() -> void:
 	_check(market._companions_tab.get_rect().end.x <= market._decor_tab.position.x and is_equal_approx(market._decor_tab.get_rect().end.x, 688.0), "Marketplace tabs split the full wide phone width without clipping")
 	_check((market._companion_cards[1]["card"] as Control).get_rect().end.x >= market.content.size.x - 5.0 and (market._decor_cards[0]["card"] as Control).get_rect().end.x >= market.content.size.x - 3.0 and alley.get_rect().end.x >= market.content.size.x - 3.0, "Fixed card pools expand to the wide native catalog right margin")
 	_check(_catalog_fills_viewport(market, 500.0) and _companion_card_usable(market._companion_cards[1]) and _decor_card_usable(market._decor_cards[0]), "Wide Marketplace content, cards, text, and actions fill the real viewport")
+	_check(_decor_rarity_field_usable(market._decor_cards[0]), "Decor rarity remains fully rendered in its fixed right-aligned field at native phone width")
 	_check(_decor_chrome_ordered(market), "Decor search, category strip, and catalog retain touch-safe vertical gaps at native width")
 	_check(_descendant_count(market) == child_count, "Responsive width changes preserve the immutable Marketplace Control tree")
 	var reached: Dictionary = {}
@@ -243,6 +245,20 @@ func _decor_card_usable(card_data: Dictionary) -> bool:
 	var buy := card_data["buy"] as Control
 	var sell := card_data["sell"] as Control
 	return card.size.x >= 440.0 and name.size.x >= 180.0 and description.size.x >= 220.0 and buy.size.x >= 100.0 and sell.size.x >= 100.0 and not name.get_rect().intersects(rarity.get_rect()) and not description.get_rect().intersects(counts.get_rect()) and not counts.get_rect().intersects(buy.get_rect()) and not buy.get_rect().intersects(sell.get_rect())
+
+
+func _decor_rarity_field_usable(card_data: Dictionary) -> bool:
+	var name := card_data["name"] as Label
+	var rarity := card_data["rarity"] as Label
+	if name == null or rarity == null:
+		return false
+	var original := rarity.text
+	var fits_long_values := true
+	for value in ["UNCOMMON", "LEGENDARY"]:
+		rarity.text = value
+		fits_long_values = fits_long_values and rarity.get_combined_minimum_size().x <= rarity.size.x
+	rarity.text = original
+	return is_equal_approx(rarity.size.x, 144.0) and is_equal_approx(rarity.position.x - name.get_rect().end.x, 8.0) and rarity.horizontal_alignment == HORIZONTAL_ALIGNMENT_RIGHT and rarity.get_theme_font_size("font_size") == 14 and not rarity.clip_text and fits_long_values
 
 
 func _check(condition: bool, message: String) -> void:

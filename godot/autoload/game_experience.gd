@@ -19,6 +19,7 @@ var last_level := -1
 var update_accumulator := 0.0
 var was_active := false
 var outcome_overlay: Control
+var sparkle_retry_overlay: Control
 
 
 func _ready() -> void:
@@ -45,6 +46,7 @@ func _process(delta: float) -> void:
 		last_level = -1
 		was_active = false
 		outcome_overlay = null
+		sparkle_retry_overlay = null
 		inactivity_seconds = 0.0
 		# Keep AdMob banner attached when leaving main.tscn for a game scene.
 		AdBarService.sync_for_player(AppState.player_name())
@@ -61,7 +63,7 @@ func _process(delta: float) -> void:
 	var scene_active := bool(attached_scene.get("active")) if _has_property(attached_scene, "active") else true
 	if was_active and not scene_active:
 		if _is_retry_failure() and CompanionAbilityService.consume_checkpoint_retry():
-			_restart_after_sparkle.call_deferred()
+			_show_sparkle_retry_notice.call_deferred(_outcome_message())
 		else:
 			_show_game_outcome.call_deferred()
 	was_active = scene_active
@@ -526,7 +528,7 @@ func _outcome_message() -> String:
 
 
 func _show_game_outcome() -> void:
-	if not is_instance_valid(attached_scene) or is_instance_valid(outcome_overlay) or _scene_has_dialog("GameOutcomeOverlay"):
+	if not is_instance_valid(attached_scene) or is_instance_valid(outcome_overlay) or is_instance_valid(sparkle_retry_overlay) or _scene_has_dialog("GameOutcomeOverlay") or _scene_has_dialog("SecondSparkleRetryOverlay"):
 		return
 	var legacy := _outcome_action_button()
 	var retry := _is_retry_failure()
@@ -583,6 +585,64 @@ func _show_game_outcome() -> void:
 	overlay.tree_exited.connect(func() -> void:
 		if outcome_overlay == overlay:
 			outcome_overlay = null
+	)
+
+
+func _show_sparkle_retry_notice(failure_reason: String) -> void:
+	if not is_instance_valid(attached_scene) or is_instance_valid(sparkle_retry_overlay) or is_instance_valid(outcome_overlay) or _scene_has_dialog("SecondSparkleRetryOverlay"):
+		return
+	var legacy := _outcome_action_button()
+	if is_instance_valid(legacy):
+		legacy.hide()
+	var overlay := _modal_backdrop("SecondSparkleRetryOverlay")
+	overlay.z_index = 1550
+	attached_scene.add_child(overlay)
+	sparkle_retry_overlay = overlay
+	var card := _modal_card(overlay, 0.08, 0.92, 0.22, 0.78)
+	card.name = "SecondSparkleRetryCard"
+	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("32194a"), Color("f4d37f"), 28))
+	var stack := VBoxContainer.new()
+	stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	stack.add_theme_constant_override("separation", 14)
+	card.add_child(stack)
+	var icon := Label.new()
+	icon.text = "✨  🦄  ✨"
+	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	icon.add_theme_font_size_override("font_size", 44)
+	stack.add_child(icon)
+	var title := _modal_title("SECOND SPARKLE!")
+	title.add_theme_color_override("font_color", Color("ffe7a6"))
+	title.add_theme_font_size_override("font_size", 32)
+	stack.add_child(title)
+	var reason := Label.new()
+	reason.name = "SecondSparkleFailureReason"
+	reason.text = failure_reason if not failure_reason.strip_edges().is_empty() else "This try came to an end."
+	reason.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	reason.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	reason.add_theme_font_size_override("font_size", 20)
+	reason.add_theme_color_override("font_color", Color("ffd1e5"))
+	stack.add_child(reason)
+	var explanation := Label.new()
+	explanation.name = "SecondSparkleExplanation"
+	explanation.text = "Sparkle saved one FREE RETRY for you. Tap CONTINUE to restart this same level. This one-time retry is now used."
+	explanation.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	explanation.add_theme_font_size_override("font_size", 21)
+	explanation.add_theme_color_override("font_color", Color("fff3d6"))
+	stack.add_child(explanation)
+	var continue_button := Button.new()
+	continue_button.name = "SecondSparkleContinue"
+	continue_button.text = "CONTINUE"
+	StorybookUI.apply_game_action(continue_button, 260)
+	continue_button.pressed.connect(func() -> void:
+		if is_instance_valid(overlay):
+			overlay.queue_free()
+		_restart_after_sparkle()
+	)
+	stack.add_child(continue_button)
+	overlay.tree_exited.connect(func() -> void:
+		if sparkle_retry_overlay == overlay:
+			sparkle_retry_overlay = null
 	)
 
 
