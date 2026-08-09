@@ -1,6 +1,7 @@
 extends Node
 
 const RoomEditor = preload("res://scripts/meta/room_editor.gd")
+const RoomItemPreview3D = preload("res://scripts/meta/room_item_preview_3d.gd")
 
 var failures: Array[String] = []
 
@@ -32,6 +33,15 @@ func _run() -> void:
 	_check(missing.size() == 1 and missing[0] == null and not RuntimeAssetLoader.is_processing(), "loader reports a missing path and idles")
 	var definition := {"id":"rug", "category":"rugs"}
 	var yaw := 45.0
+	var rotation_preview := RoomItemPreview3D.new()
+	rotation_preview.setup(definition.merged({"animate": false, "presentation": "cache"}, true))
+	rotation_preview.set_display_yaw(0.0)
+	var rotation_root := rotation_preview.display_rotation_root
+	var zero_yaw_is_upright := is_instance_valid(rotation_root) and is_zero_approx(rotation_root.rotation_degrees.x) and is_zero_approx(rotation_root.rotation_degrees.y) and is_zero_approx(rotation_root.rotation_degrees.z)
+	rotation_preview.set_display_yaw(yaw)
+	_check(zero_yaw_is_upright and is_equal_approx(rotation_root.rotation_degrees.y, yaw) and is_zero_approx(rotation_root.rotation_degrees.x) and is_zero_approx(rotation_root.rotation_degrees.z), "3D decor rotation root turns only around Y for each requested yaw")
+	rotation_preview.free()
+	_check(DecorPreviewCache.cache_key(definition, 0.0) != DecorPreviewCache.cache_key(definition, yaw), "decor cache keeps 0 and 45 degree renders in distinct yaw keys")
 	var transparent_readback := Image.create(2, 2, false, Image.FORMAT_RGBA8)
 	_check(not bool(DecorPreviewCache.call("_has_visible_pixels", transparent_readback)), "decor cache rejects a fully transparent viewport readback")
 	var textures: Array = []
@@ -54,7 +64,7 @@ func _run() -> void:
 	preview.size = preview_parent.size
 	preview_parent.add_child(preview)
 	room_editor.call("_refresh_cached_decor_preview", preview_parent, definition, yaw)
-	_check(preview.texture == textures[0] and is_equal_approx(preview.rotation_degrees, 45.0) and preview.pivot_offset.is_equal_approx(preview.size * 0.5) and is_zero_approx(preview_parent.rotation_degrees), "room editor rotates the fallback Fluffy Rug preview around its center without tilting its button")
+	_check(preview.texture == textures[0] and is_zero_approx(preview.rotation_degrees) and is_zero_approx(preview_parent.rotation_degrees), "room editor keeps both the fallback Fluffy Rug texture and its button upright")
 	preview_parent.free()
 	room_editor.free()
 	if failures.is_empty():

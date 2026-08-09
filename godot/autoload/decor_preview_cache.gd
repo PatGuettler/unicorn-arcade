@@ -73,8 +73,13 @@ func _render_next() -> void:
 	if not is_instance_valid(_host):
 		_host = Control.new()
 		_host.name = "DecorPreviewCacheRenderer"
-		_host.position = Vector2(-4096, -4096)
+		# Keep the SubViewportContainer in the visible canvas so Godot submits its
+		# render target. Negative draw order keeps this transient renderer behind
+		# normal UI without relying on an offscreen position that can be culled.
+		_host.position = Vector2.ZERO
 		_host.size = Vector2(192, 192)
+		_host.z_index = -100
+		_host.show_behind_parent = true
 		_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		get_tree().root.add_child(_host)
 	var preview := PreviewScene.new()
