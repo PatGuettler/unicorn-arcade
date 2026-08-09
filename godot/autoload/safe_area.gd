@@ -10,10 +10,21 @@ var applied_roots := {}
 
 func _ready() -> void:
 	get_tree().node_added.connect(_node_added)
-	set_process(true)
+	get_tree().scene_changed.connect(_schedule_current_root)
+	var viewport := get_viewport()
+	if viewport != null:
+		viewport.size_changed.connect(_schedule_current_root)
+	var window := get_window()
+	if window != null:
+		window.focus_entered.connect(_schedule_current_root)
+	_schedule_current_root()
 
 
-func _process(_delta: float) -> void:
+func _schedule_current_root() -> void:
+	call_deferred("_apply_current_root")
+
+
+func _apply_current_root() -> void:
 	var current := AdBarService.content_scene()
 	if not is_instance_valid(current):
 		current = get_tree().current_scene

@@ -3,6 +3,7 @@ extends Control
 const Catalog = preload("res://scripts/meta_catalog.gd")
 const Rules = preload("res://scripts/room_rules.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
 const FURNITURE_BAG_ICON := preload("res://assets/ui/furniture_bag_v1.svg")
@@ -308,12 +309,7 @@ func _create_item_button(item: Dictionary) -> void:
 	room_canvas.add_child(button)
 	if item_id == "companion_%s" % companion_id:
 		button.hide() # Actor below owns the room-scale presentation; this remains its saved home anchor.
-	var art := RoomItemPreviewScene.new()
-	art.name = "RoomItemPreview3D"
-	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	art.setup(definition.merged({"id": item_id}, true))
-	art.set_display_yaw(float(item.get("rotation", 0)))
-	button.add_child(art)
+	_add_cached_decor_preview(button, definition.merged({"id": item_id}, true), float(item.get("rotation", 0)), true)
 	item_buttons[str(item.get("instance_id", ""))] = button
 
 
@@ -561,9 +557,8 @@ func _refresh_room_items() -> void:
 		button.custom_minimum_size = _item_base_size(str(item.get("item_id", ""))) * float(item.get("scale", 1.0))
 		button.size = button.custom_minimum_size
 		button.rotation_degrees = 0.0
-		var preview := button.get_node_or_null("RoomItemPreview3D") as RoomItemPreview3D
-		if is_instance_valid(preview):
-			preview.set_display_yaw(float(item.get("rotation", 0)))
+		var definition := _item_definition(str(item.get("item_id", "")))
+		_refresh_cached_decor_preview(button, definition, float(item.get("rotation", 0)))
 		button.z_index = int(item.get("z_index", 0))
 	_position_items()
 	_mark_selected()
@@ -727,6 +722,48 @@ func _set_bag_category(category_id: String) -> void:
 	_show_bag()
 
 
+func _add_cached_decor_preview(parent: Control, definition: Dictionary, yaw: float, room_item: bool) -> void:
+	var preview := TextureRect.new()
+	preview.name = "CachedDecorPreview"
+	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if room_item:
+		preview.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	else:
+		preview.set_anchor(SIDE_LEFT, 0.0)
+		preview.set_anchor(SIDE_TOP, 0.0)
+		preview.set_anchor(SIDE_RIGHT, 1.0)
+		preview.set_anchor(SIDE_BOTTOM, 0.0)
+		preview.offset_left = 8
+		preview.offset_top = 5
+		preview.offset_right = -8
+		preview.offset_bottom = 88
+	parent.add_child(preview)
+	_refresh_cached_decor_preview(parent, definition, yaw)
+
+
+func _refresh_cached_decor_preview(parent: Control, definition: Dictionary, yaw: float) -> void:
+	var preview := parent.get_node_or_null("CachedDecorPreview") as TextureRect
+	if not is_instance_valid(preview):
+		return
+	var item_id := str(definition.get("id", definition.get("item_id", "")))
+	if item_id.begins_with("companion_"):
+		preview.texture = load(CompanionAssets.thumbnail_path(item_id.trim_prefix("companion_"))) as Texture2D
+		return
+	var cached := DecorPreviewCache.cached_texture(definition, yaw)
+	if cached != null:
+		preview.texture = cached
+		return
+	DecorPreviewCache.request(definition, yaw, Callable(self, "_apply_cached_preview").bind(preview.get_instance_id()))
+
+
+func _apply_cached_preview(texture: Texture2D, preview_instance_id: int) -> void:
+	var preview := instance_from_id(preview_instance_id) as TextureRect
+	if is_instance_valid(preview) and texture != null:
+		preview.texture = texture
+
+
 func _rebuild_bag_grid(count_label: Label) -> void:
 	_reset_bag_scroll_gesture()
 	bag_grid.columns = 3
@@ -753,18 +790,7 @@ func _rebuild_bag_grid(count_label: Label) -> void:
 		place.mouse_filter = Control.MOUSE_FILTER_PASS
 		place.pressed.connect(_place_from_bag.bind(item_id))
 		bag_grid.add_child(place)
-		var art := RoomItemPreviewScene.new()
-		art.name = "RoomItemPreview3D"
-		art.set_anchor(SIDE_LEFT, 0.0)
-		art.set_anchor(SIDE_TOP, 0.0)
-		art.set_anchor(SIDE_RIGHT, 1.0)
-		art.set_anchor(SIDE_BOTTOM, 0.0)
-		art.offset_left = 8
-		art.offset_top = 5
-		art.offset_right = -8
-		art.offset_bottom = 88
-		art.setup(definition)
-		place.add_child(art)
+		_add_cached_decor_preview(place, definition, 0.0, false)
 		var item_label := Label.new()
 		item_label.text = "%s\nx%d" % [str(definition.get("name", item_id)), available]
 		item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

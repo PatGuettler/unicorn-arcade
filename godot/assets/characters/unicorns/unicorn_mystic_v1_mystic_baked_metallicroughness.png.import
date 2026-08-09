@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b2hrywd5wg88n"
-path="res://.godot/imported/unicorn_mystic_v1_mystic_baked_metallicroughness.png-781bf9ce1e2f87ca166559ba07e14ea8.ctex"
+path.s3tc="res://.godot/imported/unicorn_mystic_v1_mystic_baked_metallicroughness.png-781bf9ce1e2f87ca166559ba07e14ea8.s3tc.ctex"
+path.etc2="res://.godot/imported/unicorn_mystic_v1_mystic_baked_metallicroughness.png-781bf9ce1e2f87ca166559ba07e14ea8.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "01d07093efa4088ffc4b78a021f82565"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/characters/unicorns/unicorn_mystic_v1_mystic_baked_metallicroughness.png"
-dest_files=["res://.godot/imported/unicorn_mystic_v1_mystic_baked_metallicroughness.png-781bf9ce1e2f87ca166559ba07e14ea8.ctex"]
+dest_files=["res://.godot/imported/unicorn_mystic_v1_mystic_baked_metallicroughness.png-781bf9ce1e2f87ca166559ba07e14ea8.s3tc.ctex", "res://.godot/imported/unicorn_mystic_v1_mystic_baked_metallicroughness.png-781bf9ce1e2f87ca166559ba07e14ea8.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=2048
 detect_3d/compress_to=1

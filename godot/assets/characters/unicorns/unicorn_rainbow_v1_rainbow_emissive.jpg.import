@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cv2fjbd3v0tr8"
-path="res://.godot/imported/unicorn_rainbow_v1_rainbow_emissive.jpg-26ff3ecc84ca5e91c5a051c658454fa4.ctex"
+path.s3tc="res://.godot/imported/unicorn_rainbow_v1_rainbow_emissive.jpg-26ff3ecc84ca5e91c5a051c658454fa4.s3tc.ctex"
+path.etc2="res://.godot/imported/unicorn_rainbow_v1_rainbow_emissive.jpg-26ff3ecc84ca5e91c5a051c658454fa4.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "9da0356afc8cfa6358f1ce4d7640d154"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/characters/unicorns/unicorn_rainbow_v1_rainbow_emissive.jpg"
-dest_files=["res://.godot/imported/unicorn_rainbow_v1_rainbow_emissive.jpg-26ff3ecc84ca5e91c5a051c658454fa4.ctex"]
+dest_files=["res://.godot/imported/unicorn_rainbow_v1_rainbow_emissive.jpg-26ff3ecc84ca5e91c5a051c658454fa4.s3tc.ctex", "res://.godot/imported/unicorn_rainbow_v1_rainbow_emissive.jpg-26ff3ecc84ca5e91c5a051c658454fa4.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=2048
 detect_3d/compress_to=1

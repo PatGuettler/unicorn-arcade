@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cv3mbpknjq5dc"
-path="res://.godot/imported/unicorn_rainbow_v1_rainbow_metallic_roughness.jpg-b25ad59cf29109d17b91fcf8fb6a65e8.ctex"
+path.s3tc="res://.godot/imported/unicorn_rainbow_v1_rainbow_metallic_roughness.jpg-b25ad59cf29109d17b91fcf8fb6a65e8.s3tc.ctex"
+path.etc2="res://.godot/imported/unicorn_rainbow_v1_rainbow_metallic_roughness.jpg-b25ad59cf29109d17b91fcf8fb6a65e8.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "10ef07ecf935b1d4531a5aabc4b7450d"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/characters/unicorns/unicorn_rainbow_v1_rainbow_metallic_roughness.jpg"
-dest_files=["res://.godot/imported/unicorn_rainbow_v1_rainbow_metallic_roughness.jpg-b25ad59cf29109d17b91fcf8fb6a65e8.ctex"]
+dest_files=["res://.godot/imported/unicorn_rainbow_v1_rainbow_metallic_roughness.jpg-b25ad59cf29109d17b91fcf8fb6a65e8.s3tc.ctex", "res://.godot/imported/unicorn_rainbow_v1_rainbow_metallic_roughness.jpg-b25ad59cf29109d17b91fcf8fb6a65e8.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=2048
 detect_3d/compress_to=1

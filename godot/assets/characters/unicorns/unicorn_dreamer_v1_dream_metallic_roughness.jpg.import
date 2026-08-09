@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://co5djnhu7vr08"
-path="res://.godot/imported/unicorn_dreamer_v1_dream_metallic_roughness.jpg-95821d275808d9019501bb7b6b8b24d6.ctex"
+path.s3tc="res://.godot/imported/unicorn_dreamer_v1_dream_metallic_roughness.jpg-95821d275808d9019501bb7b6b8b24d6.s3tc.ctex"
+path.etc2="res://.godot/imported/unicorn_dreamer_v1_dream_metallic_roughness.jpg-95821d275808d9019501bb7b6b8b24d6.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "3cc7695cfe7475a910e26623cc64f6d1"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/characters/unicorns/unicorn_dreamer_v1_dream_metallic_roughness.jpg"
-dest_files=["res://.godot/imported/unicorn_dreamer_v1_dream_metallic_roughness.jpg-95821d275808d9019501bb7b6b8b24d6.ctex"]
+dest_files=["res://.godot/imported/unicorn_dreamer_v1_dream_metallic_roughness.jpg-95821d275808d9019501bb7b6b8b24d6.s3tc.ctex", "res://.godot/imported/unicorn_dreamer_v1_dream_metallic_roughness.jpg-95821d275808d9019501bb7b6b8b24d6.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=2048
 detect_3d/compress_to=1

@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://bxvp717oocd0w"
-path="res://.godot/imported/unicorn_mystic_v1_mystic_normal.png-c93d515380f390500973d40542249afb.ctex"
+path.s3tc="res://.godot/imported/unicorn_mystic_v1_mystic_normal.png-c93d515380f390500973d40542249afb.s3tc.ctex"
+path.etc2="res://.godot/imported/unicorn_mystic_v1_mystic_normal.png-c93d515380f390500973d40542249afb.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "f6de50ee42d004646ba81c2f747ff9e3"
@@ -14,17 +16,17 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/characters/unicorns/unicorn_mystic_v1_mystic_normal.png"
-dest_files=["res://.godot/imported/unicorn_mystic_v1_mystic_normal.png-c93d515380f390500973d40542249afb.ctex"]
+dest_files=["res://.godot/imported/unicorn_mystic_v1_mystic_normal.png-c93d515380f390500973d40542249afb.s3tc.ctex", "res://.godot/imported/unicorn_mystic_v1_mystic_normal.png-c93d515380f390500973d40542249afb.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
 compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
-compress/normal_map=0
+compress/normal_map=1
 compress/channel_pack=0
 mipmaps/generate=true
 mipmaps/limit=-1
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=2048
 detect_3d/compress_to=1

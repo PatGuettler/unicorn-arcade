@@ -1,0 +1,91 @@
+extends Node
+
+## Serializes static decor rendering.  A room can have many texture-backed
+## buttons, but there is never more than one transient decor SubViewport.
+const PreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+signal preview_ready(key: String, texture: Texture2D)
+
+var _textures: Dictionary = {}
+var _queue: Array[Dictionary] = []
+var _waiters: Dictionary = {}
+var _rendering := false
+var _active_key := ""
+var _host: Control
+
+
+func request(definition: Dictionary, yaw_degrees: float, callback: Callable) -> void:
+	var key := cache_key(definition, yaw_degrees)
+	if _textures.has(key):
+		callback.call_deferred(_textures[key] as Texture2D)
+		return
+	var callbacks: Array = _waiters.get(key, [])
+	callbacks.append(callback)
+	_waiters[key] = callbacks
+	if _active_key == key or _queue.any(func(entry: Dictionary) -> bool: return str(entry.get("key", "")) == key):
+		return
+	if _rendering and not _queue.is_empty() and str(_queue.front().get("key", "")) == key:
+		return
+	_queue.append({"key": key, "definition": definition.duplicate(true), "yaw": yaw_degrees})
+	if not _rendering:
+		call_deferred("_render_next")
+
+
+func cache_key(definition: Dictionary, yaw_degrees: float) -> String:
+	return "%s:%d" % [str(definition.get("id", definition.get("item_id", "decor"))), int(round(fposmod(yaw_degrees, 360.0) / 45.0)) * 45]
+
+
+func cached_texture(definition: Dictionary, yaw_degrees: float) -> Texture2D:
+	return _textures.get(cache_key(definition, yaw_degrees)) as Texture2D
+
+
+func active_viewport_count() -> int:
+	return 1 if _rendering else 0
+
+
+func _render_next() -> void:
+	if _queue.is_empty():
+		_rendering = false
+		return
+	_rendering = true
+	var request_data: Dictionary = _queue.pop_front()
+	_active_key = str(request_data.get("key", ""))
+	if not is_instance_valid(_host):
+		_host = Control.new()
+		_host.name = "DecorPreviewCacheRenderer"
+		_host.position = Vector2(-4096, -4096)
+		_host.size = Vector2(192, 192)
+		_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		get_tree().root.add_child(_host)
+	var preview := PreviewScene.new()
+	preview.size = Vector2(192, 192)
+	_host.add_child(preview)
+	preview.setup(request_data.definition.merged({"animate": false, "presentation": "cache"}, true))
+	preview.set_display_yaw(float(request_data.yaw))
+	var viewport := preview.get_node_or_null("SubViewport") as SubViewport
+	if is_instance_valid(viewport):
+		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	var texture: Texture2D = null
+	if DisplayServer.get_name() == "headless":
+		texture = ImageTexture.create_from_image(Image.create(1, 1, false, Image.FORMAT_RGBA8))
+	elif is_instance_valid(viewport):
+		for frame in 12:
+			await get_tree().process_frame
+			var image := viewport.get_texture().get_image()
+			if image != null and not image.is_empty():
+				texture = ImageTexture.create_from_image(image)
+				break
+		if texture == null:
+			# Bounded readback may be unavailable; return a durable
+			# transparent fallback rather than retaining a dead ViewportTexture.
+			texture = ImageTexture.create_from_image(Image.create(1, 1, false, Image.FORMAT_RGBA8))
+	if texture != null:
+		_textures[request_data.key] = texture
+		preview_ready.emit(request_data.key, texture)
+	var callbacks: Array = _waiters.get(request_data.key, [])
+	_waiters.erase(request_data.key)
+	for callback in callbacks:
+		if callback is Callable and (callback as Callable).is_valid():
+			(callback as Callable).call_deferred(texture)
+	preview.queue_free()
+	_active_key = ""
+	call_deferred("_render_next")
