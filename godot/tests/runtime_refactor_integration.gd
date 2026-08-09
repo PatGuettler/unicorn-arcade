@@ -1,5 +1,7 @@
 extends Node
 
+const RoomEditor = preload("res://scripts/meta/room_editor.gd")
+
 var failures: Array[String] = []
 
 func _ready() -> void:
@@ -7,6 +9,13 @@ func _ready() -> void:
 
 func _check(value: bool, message: String) -> void:
 	if not value: failures.append(message)
+
+
+func _has_visible_pixels(texture: Texture2D) -> bool:
+	if texture == null:
+		return false
+	var image := texture.get_image()
+	return image != null and not image.is_empty() and image.get_used_rect().has_area()
 
 func _run() -> void:
 	var received: Array = []
@@ -21,7 +30,9 @@ func _run() -> void:
 	for frame in 3:
 		await get_tree().process_frame
 	_check(missing.size() == 1 and missing[0] == null and not RuntimeAssetLoader.is_processing(), "loader reports a missing path and idles")
-	var definition := {"id":"lamp", "category":"lighting"}
+	var definition := {"id":"rug", "category":"rugs"}
+	var transparent_readback := Image.create(2, 2, false, Image.FORMAT_RGBA8)
+	_check(not bool(DecorPreviewCache.call("_has_visible_pixels", transparent_readback)), "decor cache rejects a fully transparent viewport readback")
 	var textures: Array = []
 	DecorPreviewCache.request(definition, 0.0, func(texture: Texture2D) -> void: textures.append(texture))
 	DecorPreviewCache.request(definition, 0.0, func(texture: Texture2D) -> void: textures.append(texture))
@@ -30,7 +41,18 @@ func _run() -> void:
 		await get_tree().process_frame
 	for frame in 3:
 		await get_tree().process_frame
-	_check(textures.size() == 2 and textures[0] is ImageTexture and textures[0].get_size().x > 0 and textures[0] == textures[1], "decor cache coalesces active duplicates into a durable ImageTexture")
+	_check(textures.size() == 2 and textures[0] is ImageTexture and _has_visible_pixels(textures[0]) and textures[0] == textures[1], "Fluffy Rug cache coalesces active duplicates into a visible durable ImageTexture")
+	var room_editor := RoomEditor.new()
+	var placeholder := room_editor.call("_decor_thumbnail", "rug") as Texture2D
+	_check(_has_visible_pixels(placeholder), "room editor assigns the Fluffy Rug thumbnail while its 3D preview is pending")
+	var preview_parent := Control.new()
+	var preview := TextureRect.new()
+	preview.name = "CachedDecorPreview"
+	preview_parent.add_child(preview)
+	room_editor.call("_refresh_cached_decor_preview", preview_parent, definition, 0.0)
+	_check(preview.texture == textures[0], "room editor applies the visible cached Fluffy Rug preview")
+	preview_parent.free()
+	room_editor.free()
 	if failures.is_empty():
 		print("RUNTIME_REFACTOR_INTEGRATION_OK")
 		get_tree().quit(0)

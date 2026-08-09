@@ -3,6 +3,7 @@ extends Node
 ## Serializes static decor rendering.  A room can have many texture-backed
 ## buttons, but there is never more than one transient decor SubViewport.
 const PreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const THUMBNAIL_DIRECTORY := "res://assets/store/decor_thumbnails/"
 signal preview_ready(key: String, texture: Texture2D)
 
 var _textures: Dictionary = {}
@@ -42,6 +43,21 @@ func active_viewport_count() -> int:
 	return 1 if _rendering else 0
 
 
+func _thumbnail_fallback(definition: Dictionary) -> Texture2D:
+	var item_id := str(definition.get("id", definition.get("item_id", "")))
+	var thumbnail := load("%s%s.png" % [THUMBNAIL_DIRECTORY, item_id]) as Texture2D
+	if thumbnail == null:
+		return null
+	var image := thumbnail.get_image()
+	if image != null and not image.is_empty() and image.get_used_rect().has_area():
+		return ImageTexture.create_from_image(image)
+	return thumbnail
+
+
+func _has_visible_pixels(image: Image) -> bool:
+	return image != null and not image.is_empty() and image.get_used_rect().has_area()
+
+
 func _render_next() -> void:
 	if _queue.is_empty():
 		_rendering = false
@@ -66,18 +82,19 @@ func _render_next() -> void:
 		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	var texture: Texture2D = null
 	if DisplayServer.get_name() == "headless":
-		texture = ImageTexture.create_from_image(Image.create(1, 1, false, Image.FORMAT_RGBA8))
+		texture = _thumbnail_fallback(request_data.definition)
 	elif is_instance_valid(viewport):
 		for frame in 12:
 			await get_tree().process_frame
+			await RenderingServer.frame_post_draw
 			var image := viewport.get_texture().get_image()
-			if image != null and not image.is_empty():
+			if _has_visible_pixels(image):
 				texture = ImageTexture.create_from_image(image)
 				break
-		if texture == null:
-			# Bounded readback may be unavailable; return a durable
-			# transparent fallback rather than retaining a dead ViewportTexture.
-			texture = ImageTexture.create_from_image(Image.create(1, 1, false, Image.FORMAT_RGBA8))
+	if texture == null:
+		# A bounded readback can remain transparent before the preview is drawn.
+		# Keep its thumbnail visible rather than caching a blank texture.
+		texture = _thumbnail_fallback(request_data.definition)
 	if texture != null:
 		_textures[request_data.key] = texture
 		preview_ready.emit(request_data.key, texture)

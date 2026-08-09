@@ -7,6 +7,7 @@ const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
 const FURNITURE_BAG_ICON := preload("res://assets/ui/furniture_bag_v1.svg")
+const DECOR_THUMBNAIL_DIRECTORY := "res://assets/store/decor_thumbnails/"
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -755,7 +756,12 @@ func _refresh_cached_decor_preview(parent: Control, definition: Dictionary, yaw:
 	if cached != null:
 		preview.texture = cached
 		return
+	preview.texture = _decor_thumbnail(item_id)
 	DecorPreviewCache.request(definition, yaw, Callable(self, "_apply_cached_preview").bind(preview.get_instance_id()))
+
+
+func _decor_thumbnail(item_id: String) -> Texture2D:
+	return load("%s%s.png" % [DECOR_THUMBNAIL_DIRECTORY, item_id]) as Texture2D
 
 
 func _apply_cached_preview(texture: Texture2D, preview_instance_id: int) -> void:
