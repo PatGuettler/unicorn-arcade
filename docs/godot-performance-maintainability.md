@@ -46,5 +46,8 @@ Pixel validation remained unavailable.
 Helper boundaries: `ProfileViewComponents` owns profile aggregation,
 `WordRoundCatalog` owns pure modular word-round selection, and
 `AdBannerRecoveryPolicy` owns stale/recovery predicates. The duplicate root
-Poing addon deletion is validated but blocked pending direct, exact destructive
-approval; the live plugin remains `godot/addons/admob`.
+Poing addon was recoverably archived at
+`E:\AI Projects\games\guettler\unicorn archive\poing-root-duplicate-2026-08-09\godot\addons`:
+all 522 tracked files were verified in the archive, and copied remnants matched
+SHA-256 before their source removal. The live plugin remains
+`godot/addons/admob`; `godot/addons/legacy_profile_bridge` also remains.
