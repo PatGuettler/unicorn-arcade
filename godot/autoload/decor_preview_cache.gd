@@ -7,6 +7,7 @@ const THUMBNAIL_DIRECTORY := "res://assets/store/decor_thumbnails/"
 signal preview_ready(key: String, texture: Texture2D)
 
 var _textures: Dictionary = {}
+var _thumbnail_fallbacks: Dictionary = {}
 var _queue: Array[Dictionary] = []
 var _waiters: Dictionary = {}
 var _rendering := false
@@ -37,6 +38,10 @@ func cache_key(definition: Dictionary, yaw_degrees: float) -> String:
 
 func cached_texture(definition: Dictionary, yaw_degrees: float) -> Texture2D:
 	return _textures.get(cache_key(definition, yaw_degrees)) as Texture2D
+
+
+func is_thumbnail_fallback(definition: Dictionary, yaw_degrees: float) -> bool:
+	return bool(_thumbnail_fallbacks.get(cache_key(definition, yaw_degrees), false))
 
 
 func active_viewport_count() -> int:
@@ -81,8 +86,10 @@ func _render_next() -> void:
 	if is_instance_valid(viewport):
 		viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
 	var texture: Texture2D = null
+	var used_thumbnail_fallback := false
 	if DisplayServer.get_name() == "headless":
 		texture = _thumbnail_fallback(request_data.definition)
+		used_thumbnail_fallback = true
 	elif is_instance_valid(viewport):
 		for frame in 12:
 			await get_tree().process_frame
@@ -95,8 +102,10 @@ func _render_next() -> void:
 		# A bounded readback can remain transparent before the preview is drawn.
 		# Keep its thumbnail visible rather than caching a blank texture.
 		texture = _thumbnail_fallback(request_data.definition)
+		used_thumbnail_fallback = true
 	if texture != null:
 		_textures[request_data.key] = texture
+		_thumbnail_fallbacks[request_data.key] = used_thumbnail_fallback
 		preview_ready.emit(request_data.key, texture)
 	var callbacks: Array = _waiters.get(request_data.key, [])
 	_waiters.erase(request_data.key)

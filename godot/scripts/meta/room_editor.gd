@@ -729,6 +729,7 @@ func _add_cached_decor_preview(parent: Control, definition: Dictionary, yaw: flo
 	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview.resized.connect(_center_preview_pivot.bind(preview))
 	if room_item:
 		preview.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	else:
@@ -741,6 +742,7 @@ func _add_cached_decor_preview(parent: Control, definition: Dictionary, yaw: flo
 		preview.offset_right = -8
 		preview.offset_bottom = 88
 	parent.add_child(preview)
+	_center_preview_pivot(preview)
 	_refresh_cached_decor_preview(parent, definition, yaw)
 
 
@@ -750,24 +752,42 @@ func _refresh_cached_decor_preview(parent: Control, definition: Dictionary, yaw:
 		return
 	var item_id := str(definition.get("id", definition.get("item_id", "")))
 	if item_id.begins_with("companion_"):
-		preview.texture = load(CompanionAssets.thumbnail_path(item_id.trim_prefix("companion_"))) as Texture2D
+		_apply_decor_preview(preview, load(CompanionAssets.thumbnail_path(item_id.trim_prefix("companion_"))) as Texture2D, yaw, true)
 		return
+	var key := DecorPreviewCache.cache_key(definition, yaw)
+	preview.set_meta("decor_preview_key", key)
 	var cached := DecorPreviewCache.cached_texture(definition, yaw)
 	if cached != null:
-		preview.texture = cached
+		_apply_decor_preview(preview, cached, yaw, DecorPreviewCache.is_thumbnail_fallback(definition, yaw))
 		return
-	preview.texture = _decor_thumbnail(item_id)
-	DecorPreviewCache.request(definition, yaw, Callable(self, "_apply_cached_preview").bind(preview.get_instance_id()))
+	_apply_decor_preview(preview, _decor_thumbnail(item_id), yaw, true)
+	DecorPreviewCache.request(definition, yaw, Callable(self, "_apply_cached_preview").bind(preview.get_instance_id(), definition.duplicate(true), yaw))
 
 
 func _decor_thumbnail(item_id: String) -> Texture2D:
 	return load("%s%s.png" % [DECOR_THUMBNAIL_DIRECTORY, item_id]) as Texture2D
 
 
-func _apply_cached_preview(texture: Texture2D, preview_instance_id: int) -> void:
+func _apply_cached_preview(texture: Texture2D, preview_instance_id: int, definition: Dictionary, yaw: float) -> void:
 	var preview := instance_from_id(preview_instance_id) as TextureRect
-	if is_instance_valid(preview) and texture != null:
-		preview.texture = texture
+	var key := DecorPreviewCache.cache_key(definition, yaw)
+	if is_instance_valid(preview) and texture != null and str(preview.get_meta("decor_preview_key", "")) == key:
+		_apply_decor_preview(preview, texture, yaw, DecorPreviewCache.is_thumbnail_fallback(definition, yaw))
+
+
+func _apply_decor_preview(preview: TextureRect, texture: Texture2D, yaw: float, thumbnail_fallback: bool) -> void:
+	preview.texture = texture
+	preview.rotation_degrees = _preview_rotation(yaw) if thumbnail_fallback else 0.0
+	_center_preview_pivot(preview)
+
+
+func _preview_rotation(yaw: float) -> float:
+	return float(int(round(fposmod(yaw, 360.0) / 45.0)) * 45)
+
+
+func _center_preview_pivot(preview: TextureRect) -> void:
+	if is_instance_valid(preview):
+		preview.pivot_offset = preview.size * 0.5
 
 
 func _rebuild_bag_grid(count_label: Label) -> void:
