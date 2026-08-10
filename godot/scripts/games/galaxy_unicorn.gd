@@ -93,7 +93,15 @@ func _input(event: InputEvent) -> void:
 
 
 func _start_level(for_level: int) -> void:
-	level = for_level
+	_start_level_with_lifecycle(for_level, true)
+
+
+func _start_level_with_lifecycle(for_level: int, begin_run: bool) -> void:
+	if begin_run:
+		level_run.begin("galaxy_unicorn", for_level)
+		level = level_run.level
+	else:
+		level = level_run.level
 	target_kills = Rules.galaxy_target(level)
 	kills = 0
 	score = 0
@@ -111,9 +119,8 @@ func _start_level(for_level: int) -> void:
 	# Keep the original opening beat so the tutorial has time to mount before
 	# the first wave appears.
 	opening_timer = 1500.0
-	started_ms = Time.get_ticks_msec()
-	active = true
-	CompanionAbilityService.begin_level("galaxy_unicorn", level)
+	started_ms = level_run.started_ms
+	active = level_run.active
 	var companion_name := str(AppState.equipped_companion()).capitalize()
 	message_label.text = "Drag %s left and right. Rainbow bolts fire automatically." % companion_name
 	action_button.hide()
@@ -214,8 +221,8 @@ func _resolve_collisions() -> void:
 				break
 	enemies = enemies.filter(func(item: Dictionary) -> bool: return int(item["hp"]) > 0)
 	if active and kills >= target_kills:
-		active = false
-		var reward := AppState.complete_level("galaxy_unicorn", level, Time.get_ticks_msec() - started_ms)
+		var reward := level_run.complete()
+		active = level_run.active
 		message_label.text = "Sector cleared! +%d coins" % reward
 		action_button.text = "Next Sector"
 		action_button.show()
@@ -234,7 +241,8 @@ func _lose_life(duration: float) -> void:
 	lives -= 1
 	invulnerable = duration
 	if lives <= 0:
-		active = false
+		level_run.fail("The gloom broke through. Try this sector again.")
+		active = level_run.active
 		message_label.text = "The gloom broke through. Try this sector again."
 		action_button.text = "Retry"
 		action_button.show()
@@ -253,6 +261,21 @@ func _mystic_blast() -> void:
 	enemies.erase(target)
 	message_label.text = "Mystic turned the nearest threat into stardust!"
 	_resolve_collisions()
+
+
+func can_retry_failure() -> bool:
+	return level_run.can_retry()
+
+
+func retry_failure() -> void:
+	if can_retry_failure():
+		_start_level_with_lifecycle(level_run.retry(), false)
+
+
+func _advance_level() -> void:
+	match level_run.outcome:
+		LevelRunController.Outcome.SUCCESS, LevelRunController.Outcome.FAILURE:
+			_start_level_with_lifecycle(level_run.retry(), false)
 
 
 func _draw() -> void:
@@ -404,15 +427,7 @@ func _build_ui() -> void:
 	actions.name = "GalaxyBottomSafeActions"
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	band_stack.add_child(actions)
-	action_button = Button.new()
-	StorybookUI.apply_game_action(action_button, 160)
-	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Sector" else level))
+	action_button = StorybookUI.progression_action_button("", 160, _advance_level)
 	actions.add_child(action_button)
-	var back := Button.new()
-	StorybookUI.apply_game_action(back, 150)
-	back.text = "Arcade"
-	back.pressed.connect(func() -> void:
-		AppState.set_shell_destination("category", "Arcade")
-		get_tree().change_scene_to_file("res://scenes/main.tscn")
-	)
+	var back := StorybookUI.category_back_button("Arcade", 150, return_to_category)
 	actions.add_child(back)

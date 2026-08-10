@@ -63,10 +63,18 @@ func _process(delta: float) -> void:
 
 
 func _start_level(for_level: int) -> void:
+	_start_level_with_lifecycle(for_level, true)
+
+
+func _start_level_with_lifecycle(for_level: int, begin_run: bool) -> void:
 	layout_generation += 1
 	if is_instance_valid(track_viewport):
 		track_viewport.set_camera(Vector2.ZERO, 1.0, false)
-	level = for_level
+	if begin_run:
+		level_run.begin("sliding_window", for_level)
+		level = level_run.level
+	else:
+		level = level_run.level
 	var bounds := Rules.sliding_bounds(level)
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
@@ -79,11 +87,10 @@ func _start_level(for_level: int) -> void:
 	window_pos = 0
 	opponent_pos = 0
 	rival_elapsed = -500.0
-	started_ms = Time.get_ticks_msec()
-	active = true
+	started_ms = level_run.started_ms
+	active = level_run.active
 	action_button.hide()
 	message_label.text = "Race the rival! Tap the biggest number in YOUR glowing window."
-	CompanionAbilityService.begin_level("sliding_window", level)
 	_rebuild_tracks()
 	_update_window()
 	_update_rival()
@@ -102,8 +109,8 @@ func _choose(absolute_index: int) -> void:
 		_fail("Wrong node selected! The maximum was %d." % maximum)
 		return
 	if window_pos + window_size >= level_data.size():
-		active = false
-		var reward := AppState.complete_level("sliding_window", level, Time.get_ticks_msec() - started_ms)
+		var reward := level_run.complete()
+		active = level_run.active
 		message_label.text = "You won the race! +%d coins" % reward
 		action_button.text = "Next Level"
 		action_button.show()
@@ -117,7 +124,8 @@ func _choose(absolute_index: int) -> void:
 
 func _fail(reason: String) -> void:
 	layout_generation += 1
-	active = false
+	level_run.fail(reason)
+	active = level_run.active
 	message_label.text = reason
 	action_button.text = "Retry"
 	action_button.show()
@@ -139,12 +147,18 @@ func _show_hint() -> void:
 
 
 func can_retry_failure() -> bool:
-	return not active and is_instance_valid(action_button) and action_button.text == "Retry"
+	return level_run.can_retry()
 
 
 func retry_failure() -> void:
 	if can_retry_failure():
-		_start_level(level)
+		_start_level_with_lifecycle(level_run.retry(), false)
+
+
+func _advance_level() -> void:
+	match level_run.outcome:
+		LevelRunController.Outcome.SUCCESS, LevelRunController.Outcome.FAILURE:
+			_start_level_with_lifecycle(level_run.retry(), false)
 
 
 func _index_is_in_window(absolute_index: int) -> bool:
@@ -524,22 +538,11 @@ func _build_ui() -> void:
 	var actions := HBoxContainer.new()
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	root.add_child(actions)
-	var hint := Button.new()
-	StorybookUI.apply_game_action(hint, 120)
-	hint.text = "Hint"
-	hint.pressed.connect(_show_hint)
+	var hint := StorybookUI.hint_highlight_button("Hint", 120, _show_hint)
 	actions.add_child(hint)
-	action_button = Button.new()
-	StorybookUI.apply_game_action(action_button, 160)
-	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Level" else level))
+	action_button = StorybookUI.progression_action_button("", 160, _advance_level)
 	actions.add_child(action_button)
-	var back := Button.new()
-	StorybookUI.apply_game_action(back, 170)
-	back.text = "Number Games"
-	back.pressed.connect(func() -> void:
-		AppState.set_shell_destination("category", "Number")
-		get_tree().change_scene_to_file("res://scenes/main.tscn")
-	)
+	var back := StorybookUI.category_back_button("Number Games", 170, return_to_category)
 	actions.add_child(back)
 
 

@@ -139,15 +139,22 @@ func _input(event: InputEvent) -> void:
 
 
 func _start_level(for_level: int) -> void:
-	level = maxi(1, for_level)
+	_start_level_with_lifecycle(for_level, true)
+
+
+func _start_level_with_lifecycle(for_level: int, begin_run: bool) -> void:
+	if begin_run:
+		level_run.begin("comet_math_rescue", maxi(1, for_level))
+		level = level_run.level
+	else:
+		level = level_run.level
 	target_rescues = Rules.comet_target(level)
 	rescues = 0
 	score = 0
 	lives = 3
 	selected_lane = 1
-	started_ms = Time.get_ticks_msec()
-	active = true
-	CompanionAbilityService.begin_level("comet_math_rescue", level)
+	started_ms = level_run.started_ms
+	active = level_run.active
 	action_button.hide()
 	status_label.text = "Aim at a lane, then FIRE RAINBOW to check that comet."
 	fire_button.show()
@@ -212,13 +219,14 @@ func _resolve_wave(force_correct := false) -> bool:
 
 func _finish_wave(timed_out := false) -> void:
 	if lives <= 0:
-		active = false
+		level_run.fail("Time ran out. Three comets slipped through. Retry this rescue mission." if timed_out else "Three comets slipped through. Retry this rescue mission.")
+		active = level_run.active
 		action_button.text = "Retry"
 		action_button.show()
 		status_label.text = "Time ran out. Three comets slipped through. Retry this rescue mission." if timed_out else "Three comets slipped through. Retry this rescue mission."
 	elif rescues >= target_rescues:
-		active = false
-		var reward := AppState.complete_level("comet_math_rescue", level, Time.get_ticks_msec() - started_ms)
+		var reward := level_run.complete()
+		active = level_run.active
 		action_button.text = "Next Mission"
 		action_button.show()
 		status_label.text = "Rescue complete! +%d coins" % reward
@@ -264,12 +272,18 @@ func _show_hint() -> void:
 
 
 func can_retry_failure() -> bool:
-	return not active and is_instance_valid(action_button) and action_button.text == "Retry"
+	return level_run.can_retry()
 
 
 func retry_failure() -> void:
 	if can_retry_failure():
-		_start_level(level)
+		_start_level_with_lifecycle(level_run.retry(), false)
+
+
+func _advance_level() -> void:
+	match level_run.outcome:
+		LevelRunController.Outcome.SUCCESS, LevelRunController.Outcome.FAILURE:
+			_start_level_with_lifecycle(level_run.retry(), false)
 
 
 func _lane_for_x(x: float) -> int:
@@ -389,12 +403,7 @@ func _build_ui() -> void:
 	StorybookUI.apply_game_action(fire_button, 210)
 	fire_button.pressed.connect(_resolve_wave)
 	actions.add_child(fire_button)
-	action_button = Button.new()
-	StorybookUI.apply_game_action(action_button, 170)
-	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Mission" else level))
+	action_button = StorybookUI.progression_action_button("", 170, _advance_level)
 	actions.add_child(action_button)
-	var back := Button.new()
-	StorybookUI.apply_game_action(back, 150)
-	back.text = "Arcade"
-	back.pressed.connect(func() -> void: AppState.set_shell_destination("category", "Arcade"); get_tree().change_scene_to_file("res://scenes/main.tscn"))
+	var back := StorybookUI.category_back_button("Arcade", 150, return_to_category)
 	actions.add_child(back)
