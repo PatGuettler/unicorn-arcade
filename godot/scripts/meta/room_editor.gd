@@ -3,12 +3,10 @@ extends Control
 const Catalog = preload("res://scripts/meta_catalog.gd")
 const Rules = preload("res://scripts/room_rules.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
-const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
+const FurnitureBagOverlay = preload("res://scripts/meta/furniture_bag_overlay.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
-const ScrollTapGuard = preload("res://scripts/ui/scroll_tap_guard.gd")
 const FURNITURE_BAG_ICON := preload("res://assets/ui/furniture_bag_v1.svg")
-const DECOR_THUMBNAIL_DIRECTORY := "res://assets/store/decor_thumbnails/"
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -16,7 +14,6 @@ const CYAN := Color("58d6e8")
 const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 const MUTED := Color("aab7e8")
-const SCROLL_TOUCH_DEADZONE := 12.0
 const ROOM_BACKGROUNDS := {
 	"sparkle": preload("res://assets/meta/environments/room_sparkle_production_v1.png"),
 	"rainbow": preload("res://assets/meta/environments/room_rainbow_production_v1.png"),
@@ -38,13 +35,8 @@ var status_label: Label
 var reset_button: Button
 var bag_button: Button
 var selection_toolbar: HBoxContainer
-var bag_overlay: Control
-var bag_grid: GridContainer
-var bag_category_scroll: ScrollContainer
-var bag_catalog_scroll: ScrollContainer
+var bag_overlay: FurnitureBagOverlay
 var bag_category := "all"
-var bag_category_tap_guard := ScrollTapGuard.new(SCROLL_TOUCH_DEADZONE)
-var bag_catalog_tap_guard := ScrollTapGuard.new(SCROLL_TOUCH_DEADZONE)
 var roaming_actor: RoomItemPreview3D
 var roam_target := Vector2.ZERO
 var roam_pause := 0.0
@@ -105,47 +97,6 @@ func _finish_item_drag() -> bool:
 	return true
 
 
-func _on_bag_category_scroll_gui_input(event: InputEvent) -> void:
-	_observe_bag_scroll_gesture(bag_category_tap_guard, "category", "horizontal", event)
-
-
-func _on_bag_catalog_scroll_gui_input(event: InputEvent) -> void:
-	_observe_bag_scroll_gesture(bag_catalog_tap_guard, "catalog", "vertical", event)
-
-
-func _observe_bag_scroll_gesture(guard: ScrollTapGuard, surface: String, axis: String, event: InputEvent) -> void:
-	if event is InputEventScreenTouch:
-		var touch := event as InputEventScreenTouch
-		if touch.pressed:
-			guard.begin(surface, axis, touch)
-		else:
-			guard.finish(touch)
-	elif event is InputEventScreenDrag:
-		# ScrollContainer owns physical movement. The guard only observes the
-		# matching touch and dominant axis for post-scroll action suppression.
-		guard.observe_drag(event as InputEventScreenDrag)
-
-
-func _on_bag_scroll_started(guard: ScrollTapGuard) -> void:
-	guard.on_scroll_started()
-
-
-func _on_bag_scroll_ended(guard: ScrollTapGuard) -> void:
-	guard.on_scroll_ended()
-
-
-func _reset_bag_scroll_gesture() -> void:
-	bag_category_tap_guard = ScrollTapGuard.new(SCROLL_TOUCH_DEADZONE)
-	bag_catalog_tap_guard = ScrollTapGuard.new(SCROLL_TOUCH_DEADZONE)
-
-
-func _bag_action_suppressed() -> bool:
-	return (
-		bag_category_tap_guard.is_action_suppressed()
-		or bag_catalog_tap_guard.is_action_suppressed()
-	)
-
-
 func _clear_ui() -> void:
 	# A rebuild queues the old canvas for deletion, so its actor remains valid
 	# through this frame. Retire the reference and motion state explicitly or the
@@ -163,10 +114,6 @@ func _clear_ui() -> void:
 	item_buttons.clear()
 	selection_toolbar = null
 	bag_overlay = null
-	bag_grid = null
-	bag_category_scroll = null
-	bag_catalog_scroll = null
-	_reset_bag_scroll_gesture()
 
 
 func _build_editor() -> void:
@@ -620,262 +567,29 @@ func _show_bag() -> void:
 		bag_button.hide()
 	if is_instance_valid(status_label):
 		status_label.hide()
-	bag_overlay = Control.new()
-	bag_overlay.name = "FurnitureBagOverlay"
-	bag_overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bag_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
-	bag_overlay.z_index = 4000
+	bag_overlay = FurnitureBagOverlay.new()
+	bag_overlay.item_selected.connect(_place_from_bag)
+	bag_overlay.closed.connect(_close_bag)
 	add_child(bag_overlay)
-	var dim := ColorRect.new()
-	dim.color = Color("050a20a8")
-	dim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	bag_overlay.add_child(dim)
-	var sheet := PanelContainer.new()
-	sheet.name = "FurnitureBagSheet"
-	sheet.set_anchor(SIDE_LEFT, 0.0)
-	sheet.set_anchor(SIDE_TOP, 0.34)
-	sheet.set_anchor(SIDE_RIGHT, 1.0)
-	sheet.set_anchor(SIDE_BOTTOM, 1.0)
-	sheet.offset_left = 8
-	sheet.offset_top = 0
-	sheet.offset_right = -8
-	sheet.offset_bottom = -8
-	sheet.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254dfa"), StorybookUI.GOLD, 24))
-	bag_overlay.add_child(sheet)
-	var sheet_margin := MarginContainer.new()
-	sheet_margin.add_theme_constant_override("margin_left", 16)
-	sheet_margin.add_theme_constant_override("margin_right", 16)
-	sheet_margin.add_theme_constant_override("margin_top", 12)
-	sheet_margin.add_theme_constant_override("margin_bottom", 12)
-	sheet.add_child(sheet_margin)
-	var content := VBoxContainer.new()
-	content.add_theme_constant_override("separation", 8)
-	sheet_margin.add_child(content)
-	var header := HBoxContainer.new()
-	content.add_child(header)
-	var close := Button.new()
-	close.text = "×"
-	close.tooltip_text = "Close furniture bag"
-	close.custom_minimum_size = Vector2(48, 48)
-	close.add_theme_font_size_override("font_size", 26)
-	close.pressed.connect(_close_bag)
-	header.add_child(close)
-	var title := Label.new()
-	title.text = "FURNITURE BAG"
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title.add_theme_font_size_override("font_size", 24)
-	title.add_theme_color_override("font_color", StorybookUI.CREAM)
-	title.add_theme_color_override("font_outline_color", StorybookUI.PLUM)
-	title.add_theme_constant_override("outline_size", 3)
-	header.add_child(title)
-	var shop := Button.new()
-	shop.text = "SHOP"
-	shop.custom_minimum_size = Vector2(82, 56)
-	shop.pressed.connect(func() -> void: get_tree().change_scene_to_file("res://scenes/meta/marketplace.tscn"))
-	header.add_child(shop)
-	bag_category_scroll = ScrollContainer.new()
-	bag_category_scroll.name = "FurnitureBagCategoryScroll"
-	bag_category_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	bag_category_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	bag_category_scroll.scroll_deadzone = 12
-	bag_category_scroll.custom_minimum_size.y = 58
-	bag_category_scroll.gui_input.connect(_on_bag_category_scroll_gui_input)
-	bag_category_scroll.scroll_started.connect(_on_bag_scroll_started.bind(bag_category_tap_guard))
-	bag_category_scroll.scroll_ended.connect(_on_bag_scroll_ended.bind(bag_category_tap_guard))
-	content.add_child(bag_category_scroll)
-	var categories := HBoxContainer.new()
-	categories.add_theme_constant_override("separation", 6)
-	categories.mouse_filter = Control.MOUSE_FILTER_PASS
-	bag_category_scroll.add_child(categories)
-	for category_data in Catalog.categories():
-		var chip := Button.new()
-		var category_id := str(category_data.get("id", "all"))
-		chip.text = str(category_data.get("label", category_id))
-		chip.button_pressed = category_id == bag_category
-		chip.mouse_filter = Control.MOUSE_FILTER_PASS
-		chip.pressed.connect(_set_bag_category.bind(category_id))
-		categories.add_child(chip)
-	var companion_chip := Button.new()
-	companion_chip.text = "Companion"
-	companion_chip.button_pressed = bag_category == "companions"
-	companion_chip.mouse_filter = Control.MOUSE_FILTER_PASS
-	companion_chip.pressed.connect(_set_bag_category.bind("companions"))
-	categories.add_child(companion_chip)
-	var count_label := Label.new()
-	count_label.name = "BagCountLabel"
-	count_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	count_label.add_theme_color_override("font_color", MUTED)
-	content.add_child(count_label)
-	bag_catalog_scroll = ScrollContainer.new()
-	bag_catalog_scroll.name = "FurnitureBagScroll"
-	bag_catalog_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bag_catalog_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	bag_catalog_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	bag_catalog_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
-	bag_catalog_scroll.scroll_deadzone = 12
-	bag_catalog_scroll.follow_focus = false
-	bag_catalog_scroll.clip_contents = true
-	bag_catalog_scroll.gui_input.connect(_on_bag_catalog_scroll_gui_input)
-	bag_catalog_scroll.scroll_started.connect(_on_bag_scroll_started.bind(bag_catalog_tap_guard))
-	bag_catalog_scroll.scroll_ended.connect(_on_bag_scroll_ended.bind(bag_catalog_tap_guard))
-	content.add_child(bag_catalog_scroll)
-	bag_grid = GridContainer.new()
-	bag_grid.name = "BagGrid"
-	bag_grid.columns = 3
-	bag_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	bag_grid.mouse_filter = Control.MOUSE_FILTER_PASS
-	bag_grid.add_theme_constant_override("h_separation", 7)
-	bag_grid.add_theme_constant_override("v_separation", 7)
-	bag_catalog_scroll.add_child(bag_grid)
-	bag_catalog_scroll.resized.connect(func() -> void:
-		if is_instance_valid(bag_grid):
-			bag_grid.custom_minimum_size.x = bag_catalog_scroll.size.x
-	)
-	_rebuild_bag_grid(count_label)
+	bag_overlay.setup(companion_id, bag_category)
 
 
 func _close_bag() -> void:
 	if is_instance_valid(bag_overlay):
+		bag_category = bag_overlay.category
 		bag_overlay.queue_free()
 	bag_overlay = null
-	bag_grid = null
-	bag_category_scroll = null
-	bag_catalog_scroll = null
-	_reset_bag_scroll_gesture()
 	if is_instance_valid(bag_button):
 		bag_button.show()
 	if is_instance_valid(status_label):
 		status_label.show()
 
 
-func _set_bag_category(category_id: String) -> void:
-	if _bag_action_suppressed():
-		return
-	bag_category = category_id
-	_close_bag()
-	_show_bag()
-
-
-func _add_cached_decor_preview(parent: Control, definition: Dictionary, yaw: float, room_item: bool) -> void:
-	var preview := TextureRect.new()
-	preview.name = "CachedDecorPreview"
-	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if room_item:
-		preview.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	else:
-		preview.set_anchor(SIDE_LEFT, 0.0)
-		preview.set_anchor(SIDE_TOP, 0.0)
-		preview.set_anchor(SIDE_RIGHT, 1.0)
-		preview.set_anchor(SIDE_BOTTOM, 0.0)
-		preview.offset_left = 8
-		preview.offset_top = 5
-		preview.offset_right = -8
-		preview.offset_bottom = 88
-	parent.add_child(preview)
-	_refresh_cached_decor_preview(parent, definition, yaw)
-
-
-func _refresh_cached_decor_preview(parent: Control, definition: Dictionary, yaw: float) -> void:
-	var preview := parent.get_node_or_null("CachedDecorPreview") as TextureRect
-	if not is_instance_valid(preview):
-		return
-	var item_id := str(definition.get("id", definition.get("item_id", "")))
-	if item_id.begins_with("companion_"):
-		_apply_decor_preview(preview, load(CompanionAssets.thumbnail_path(item_id.trim_prefix("companion_"))) as Texture2D)
-		return
-	var key := DecorPreviewCache.cache_key(definition, yaw)
-	preview.set_meta("decor_preview_key", key)
-	var cached := DecorPreviewCache.cached_texture(definition, yaw)
-	if cached != null:
-		_apply_decor_preview(preview, cached)
-		return
-	_apply_decor_preview(preview, _decor_thumbnail(item_id))
-	DecorPreviewCache.request(definition, yaw, Callable(self, "_apply_cached_preview").bind(preview.get_instance_id(), definition.duplicate(true), yaw))
-
-
-func _decor_thumbnail(item_id: String) -> Texture2D:
-	return load("%s%s.png" % [DECOR_THUMBNAIL_DIRECTORY, item_id]) as Texture2D
-
-
-func _apply_cached_preview(texture: Texture2D, preview_instance_id: int, definition: Dictionary, yaw: float) -> void:
-	var preview := instance_from_id(preview_instance_id) as TextureRect
-	var key := DecorPreviewCache.cache_key(definition, yaw)
-	if is_instance_valid(preview) and texture != null and str(preview.get_meta("decor_preview_key", "")) == key:
-		_apply_decor_preview(preview, texture)
-
-
-func _apply_decor_preview(preview: TextureRect, texture: Texture2D) -> void:
-	preview.texture = texture
-	# Decor orientation belongs to the rendered 3D DisplayRotationRoot. A
-	# thumbnail fallback is deliberately upright rather than screen-rotated.
-	preview.rotation_degrees = 0.0
-
-
-func _rebuild_bag_grid(count_label: Label) -> void:
-	bag_grid.columns = 3
-	for child in bag_grid.get_children():
-		child.queue_free()
-	var candidates: Array = Catalog.furniture().duplicate()
-	var companion_definition := Catalog.companion(companion_id)
-	candidates.push_front({"id": "companion_%s" % companion_id, "name": companion_definition.get("name", companion_id), "icon": "🦄", "category": "companions", "rarity": "legendary", "desc": "House gift companion"})
-	var shown := 0
-	for definition in candidates:
-		var item_id := str(definition.get("id", ""))
-		if bag_category != "all" and str(definition.get("category", "")) != bag_category:
-			continue
-		var available := AppState.available_count(item_id)
-		if available <= 0:
-			continue
-		shown += 1
-		var place := Button.new()
-		place.text = ""
-		place.tooltip_text = str(definition.get("desc", ""))
-		place.custom_minimum_size = Vector2(0, 132)
-		place.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		# Route a drag beginning on an item to the outer bag ScrollContainer.
-		place.mouse_filter = Control.MOUSE_FILTER_PASS
-		place.pressed.connect(_place_from_bag.bind(item_id))
-		bag_grid.add_child(place)
-		_add_cached_decor_preview(place, definition, 0.0, false)
-		var item_label := Label.new()
-		item_label.text = "%s\nx%d" % [str(definition.get("name", item_id)), available]
-		item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		item_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		item_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		item_label.add_theme_font_size_override("font_size", 12)
-		item_label.set_anchor(SIDE_LEFT, 0.0)
-		item_label.set_anchor(SIDE_TOP, 1.0)
-		item_label.set_anchor(SIDE_RIGHT, 1.0)
-		item_label.set_anchor(SIDE_BOTTOM, 1.0)
-		item_label.offset_left = 4
-		item_label.offset_top = -43
-		item_label.offset_right = -4
-		item_label.offset_bottom = -3
-		item_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		place.add_child(item_label)
-	count_label.text = "%d available item%s" % [shown, "" if shown == 1 else "s"]
-	if shown == 0:
-		bag_grid.columns = 1
-		var empty := Label.new()
-		empty.name = "EmptyBagMessage"
-		empty.text = "Nothing available here. Buy decor in the Marketplace or remove a placed item."
-		empty.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		empty.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		empty.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		empty.custom_minimum_size = Vector2(600, 150)
-		empty.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		empty.add_theme_font_size_override("font_size", 20)
-		empty.add_theme_color_override("font_color", MUTED)
-		bag_grid.add_child(empty)
-
-
 func _place_from_bag(item_id: String) -> void:
-	if _bag_action_suppressed():
+	if is_instance_valid(bag_overlay) and bag_overlay.is_action_suppressed():
 		return
+	if is_instance_valid(bag_overlay):
+		bag_category = bag_overlay.category
 	var items := AppState.room_items(companion_id)
 	var item := {
 		"instance_id": "%d_%d" % [Time.get_ticks_msec(), randi_range(100, 999)],

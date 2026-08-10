@@ -257,7 +257,11 @@ func _meta_suite() -> void:
 	var old_actor: Node = room.roaming_actor
 	var old_canvas: Control = room.room_canvas
 	AppState.data["inventory"]["lamp"] = 1
-	room.call("_place_from_bag", "lamp")
+	var room_item_count_before := AppState.room_items(room.companion_id).size()
+	room.call("_show_bag")
+	var opened_bag = room.bag_overlay
+	opened_bag.call("_set_bag_category", "lighting")
+	opened_bag.call("_select_item", "lamp")
 	var placed_id: String = room.selected_id
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -265,8 +269,12 @@ func _meta_suite() -> void:
 	var visible_actors: Array = room.room_canvas.find_children("RoamingRoomCompanion", "RoomItemPreview3D", true, false).filter(func(candidate: Node) -> bool: return (candidate as CanvasItem).visible)
 	var selected_item: Dictionary = room.call("_local_item", placed_id)
 	var companion_anchor := room.item_buttons.get("room_companion_sparkle") as Button
+	_check(AppState.room_items(room.companion_id).size() == room_item_count_before + 1 and not placed_id.is_empty() and selected_item.get("item_id", "") == "lamp" and room.bag_category == "lighting" and room.bag_overlay == null and not is_instance_valid(opened_bag) and room.find_children("FurnitureBagOverlay", "FurnitureBagOverlay", true, false).is_empty(), "room bag overlay signal places lamp exactly once, selects it, preserves its category, and retires the stale overlay during the editor rebuild")
+	room.call("_show_bag")
+	_check(is_instance_valid(room.bag_overlay) and room.bag_overlay.category == "lighting", "rebuilt room editor opens a fresh furniture bag with its previous category")
+	room.call("_close_bag")
 	_check(is_instance_valid(rebuilt_actor) and rebuilt_actor != old_actor and rebuilt_actor.get_parent() == room.room_canvas and room.room_canvas != old_canvas and visible_actors.size() == 1, "bag placement rebuild retires the stale roaming actor and creates exactly one visible actor in the new canvas")
-	_check(not placed_id.is_empty() and selected_item.get("item_id", "") == "lamp" and is_instance_valid(companion_anchor) and not companion_anchor.visible, "bag placement preserves the selected new item and the hidden saved companion anchor")
+	_check(is_instance_valid(companion_anchor) and not companion_anchor.visible, "bag placement preserves the hidden saved companion anchor")
 	_unmount(room)
 
 
