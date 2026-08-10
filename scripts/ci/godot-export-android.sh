@@ -12,6 +12,9 @@ VERSION_CODE="${VERSION_CODE:-1}"
 RELEASE_PACKAGE_NAME="${RELEASE_PACKAGE_NAME:-com.grapegames.wlarcade}"
 DEBUG_PACKAGE_NAME="${DEBUG_PACKAGE_NAME:-com.guettler.unicornarcade}"
 
+# shellcheck source=install-godot.sh
+source "$ROOT/scripts/ci/install-godot.sh"
+
 PRESET_PATH=""
 PRESET_BACKUP=""
 
@@ -53,36 +56,6 @@ start_adb_server() {
 	elif command -v adb >/dev/null 2>&1; then
 		adb start-server >/dev/null 2>&1 || true
 	fi
-}
-
-install_godot() {
-	if command -v godot >/dev/null 2>&1; then
-		return 0
-	fi
-	local cache="$HOME/.cache/unicorn-arcade/godot"
-	mkdir -p "$cache"
-	local zip="Godot_v${GODOT_TAG}_linux.x86_64.zip"
-	local tpz="Godot_v${GODOT_TAG}_export_templates.tpz"
-	if [[ ! -f "$cache/$zip" ]]; then
-		curl -fsSL -o "$cache/$zip" \
-			"https://github.com/godotengine/godot/releases/download/${GODOT_TAG}/${zip}"
-	fi
-	if [[ ! -f "$cache/$tpz" ]]; then
-		curl -fsSL -o "$cache/$tpz" \
-			"https://github.com/godotengine/godot/releases/download/${GODOT_TAG}/${tpz}"
-	fi
-	unzip -qo "$cache/$zip" -d "$cache"
-	install -m 755 "$cache/Godot_v${GODOT_TAG}_linux.x86_64" "$HOME/.local/bin/godot"
-	local template_dir
-	template_dir="$(android_export_template_dir)"
-	mkdir -p "$HOME/.local/share/godot/export_templates/${template_dir}"
-	unzip -qo "$cache/$tpz" -d "$cache/templates_unpack"
-	cp -a "$cache/templates_unpack/templates/." \
-		"$HOME/.local/share/godot/export_templates/${template_dir}/"
-	[[ -s "$HOME/.local/share/godot/export_templates/${template_dir}/android_source.zip" ]] || {
-		echo "ERROR: export templates missing android_source.zip under ${template_dir}" >&2
-		exit 1
-	}
 }
 
 write_admob_config() {
@@ -155,14 +128,6 @@ godot_import_is_warm() {
 	imported_count="$(find "$PROJECT/.godot/imported" -type f | wc -l | tr -d ' ')"
 	# Fresh checkouts with a partial cache can have the probe but almost nothing else.
 	[[ "${imported_count:-0}" -ge 200 ]]
-}
-
-android_export_template_dir() {
-	local template_dir="${GODOT_VERSION}.stable"
-	if [[ -f "$PROJECT/android/.build_version" ]]; then
-		template_dir="$(tr -d '\r\n' <"$PROJECT/android/.build_version")"
-	fi
-	printf '%s\n' "$template_dir"
 }
 
 sanitize_android_build_template() {
@@ -368,6 +333,7 @@ export_android() {
 }
 
 install_godot
+install_godot_export_templates
 export_android
 echo "Done: $PROJECT/build/android/UnicornArcade.aab"
 echo "Done: $PROJECT/build/android/UnicornArcade-debug.apk"

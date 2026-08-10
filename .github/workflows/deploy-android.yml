@@ -1,6 +1,9 @@
 name: Deploy Godot Android - Internal Test
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -18,7 +21,38 @@ env:
   CI_ANDROID_NDK_VERSION: "29.0.14206865"
 
 jobs:
+  godot-tests:
+    runs-on: ubuntu-latest
+    # A first-run asset import is documented at 30+ minutes; leave enough
+    # headroom for its 45-minute guard and the bounded test manifest.
+    timeout-minutes: 75
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Cache Godot import cache
+        uses: actions/cache@v4
+        with:
+          path: godot/.godot
+          # Exact key only (no restore-keys): partial imports can leave class
+          # metadata or generated resources unavailable to the parse gate.
+          key: godot-import-${{ runner.os }}-${{ env.GODOT_VERSION }}-${{ hashFiles('godot/**/*.import', 'godot/project.godot') }}
+
+      - name: Cache Godot tooling downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/unicorn-arcade/godot
+          key: godot-tooling-${{ runner.os }}-${{ env.GODOT_VERSION }}-${{ env.GODOT_CHANNEL }}
+
+      - name: Run Godot test manifest
+        run: |
+          chmod +x scripts/ci/install-godot.sh scripts/ci/godot-tests.sh
+          ./scripts/ci/godot-tests.sh
+
   build-and-deploy:
+    needs: godot-tests
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     timeout-minutes: 180
     env:
@@ -36,6 +70,12 @@ jobs:
           # Exact key only (no restore-keys): fuzzy restores caused skipped imports
           # with missing .ctex files. Warm hits skip the 30+ min cold reimport.
           key: godot-import-${{ runner.os }}-${{ env.GODOT_VERSION }}-${{ hashFiles('godot/**/*.import', 'godot/project.godot') }}
+
+      - name: Cache Godot tooling downloads
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/unicorn-arcade/godot
+          key: godot-tooling-${{ runner.os }}-${{ env.GODOT_VERSION }}-${{ env.GODOT_CHANNEL }}
 
       - name: Cache Android build template
         uses: actions/cache@v4
@@ -106,7 +146,7 @@ jobs:
 
       - name: Install Godot export tooling
         run: |
-          chmod +x scripts/ci/godot-export-android.sh
+          chmod +x scripts/ci/install-godot.sh scripts/ci/godot-export-android.sh
           mkdir -p "$HOME/.local/bin"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 

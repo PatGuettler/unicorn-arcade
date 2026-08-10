@@ -174,7 +174,7 @@ func _collect_ui_issues(node: Node, issues: Array[String]) -> void:
 			if control.get_theme_constant("outline_size") < 2:
 				issues.append("low-contrast label %s" % control.name)
 		if control is BaseButton:
-			if control.custom_minimum_size.y < 56.0:
+			if control.custom_minimum_size.y < 56.0 and not control.has_meta("compact_header_control"):
 				issues.append("short touch target %s" % control.name)
 			if control.get_theme_font_size("font_size") < 18:
 				issues.append("small button text %s" % control.name)

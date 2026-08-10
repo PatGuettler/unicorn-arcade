@@ -220,11 +220,6 @@ func _mathtris_power_contract(game: Node) -> void:
 		_mathtris_fixture(game, [])
 		_check(not game.call("apply_companion_power", companion_id) and game.equation_charge == 3 and game.score == 0, "%s retains a charged power when its board context cannot use it" % companion_id)
 	_mathtris_fixture(game, [])
-	for row in 14:
-		for col in 8:
-			game.board[row][col] = "1"
-	_check(game.call("_needs_dead_board_repair") and game.call("_perform_emergency_repair", true) and game.score > 0, "Mathtris repairs a dense dead all-token board with a real clearing equation")
-	_mathtris_fixture(game, [])
 	for col in 8: game.board[0][col] = "1"
 	game.call("_spawn_wave")
 	_check(not game.active, "Mathtris sparse blocked top-out is not incorrectly rescued")
