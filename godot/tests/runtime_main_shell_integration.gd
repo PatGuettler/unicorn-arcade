@@ -2,6 +2,7 @@ extends Node
 
 const MAIN_SCENE = preload("res://scenes/main.tscn")
 const LoginView = preload("res://scripts/ui/login_view.gd")
+const GameCatalogView = preload("res://scripts/ui/game_catalog_view.gd")
 
 var failures: Array[String] = []
 var check_count := 0
@@ -98,19 +99,36 @@ func _run() -> void:
 	_check(profile_button_found and is_instance_valid(profile_content) and is_instance_valid(profile_grid) and profile_grid.get_child_count() == GameRegistry.all_games().size(), "profile button opens responsively and finishes its complete game history grid")
 	_check(shell.find_child("ProfileLoading", true, false) == null, "profile loading state clears after incremental construction")
 	_check(shell.find_child("MeadowCompanionStage3D", true, false) == null and shell.find_child("MeadowCompanionDisplay", true, false) == null, "profile retires the Home meadow renderer and display")
+	var dashboard_build_signals: Array[bool] = []
+	var dashboard_build_counter := func() -> void: dashboard_build_signals.append(true)
+	shell.page_build_complete.connect(dashboard_build_counter)
 	shell.call("_show_dashboard")
 	await shell.page_build_complete
 	await get_tree().process_frame
-	_check(shell.find_children("CategoryIcon", "ArcadePictogram", true, false).size() == 4, "all four game-category cards restore polished pictogram icons")
+	shell.page_build_complete.disconnect(dashboard_build_counter)
+	var dashboard_catalog := shell.find_child("GameCatalogView", true, false) as GameCatalogView
+	var word_category := shell.find_child("CategoryCard_Word", true, false) as Button
+	_check(is_instance_valid(dashboard_catalog) and dashboard_catalog.get_parent() == shell.page and dashboard_build_signals.size() == 1 and is_instance_valid(word_category) and shell.find_children("CategoryIcon", "ArcadePictogram", true, false).size() == 4, "GameCatalogView directly owns the dashboard and builds exactly once")
 	_check(_ui_is_accessible(shell), "icon category dashboard meets readable text, contrast, and touch-target minimums")
-	shell.call("_show_category", "Word")
+	var category_build_signals: Array[bool] = []
+	var category_build_counter := func() -> void: category_build_signals.append(true)
+	shell.page_build_complete.connect(category_build_counter)
+	if is_instance_valid(word_category):
+		word_category.emit_signal("pressed")
+	else:
+		shell.call("_show_category", "Word")
 	await shell.page_build_complete
 	await get_tree().process_frame
+	shell.page_build_complete.disconnect(category_build_counter)
+	var category_catalog := shell.find_child("GameCatalogView", true, false) as GameCatalogView
+	var category_content := shell.find_child("CategoryContent", true, false) as VBoxContainer
+	var category_grid := shell.find_child("CategoryGameGrid", true, false) as GridContainer
+	var category_scroll := shell.find_child("CategoryContentScroll", true, false) as ScrollContainer
 	var word_icons := shell.find_children("GameIcon", "ArcadePictogram", true, false)
 	var word_icon_ids: Dictionary = {}
 	for word_icon in word_icons:
 		word_icon_ids[word_icon.icon_id] = true
-	_check(word_icons.size() == 10 and word_icon_ids.size() == 10, "every Word game card has its own distinct pictogram")
+	_check(is_instance_valid(category_catalog) and category_catalog.get_parent() == shell.page and category_build_signals.size() == 1 and is_instance_valid(category_scroll) and category_scroll.horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED and category_scroll.vertical_scroll_mode == ScrollContainer.SCROLL_MODE_AUTO and not category_scroll.follow_focus and category_scroll.scroll_deadzone == 8 and category_scroll.get_child_count() > 0 and category_scroll.get_child(0) == category_content and is_instance_valid(category_grid) and word_icons.size() == 10 and word_icon_ids.size() == 10, "Word category button mounts compatible GameCatalogView scroll content with ten distinct pictograms")
 	_check(_ui_is_accessible(shell), "icon game grid meets readable text, contrast, and touch-target minimums")
 	shell.call("_show_home")
 	await shell.page_build_complete
