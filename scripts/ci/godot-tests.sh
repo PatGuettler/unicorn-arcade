@@ -65,6 +65,7 @@ for scene in \
 	runtime_marketplace_integration \
 	runtime_gameplay_correctness_integration \
 	runtime_level_run_integration \
+	runtime_level_run_batch_two_integration \
 	runtime_outcome_transition_integration \
 	runtime_profile_integration \
 	runtime_persistence_integration \

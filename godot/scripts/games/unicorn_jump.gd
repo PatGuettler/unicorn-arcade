@@ -93,14 +93,21 @@ func generate_level_data(for_level: int, rng: RandomNumberGenerator = null) -> A
 
 
 func _start_level(for_level: int) -> void:
-	level = for_level
+	_start_level_with_lifecycle(for_level, true)
+
+
+func _start_level_with_lifecycle(for_level: int, begin_run: bool) -> void:
+	if begin_run:
+		level_run.begin("unicorn_jump", for_level)
+		level = level_run.level
+	else:
+		level = level_run.level
 	level_data = generate_level_data(level)
 	current_index = 0
 	visited = [0]
-	started_ms = Time.get_ticks_msec()
-	active = true
+	started_ms = level_run.started_ms
+	active = level_run.active
 	jump_in_progress = false
-	CompanionAbilityService.begin_level("unicorn_jump", level)
 	action_button.hide()
 	status_label.text = "Count the current number of stones, then tap that exact landing."
 	_rebuild_path()
@@ -118,7 +125,8 @@ func _choose_node(index: int) -> void:
 			status_label.text = "Sparkle saved your checkpoint! Count again from this stone."
 			_bounce_stone(node_buttons[index])
 			return
-		active = false
+		level_run.fail("Wrong landing. Follow the jump value to stone %d." % (expected + 1))
+		active = level_run.active
 		status_label.text = "Wrong landing. Follow the jump value to stone %d." % (expected + 1)
 		action_button.text = "Retry"
 		action_button.show()
@@ -130,8 +138,8 @@ func _choose_node(index: int) -> void:
 	current_index = index
 	visited.append(index)
 	if current_index == level_data.size():
-		active = false
-		var reward := AppState.complete_level("unicorn_jump", level, Time.get_ticks_msec() - started_ms)
+		var reward := level_run.complete()
+		active = level_run.active
 		status_label.text = "Trail complete! +%d coins" % reward
 		action_button.text = "Next Level"
 		action_button.show()
@@ -145,12 +153,18 @@ func _choose_node(index: int) -> void:
 
 
 func can_retry_failure() -> bool:
-	return not active and is_instance_valid(action_button) and action_button.text == "Retry"
+	return level_run.can_retry()
 
 
 func retry_failure() -> void:
 	if can_retry_failure():
-		_start_level(level)
+		_start_level_with_lifecycle(level_run.retry(), false)
+
+
+func _advance_level() -> void:
+	match level_run.outcome:
+		LevelRunController.Outcome.SUCCESS, LevelRunController.Outcome.FAILURE:
+			_start_level_with_lifecycle(level_run.retry(), false)
 
 
 func _show_hint() -> void:
@@ -472,28 +486,17 @@ func _build_ui() -> void:
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	actions.add_theme_constant_override("separation", 8)
 	root.add_child(actions)
-	action_button = _action_button("")
-	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Level" else level))
+	action_button = StorybookUI.progression_action_button("", 112, _advance_level)
+	action_button.custom_minimum_size.y = 60
 	actions.add_child(action_button)
-	var back := _action_button("Number Games")
-	back.pressed.connect(func() -> void:
-		AppState.set_shell_destination("category", "Number")
-		get_tree().change_scene_to_file("res://scenes/main.tscn")
-	)
+	var back := StorybookUI.category_back_button("Number Games", 112, return_to_category)
+	back.custom_minimum_size.y = 60
 	actions.add_child(back)
-	var hint := _action_button("Hint")
-	hint.pressed.connect(func() -> void:
+	var hint := StorybookUI.hint_highlight_button("Hint", 112, func() -> void:
 		if AppState.spend_hint(level): _show_hint()
 	)
+	hint.custom_minimum_size.y = 60
 	actions.add_child(hint)
-
-
-func _action_button(label_text: String) -> Button:
-	var button := Button.new()
-	button.text = label_text
-	button.custom_minimum_size = Vector2(112, 60)
-	StorybookUI.apply_game_action(button, 112)
-	return button
 
 
 func _set_nodes_enabled(enabled: bool) -> void:
