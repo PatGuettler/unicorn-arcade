@@ -3,6 +3,7 @@ extends ArcadeGameController
 const Rules = preload("res://scripts/games/word_game_rules.gd")
 const RoundCatalog = preload("res://scripts/games/word_round_catalog.gd")
 const WordChoiceStrategy = preload("res://scripts/games/word_choice_strategy.gd")
+const WordSequenceStrategy = preload("res://scripts/games/word_sequence_strategy.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -31,6 +32,7 @@ var blast_source_exhausted := false
 var spawn_elapsed := 0.0
 var suppress_text_event := false
 var choice_strategy := WordChoiceStrategy.new()
+var sequence_strategy := WordSequenceStrategy.new()
 
 var title_label: Label
 var coin_label: Label
@@ -115,25 +117,17 @@ func _load_round() -> void:
 	lives_label.text = "♥ %d" % lives if lives > 0 else ""
 	if _load_choice_round():
 		return
+	if _load_sequence_round():
+		return
 	match game_id:
-		"sentence_sprout":
-			_load_sequence("sentence_build", "words", "Build the sentence in order", "sentence")
 		"sight_spark":
 			_load_sight_spark()
 		"letter_lift":
 			_load_letter_lift()
-		"syllable_stamp":
-			_load_sequence("syllable_words", "parts", "Stamp syllables in order", "syllable")
-		"scramble_spell":
-			_load_scramble()
-		"size_line_up":
-			_load_size_line_up()
 		"unicorn_blast":
 			_load_unicorn_blast()
 		_:
 			_fail("This game is not configured.")
-	if active and game_id in ["missing_magic", "prefix_potion", "caption_quest", "opposite_orbit", "scramble_spell", "odd_one_out", "size_line_up", "chain_link"] and current.is_empty():
-		_fail("This word round needs a refresh. Try again soon.")
 
 
 func _load_choice_round() -> bool:
@@ -154,17 +148,29 @@ func _apply_choice_round(choice_round: Dictionary) -> void:
 	_render_choice_specs(choice_round.get("options", []))
 
 
-func _load_sequence(key: String, field: String, instruction: String, mode: String) -> void:
-	current = RoundCatalog.pick_rule_round(Rules, key, level, round_index, rng)
-	var round := RoundCatalog.sequence_round(current, field)
-	sequence = round["sequence"]
-	pool = round["pool"]
-	if sequence.is_empty():
+func _load_sequence_round() -> bool:
+	var sequence_round := sequence_strategy.begin_round(_strategy_context())
+	if not bool(sequence_round.get("handled", false)):
+		return false
+	if not bool(sequence_round.get("ok", false)):
 		_fail("This word round needs a refresh. Try again soon.")
-		return
-	phase = mode
-	instruction_label.text = instruction
+		return true
+	_apply_sequence_round(sequence_round)
+	return true
+
+
+func _apply_sequence_round(sequence_round: Dictionary) -> void:
+	current = sequence_round.get("current", {})
+	sequence = sequence_round.get("sequence", [])
+	pool = sequence_round.get("pool", [])
+	picked.clear()
+	phase = str(sequence_round.get("phase", "choice"))
+	instruction_label.text = str(sequence_round.get("instruction", ""))
 	_render_sequence()
+
+
+func _load_sequence(_key: String, _field: String, _instruction: String, _mode: String) -> void:
+	_load_sequence_round()
 
 
 func _load_sight_spark() -> void:
@@ -208,13 +214,7 @@ func _load_letter_lift() -> void:
 
 
 func _load_scramble() -> void:
-	current = Rules.pick_for_level("scramble_puzzles", level + round_index, rng)
-	sequence = Array(current.get("word", "").split(""))
-	pool = sequence.duplicate()
-	pool.shuffle()
-	phase = "scramble"
-	instruction_label.text = current.get("hint", "Spell the word")
-	_render_sequence()
+	_load_sequence_round()
 
 
 func _load_odd_one_out() -> void:
@@ -222,13 +222,7 @@ func _load_odd_one_out() -> void:
 
 
 func _load_size_line_up() -> void:
-	current = Rules.pick_for_level("size_lineups", level + round_index, rng)
-	sequence = current.get("order", []).duplicate()
-	pool = current.get("words", []).duplicate()
-	pool.shuffle()
-	phase = "size"
-	instruction_label.text = "Tap shortest → longest"
-	_render_sequence()
+	_load_sequence_round()
 
 
 func _load_chain_link() -> void:
@@ -307,19 +301,21 @@ func _choose(payload) -> void:
 
 
 func _choose_sequence(payload: Dictionary) -> void:
-	var value = payload.get("value")
-	var index := int(payload.get("index", -1))
-	if picked.size() >= sequence.size() or value != sequence[picked.size()]:
-		_fail(_fail_reason())
-		return
-	picked.append(value)
-	if index >= 0 and index < pool.size():
-		pool.remove_at(index)
-	hint_visible = false
-	if picked.size() >= sequence.size():
-		_successful_round()
-	else:
-		_render_sequence()
+	var sequence_result := sequence_strategy.submit(_strategy_context(), payload)
+	match str(sequence_result.get("outcome", "ignored")):
+		"failure":
+			_fail(_fail_reason())
+			return
+		"continue", "success":
+			picked = sequence_result.get("picked", [])
+			pool = sequence_result.get("pool", [])
+			hint_visible = false
+			if sequence_result.get("outcome") == "success":
+				_successful_round()
+			else:
+				_render_sequence()
+			return
+	_fail(_fail_reason())
 
 
 func _on_text_submitted(value: String) -> void:
@@ -443,8 +439,8 @@ func _show_hint() -> void:
 		message_label.text = "Blast: %s" % _urgent_blast_word()
 	elif game_id == "letter_lift":
 		_render_letter_lift()
-	elif phase in ["sentence", "syllable", "scramble", "size"]:
-		_render_sequence()
+	elif sequence_strategy.supports(game_id):
+		_apply_sequence_hint(sequence_strategy.hint(_strategy_context()))
 	elif game_id == "sight_spark" and phase == "type":
 		prompt_label.text = expected_word
 	elif choice_strategy.supports(game_id):
@@ -463,6 +459,8 @@ func _request_hint() -> void:
 
 
 func _hint_text() -> String:
+	if sequence_strategy.supports(game_id):
+		return "Next: %s" % str(sequence_strategy.hint(_strategy_context()).get("next", ""))
 	if choice_strategy.supports(game_id):
 		var choice_hint := choice_strategy.hint(_strategy_context())
 		var choice_message := str(choice_hint.get("message", ""))
@@ -472,15 +470,13 @@ func _hint_text() -> String:
 
 
 func _fail_reason() -> String:
+	if sequence_strategy.supports(game_id):
+		return sequence_strategy.failure_reason(_strategy_context())
 	if choice_strategy.supports(game_id):
 		return choice_strategy.failure_reason(_strategy_context())
 	match game_id:
-		"sentence_sprout": return "Tap words in the right order!"
 		"sight_spark": return "Spell the spark word from memory!"
 		"letter_lift": return "Type each letter in order!"
-		"syllable_stamp": return "Stamp syllables in order!"
-		"scramble_spell": return "Tap letters in order to spell the word!"
-		"size_line_up": return "Tap shortest word first, then longer ones!"
 		"unicorn_blast": return "Words reached your cannon!"
 	return "Try this level again."
 
@@ -493,6 +489,10 @@ func _strategy_context() -> Dictionary:
 		"rng": rng,
 		"hint_visible": hint_visible,
 		"current": current,
+		"sequence": sequence,
+		"pool": pool,
+		"picked": picked,
+		"phase": phase,
 	}
 
 
@@ -501,6 +501,10 @@ func _apply_choice_hint(hint: Dictionary) -> void:
 		prompt_label.text = str(hint["prompt"])
 	if hint.has("message"):
 		message_label.text = str(hint["message"])
+
+
+func _apply_sequence_hint(_hint: Dictionary) -> void:
+	_render_sequence()
 
 
 func _update_blast(delta: float) -> void:
