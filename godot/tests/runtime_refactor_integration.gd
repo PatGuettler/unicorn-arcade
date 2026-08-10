@@ -84,13 +84,24 @@ func _run() -> void:
 	var companion_stage := static_companion.preview_viewport.stage as Node3D
 	var companion_cameras := companion_stage.find_children("*", "Camera3D", false, false) if is_instance_valid(companion_stage) else []
 	var companion_camera := companion_cameras[0] as Camera3D if companion_cameras.size() == 1 else null
-	_check(static_companion.preview_viewport is RoomPreviewViewport and is_instance_valid(companion_viewport) and companion_viewport.size == Vector2i(448, 320) and companion_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE and companion_cameras.size() == 1 and is_instance_valid(companion_camera) and companion_camera.projection == Camera3D.PROJECTION_ORTHOGONAL and is_equal_approx(companion_camera.size, 8.80) and companion_camera.position.is_equal_approx(Vector3(-8.40, 4.28, 0.90)) and companion_camera.current, "static companion uses the expected HUD viewport and orthographic framing")
+	_check(static_companion.companion_builder != null and static_companion.source_model_id == "sparkle" and static_companion.preview_viewport is RoomPreviewViewport and is_instance_valid(companion_viewport) and companion_viewport.size == Vector2i(448, 320) and companion_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE and companion_cameras.size() == 1 and is_instance_valid(companion_camera) and companion_camera.projection == Camera3D.PROJECTION_ORTHOGONAL and is_equal_approx(companion_camera.size, 8.80) and companion_camera.position.is_equal_approx(Vector3(-8.40, 4.28, 0.90)) and companion_camera.current and companion_stage.find_child("CompanionTravelRoot", true, false) != null and companion_stage.find_child("MeadowContactShadow", true, false) != null, "static companion builder owns the source, travel root, shadow, and HUD camera contract")
 	static_companion.preview_viewport.shutdown()
 	_check(companion_viewport.render_target_update_mode == SubViewport.UPDATE_DISABLED, "RoomPreviewViewport shutdown disables its render target")
 	for _frame in 120:
-		if not RuntimeAssetLoader.is_processing():
+		if static_companion.find_child("LiveUnicornModel", true, false) != null and not RuntimeAssetLoader.is_processing():
 			break
 		await get_tree().process_frame
+	_check(static_companion.find_child("LiveUnicornModel", true, false) != null and static_companion.mesh_count > 0, "static companion async model instantiation updates facade mesh_count")
+	var animated_companion := RoomItemPreview3D.new()
+	animated_companion.setup({"id": "companion_sparkle", "category": "companions", "animate": true, "presentation": "room"})
+	for _frame in 120:
+		if animated_companion.find_child("LiveUnicornModel", true, false) != null:
+			break
+		await get_tree().process_frame
+	var animated_idle := animated_companion.get_node_or_null("IdleAnimator")
+	animated_companion.set_motion_state(true)
+	_check(animated_companion.companion_builder != null and animated_companion.find_child("LiveUnicornModel", true, false) != null and animated_companion.mesh_count > 0 and is_instance_valid(animated_idle) and animated_idle.get_parent() == animated_companion and String(animated_idle.get("active_action")) != "", "animated companion builder mounts the host-owned animator and facade motion reaches its walk action")
+	animated_companion.free()
 	await get_tree().process_frame
 	static_companion.free()
 	rotation_preview.free()

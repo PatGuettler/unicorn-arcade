@@ -89,6 +89,10 @@ func _capture() -> void:
 		captured = RoomItemPreview3D.new()
 		captured.setup({"id": "capture_unknown_rug", "category": "rugs", "animate": false, "presentation": "marketplace"})
 		captured.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	elif mode == "companion_preview_static":
+		captured = RoomItemPreview3D.new()
+		captured.setup({"id": "companion_sparkle", "category": "companions", "animate": false, "presentation": "game_hud"})
+		captured.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	elif mode in ["marketplace", "marketplace_decor", "alley", "room", "room_selected", "room_bag", "room_bag_empty"]:
 		var meta_paths := {
 			"marketplace": "res://scenes/meta/marketplace.tscn",
@@ -126,6 +130,11 @@ func _capture() -> void:
 		get_tree().current_scene = captured
 	elif captured.has_signal("page_build_complete"):
 		await captured.page_build_complete
+	if mode == "companion_preview_static":
+		for frame in 120:
+			if captured.find_child("LiveUnicornModel", true, false) != null and not RuntimeAssetLoader.is_processing():
+				break
+			await get_tree().process_frame
 	if background_walk:
 		var background_preview := captured.find_child("MeadowCompanion_*", true, false)
 		if is_instance_valid(background_preview):
