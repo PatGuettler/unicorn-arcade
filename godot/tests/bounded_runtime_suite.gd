@@ -232,14 +232,12 @@ func _mathtris_power_contract(game: Node) -> void:
 
 func _meta_suite() -> void:
 	var market: Node = await _mount(MARKET_SCENE)
-	await market.catalog_build_complete
-	_check(market.tab == "companions" and market.content.get_child_count() > 0, "Marketplace opens its companion catalog")
+	_check(market.catalog_ready and market.tab == "companions" and market._companion_cards.size() == 6, "Marketplace opens its fixed six-card companion catalog")
 	_check(MetaCatalog.filtered_furniture("all", "").size() == 107 and MetaCatalog.furniture_item("bed_race").get("id", "") == "bed_race", "Marketplace catalog retains all 107 authored decor entries")
 	market.call("_show_decor")
-	await market.catalog_build_complete
-	var item_list := market.find_child("DecorItemList", true, false) as ItemList
-	_check(market.tab == "decor" and is_instance_valid(item_list) and item_list.item_count == 24, "Marketplace switches to its bounded 24-item native decor list")
-	await market.prepare_for_scene_change()
+	var decor_cards := market.find_children("DecorCard_*", "Panel", true, false)
+	_check(market.tab == "decor" and market._decor_cards.size() == 8 and decor_cards.size() == 8 and market.find_children("*", "ItemList", true, false).is_empty(), "Marketplace opens Decor with a bounded fixed pool and no nested vertical list")
+	market.prepare_for_scene_change()
 	market.queue_free()
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -261,6 +259,20 @@ func _meta_suite() -> void:
 	_check(str(animator.active_action).is_empty(), "room companion returns to its idle pose at a target")
 	var safe_target: Vector2 = room.call("_safe_roam_target")
 	_check(safe_target.x >= -1.0 and safe_target.y >= -1.0 and safe_target.x + actor.size.x <= room.room_canvas.size.x + 1.0 and safe_target.y + actor.size.y <= room.room_canvas.size.y + 1.0, "room roaming actor chooses targets within the room bounds")
+	var old_actor: Node = room.roaming_actor
+	var old_canvas: Control = room.room_canvas
+	AppState.data["inventory"]["lamp"] = 1
+	room.suppress_bag_actions_until_ms = 0
+	room.call("_place_from_bag", "lamp")
+	var placed_id: String = room.selected_id
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var rebuilt_actor: Node = room.roaming_actor
+	var visible_actors: Array = room.room_canvas.find_children("RoamingRoomCompanion", "RoomItemPreview3D", true, false).filter(func(candidate: Node) -> bool: return (candidate as CanvasItem).visible)
+	var selected_item: Dictionary = room.call("_local_item", placed_id)
+	var companion_anchor := room.item_buttons.get("room_companion_sparkle") as Button
+	_check(is_instance_valid(rebuilt_actor) and rebuilt_actor != old_actor and rebuilt_actor.get_parent() == room.room_canvas and room.room_canvas != old_canvas and visible_actors.size() == 1, "bag placement rebuild retires the stale roaming actor and creates exactly one visible actor in the new canvas")
+	_check(not placed_id.is_empty() and selected_item.get("item_id", "") == "lamp" and is_instance_valid(companion_anchor) and not companion_anchor.visible, "bag placement preserves the selected new item and the hidden saved companion anchor")
 	_unmount(room)
 
 

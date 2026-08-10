@@ -42,6 +42,21 @@ func _run() -> void:
 	# future signature drift fails this focused runner before device testing.
 	AdBarService.call("_on_scene_changed")
 	_check(true, "AdBarService accepts the zero-argument scene_changed callback")
+	var original_banner_requested: bool = bool(AdBarService.get("_banner_requested"))
+	var original_banner_loaded: bool = bool(AdBarService.get("_banner_loaded"))
+	var original_banner_request_started_ms: int = int(AdBarService.get("_banner_request_started_ms"))
+	AdBarService.set("_banner_requested", true)
+	AdBarService.set("_banner_loaded", false)
+	AdBarService.set("_ad_view", null)
+	AdBarService.set("_banner_request_started_ms", Time.get_ticks_msec())
+	_check(not AdBarService.call("_banner_request_is_stale"), "AdBarService keeps a fresh pending native banner request intact")
+	AdBarService.set("_banner_request_started_ms", Time.get_ticks_msec() - 8001)
+	_check(AdBarService.call("_banner_request_is_stale") and AdBarService.call("_banner_needs_recovery"), "AdBarService marks only a stale or missing pending native banner request recoverable")
+	AdBarService.call("_on_window_focus_entered")
+	_check(not bool(AdBarService.get("_banner_restore_queued")), "desktop focus restore remains test-safe when native ads are unavailable")
+	AdBarService.set("_banner_requested", original_banner_requested)
+	AdBarService.set("_banner_loaded", original_banner_loaded)
+	AdBarService.set("_banner_request_started_ms", original_banner_request_started_ms)
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var app_layout := get_tree().root.find_child("AppViewportLayout", true, false) as VBoxContainer

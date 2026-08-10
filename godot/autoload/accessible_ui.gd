@@ -73,13 +73,18 @@ func _apply_label(label: Label) -> void:
 
 func _apply_button(button: BaseButton) -> void:
 	var minimum := button.custom_minimum_size
-	# Mathtris uses an 8x14 spatial board; a 56px minimum would push its controls
-	# off every phone. The contiguous swipe grid gets a 44px target while all
-	# standalone controls keep the full 56px accessibility minimum.
-	var touch_size := 44.0 if button.has_meta("mathtris_tile") else MIN_TOUCH_SIZE
+	# Fixed header chrome needs a compact, consistent 48px slot. Mathtris keeps
+	# its existing 44px contiguous-grid exception; ordinary controls remain 56px.
+	var touch_size := MIN_TOUCH_SIZE
+	var minimum_width := MIN_TOUCH_SIZE
+	if button.has_meta("compact_header_control"):
+		touch_size = 48.0
+		minimum_width = 48.0
+	elif button.has_meta("mathtris_tile"):
+		touch_size = 44.0
 	minimum.y = maxf(minimum.y, touch_size)
-	if minimum.x > 0.0 and minimum.x < MIN_TOUCH_SIZE:
-		minimum.x = MIN_TOUCH_SIZE
+	if minimum.x > 0.0 and minimum.x < minimum_width:
+		minimum.x = minimum_width
 	button.custom_minimum_size = minimum
 	if button.get_theme_font_size("font_size") < MIN_BUTTON_FONT:
 		button.add_theme_font_size_override("font_size", MIN_BUTTON_FONT)

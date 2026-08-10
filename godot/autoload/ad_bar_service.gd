@@ -5,13 +5,18 @@ extends Node
 
 const CONFIG_PATH := "res://config/admob.json"
 const EXAMPLE_PATH := "res://config/admob.example.json"
-const CONTENT_TO_BANNER_GUTTER_LOGICAL_PIXELS := 12
+const GOOGLE_TEST_BANNER_UNIT_ID := "ca-app-pub-3940256099942544/6300978111"
+const CONTENT_TO_BANNER_GUTTER_LOGICAL_PIXELS := 24
+const BANNER_REQUEST_STALE_MS := 8000
 var _config: Dictionary = {}
 var _ad_view: AdView
 var _sdk_initialized := false
 var _sdk_initializing := false
 var _banner_logical_height := 60.0
 var _banner_requested := false
+var _banner_loaded := false
+var _banner_request_started_ms := 0
+var _banner_restore_queued := false
 var _reservation_active := false
 var _app_layout: VBoxContainer
 var _game_render_area: SubViewportContainer
@@ -19,6 +24,7 @@ var _app_content_viewport: SubViewport
 var _ad_bar_area: Control
 var _hosted_scene: Node
 var _layout_sync_queued := false
+var _shutting_down := false
 
 
 func _ready() -> void:
@@ -31,14 +37,32 @@ func _ready() -> void:
 
 
 func _exit_tree() -> void:
-	detach()
+	# The root is already tearing down here.  `detach()` normally updates the
+	# reservation, which would try to rebuild AppViewportLayout while root child
+	# removal is in progress and can recurse through failed add_child calls.
+	_shutting_down = true
+	_banner_requested = false
+	_reservation_active = false
+	_layout_sync_queued = false
+	_destroy_banner()
+	_app_layout = null
+	_game_render_area = null
+	_app_content_viewport = null
+	_ad_bar_area = null
+	_hosted_scene = null
 
 
 func _reload_config() -> void:
 	if FileAccess.file_exists(CONFIG_PATH):
 		_config = _parse_json_file(CONFIG_PATH)
-	elif FileAccess.file_exists(EXAMPLE_PATH):
+	elif OS.is_debug_build() and FileAccess.file_exists(EXAMPLE_PATH):
+		# admob.json is deliberately gitignored. A debug APK must still exercise
+		# the native-banner layout on a fresh checkout, but only with Google's
+		# official test unit and never on the login/startup screen.
 		_config = _parse_json_file(EXAMPLE_PATH)
+		_config["ads_enabled"] = true
+		_config["android_banner_unit_id"] = GOOGLE_TEST_BANNER_UNIT_ID
+		_config["show_on_login"] = false
 	else:
 		_config = {}
 	_banner_logical_height = float(_config.get("banner_height_dp", 60.0))
@@ -86,11 +110,8 @@ func sync_for_player(player_name: String = "") -> void:
 		return
 
 	_set_reservation_active(true)
-	if _banner_requested and _ad_view != null:
-		_ad_view.show()
-		return
 	if _sdk_initialized:
-		_show_banner()
+		_restore_banner_if_eligible()
 	else:
 		_initialize_mobile_ads()
 
@@ -115,6 +136,8 @@ func _banner_unit_id() -> String:
 
 
 func _initialize_mobile_ads() -> void:
+	if _shutting_down:
+		return
 	if _sdk_initialized:
 		_show_banner_if_attached()
 		return
@@ -153,6 +176,8 @@ func _initialize_mobile_ads() -> void:
 	var listener := OnInitializationCompleteListener.new()
 	listener.on_initialization_complete = func(_status: InitializationStatus) -> void:
 		_sdk_initializing = false
+		if _shutting_down:
+			return
 		_sdk_initialized = true
 		print("AdBarService: MobileAds initialized")
 		_show_banner_if_attached()
@@ -161,10 +186,18 @@ func _initialize_mobile_ads() -> void:
 
 
 func _show_banner() -> void:
-	if _ad_view != null:
+	if _shutting_down:
+		return
+	if _ad_view != null and _banner_loaded:
 		_set_reservation_active(true)
 		_ad_view.show()
 		return
+	if _ad_view != null:
+		if not _banner_loaded and not _banner_request_is_stale():
+			# A valid native AdView can spend several seconds loading. Keep that
+			# request alive across a route/focus event instead of replacing it.
+			return
+		_destroy_banner()
 	var unit_id := _banner_unit_id()
 	if unit_id.is_empty():
 		push_warning("AdBarService: android_banner_unit_id is missing in admob config")
@@ -180,6 +213,8 @@ func _show_banner() -> void:
 
 	_destroy_banner()
 	_banner_requested = true
+	_banner_loaded = false
+	_banner_request_started_ms = Time.get_ticks_msec()
 	_set_reservation_active(true)
 
 	var ad_size := AdSize.get_current_orientation_anchored_adaptive_banner_ad_size(AdSize.FULL_WIDTH)
@@ -197,12 +232,14 @@ func _show_banner() -> void:
 
 
 func _on_banner_loaded() -> void:
-	if _ad_view == null:
+	if _shutting_down or _ad_view == null:
 		return
 	# Loading creates the native view, but visibility is plugin/platform state.
 	# Explicitly show it so a prior hidden or background-created banner cannot
 	# remain invisible on Android.
 	_ad_view.show()
+	_banner_loaded = true
+	_banner_request_started_ms = 0
 	var px := float(_ad_view.get_height_in_pixels())
 	if px > 0.0:
 		_banner_logical_height = _pixels_to_viewport_y(px)
@@ -211,6 +248,8 @@ func _on_banner_loaded() -> void:
 
 
 func _show_banner_if_attached() -> void:
+	if _shutting_down:
+		return
 	if (
 		should_show_for_player_logged_in(AppState.player_name())
 		and _should_show_ads()
@@ -218,10 +257,50 @@ func _show_banner_if_attached() -> void:
 		_show_banner()
 
 
+func _banner_needs_recovery() -> bool:
+	return _ad_view == null or _banner_request_is_stale()
+
+
+func _banner_request_is_stale(now_ms := Time.get_ticks_msec()) -> bool:
+	return _banner_requested and not _banner_loaded and _banner_request_started_ms > 0 and now_ms - _banner_request_started_ms >= BANNER_REQUEST_STALE_MS
+
+
+func _schedule_banner_restore() -> void:
+	if _shutting_down or _banner_restore_queued:
+		return
+	if not _should_show_ads() or not should_show_for_player_logged_in(AppState.player_name()):
+		return
+	_banner_restore_queued = true
+	call_deferred("_restore_banner_if_eligible")
+
+
+func _restore_banner_if_eligible() -> void:
+	_banner_restore_queued = false
+	if _shutting_down or not _should_show_ads() or not should_show_for_player_logged_in(AppState.player_name()):
+		return
+	_set_reservation_active(true)
+	if not _sdk_initialized:
+		_initialize_mobile_ads()
+		return
+	if _ad_view != null and _banner_loaded:
+		_ad_view.show()
+		return
+	if _ad_view != null and not _banner_request_is_stale():
+		return
+	# One recovery attempt per focus/route event. This recreates a native view
+	# lost while backgrounded without a timer or recursive retry loop.
+	if _banner_needs_recovery():
+		_destroy_banner()
+		_banner_requested = false
+	_show_banner()
+
+
 func _destroy_banner() -> void:
 	if _ad_view != null:
 		_ad_view.destroy()
 	_ad_view = null
+	_banner_loaded = false
+	_banner_request_started_ms = 0
 
 
 func _connect_scene_tracking() -> void:
@@ -231,13 +310,25 @@ func _connect_scene_tracking() -> void:
 	var viewport := get_viewport()
 	if viewport != null and not viewport.size_changed.is_connected(_on_viewport_size_changed):
 		viewport.size_changed.connect(_on_viewport_size_changed)
+	var window := get_window()
+	if window != null and not window.focus_entered.is_connected(_on_window_focus_entered):
+		window.focus_entered.connect(_on_window_focus_entered)
 
 
 func _on_scene_changed() -> void:
+	if _shutting_down:
+		return
 	call_deferred("_host_current_scene")
+	_schedule_banner_restore()
+
+
+func _on_window_focus_entered() -> void:
+	_schedule_banner_restore()
 
 
 func _on_viewport_size_changed() -> void:
+	if _shutting_down:
+		return
 	_update_app_layout()
 
 
@@ -257,15 +348,13 @@ func _content_to_banner_gutter_height() -> int:
 
 
 func _ensure_app_layout() -> void:
-	if is_instance_valid(_app_layout) and not _app_layout.is_queued_for_deletion():
+	if not _can_manage_app_layout():
 		return
-	_app_layout = null
-	_game_render_area = null
-	_app_content_viewport = null
-	_ad_bar_area = null
-	_hosted_scene = null
+	if _app_layout_is_live():
+		return
+	_discard_stale_app_layout()
 	var tree := get_tree()
-	if tree == null or tree.root == null:
+	if tree == null or tree.root == null or not tree.root.is_inside_tree() or tree.root.is_queued_for_deletion():
 		return
 	_app_layout = VBoxContainer.new()
 	_app_layout.name = "AppViewportLayout"
@@ -298,7 +387,42 @@ func _ensure_app_layout() -> void:
 	_update_app_layout()
 
 
+func _app_layout_is_live() -> bool:
+	var tree := get_tree()
+	if not _can_manage_app_layout() or tree == null or tree.root == null:
+		return false
+	if not is_instance_valid(_app_layout) or _app_layout.is_queued_for_deletion() or not _app_layout.is_inside_tree():
+		return false
+	if not is_instance_valid(_game_render_area) or _game_render_area.is_queued_for_deletion() or not _game_render_area.is_inside_tree():
+		return false
+	if not is_instance_valid(_app_content_viewport) or _app_content_viewport.is_queued_for_deletion() or not _app_content_viewport.is_inside_tree():
+		return false
+	if not is_instance_valid(_ad_bar_area) or _ad_bar_area.is_queued_for_deletion() or not _ad_bar_area.is_inside_tree():
+		return false
+	return _app_layout.get_parent() == tree.root and _game_render_area.get_parent() == _app_layout and _app_content_viewport.get_parent() == _game_render_area and _ad_bar_area.get_parent() == _app_layout
+
+
+func _can_manage_app_layout() -> bool:
+	return not _shutting_down and is_inside_tree()
+
+
+func _discard_stale_app_layout() -> void:
+	var stale_layout := _app_layout
+	_app_layout = null
+	_game_render_area = null
+	_app_content_viewport = null
+	_ad_bar_area = null
+	_hosted_scene = null
+	# During a scene replacement Godot can detach the old wrapper before its
+	# queued deletion runs.  Never reuse that detached SubViewport: reparenting a
+	# new scene into it leaves input dispatch pointing at a dead tree branch.
+	if is_instance_valid(stale_layout) and not stale_layout.is_queued_for_deletion():
+		stale_layout.queue_free()
+
+
 func _update_app_layout() -> void:
+	if not _can_manage_app_layout():
+		return
 	_ensure_app_layout()
 	if not is_instance_valid(_app_layout) or not is_instance_valid(_ad_bar_area):
 		return
@@ -313,7 +437,7 @@ func _update_app_layout() -> void:
 
 
 func _schedule_layout_sync() -> void:
-	if _layout_sync_queued:
+	if not _can_manage_app_layout() or _layout_sync_queued:
 		return
 	_layout_sync_queued = true
 	call_deferred("_enforce_app_layout_bounds")
@@ -321,6 +445,8 @@ func _schedule_layout_sync() -> void:
 
 func _enforce_app_layout_bounds() -> void:
 	_layout_sync_queued = false
+	if not _can_manage_app_layout():
+		return
 	if not is_instance_valid(_app_layout) or not is_instance_valid(_game_render_area):
 		return
 	var tree := get_tree()
@@ -341,8 +467,10 @@ func _enforce_app_layout_bounds() -> void:
 
 
 func _host_current_scene() -> void:
+	if not _can_manage_app_layout():
+		return
 	_ensure_app_layout()
-	if not is_instance_valid(_app_content_viewport):
+	if not _app_layout_is_live():
 		return
 	var tree := get_tree()
 	var scene := tree.current_scene if tree != null else null

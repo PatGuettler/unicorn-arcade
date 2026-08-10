@@ -7,6 +7,8 @@ const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd
 
 const NODE_SIZE := Vector2(105, 105)
 const NODE_GAP := 10.0
+const ACTIVE_WINDOW_SIDE_PADDING := 24.0
+const VERTICAL_FRAME_PADDING := 12.0
 
 var level := 1
 var level_data: Array[int] = []
@@ -61,6 +63,8 @@ func _process(delta: float) -> void:
 
 func _start_level(for_level: int) -> void:
 	layout_generation += 1
+	if is_instance_valid(track_viewport):
+		track_viewport.set_camera(Vector2.ZERO, 1.0, false)
 	level = for_level
 	var bounds := Rules.sliding_bounds(level)
 	var rng := RandomNumberGenerator.new()
@@ -159,10 +163,19 @@ func _window_maximum() -> int:
 
 func _rebuild_tracks() -> void:
 	for button in value_buttons:
-		button.queue_free()
+		if is_instance_valid(button):
+			# queue_free alone leaves an old control participating in the HBox layout
+			# until the end of the frame. Detach it now so camera placement sees only
+			# the freshly created race track.
+			if button.get_parent() == value_row:
+				value_row.remove_child(button)
+			button.queue_free()
 	value_buttons.clear()
 	for node in rival_nodes:
-		node.queue_free()
+		if is_instance_valid(node):
+			if node.get_parent() == rival_row:
+				rival_row.remove_child(node)
+			node.queue_free()
 	rival_nodes.clear()
 	for index in level_data.size():
 		var button := Button.new()
@@ -251,14 +264,17 @@ func _make_racer_marker(caption: String, is_player: bool) -> Control:
 		face.add_theme_font_size_override("font_size", 34)
 		badge.add_child(face)
 		holder.add_child(badge)
-	var tag := Label.new()
-	tag.text = caption
-	tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tag.add_theme_font_size_override("font_size", 14)
-	tag.add_theme_color_override("font_color", Color("62e6b5") if is_player else Color("f69cff"))
-	tag.add_theme_color_override("font_outline_color", Color("120d32"))
-	tag.add_theme_constant_override("outline_size", 3)
-	holder.add_child(tag)
+	# The lane labels and progress bars already identify the racers. Avoid the
+	# redundant YOU caption directly under the player's unicorn marker.
+	if not is_player:
+		var tag := Label.new()
+		tag.text = caption
+		tag.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tag.add_theme_font_size_override("font_size", 14)
+		tag.add_theme_color_override("font_color", Color("f69cff"))
+		tag.add_theme_color_override("font_outline_color", Color("120d32"))
+		tag.add_theme_constant_override("outline_size", 3)
+		holder.add_child(tag)
 	return holder
 
 
@@ -280,8 +296,10 @@ func _update_window() -> void:
 		value_buttons[index].modulate = Color.WHITE
 		_style_track_node(value_buttons[index], _index_is_in_window(index), index < window_pos)
 	_update_race_bars()
-	_layout_overlays.call_deferred(layout_generation)
-	_center_window.call_deferred()
+	# Keep placement and camera targeting in the same deferred operation. The
+	# first and last active nodes provide the exact full-window center, avoiding
+	# a biased midpoint for even-sized windows.
+	_layout_and_center_player_window.call_deferred(layout_generation, window_pos == 0)
 
 
 func _update_rival() -> void:
@@ -346,6 +364,47 @@ func _layout_overlays(generation: int) -> void:
 	_place_marker(rival_marker, rival_nodes, opponent_pos, -112.0)
 
 
+func _layout_and_center_player_window(generation: int, opening: bool) -> void:
+	_layout_overlays(generation)
+	if generation != layout_generation or not is_instance_valid(track_viewport) or not is_instance_valid(track_viewport.world) or value_buttons.is_empty() or rival_nodes.is_empty() or track_viewport.size.x <= 1.0 or track_viewport.size.y <= 1.0:
+		return
+	var player_bounds := _window_world_bounds(value_buttons, window_pos)
+	var rival_bounds := _window_world_bounds(rival_nodes, opponent_pos)
+	if player_bounds.size.x <= 0.0 or player_bounds.size.y <= 0.0:
+		return
+	var vertical_bounds := player_bounds.merge(rival_bounds)
+	if is_instance_valid(player_marker):
+		vertical_bounds = vertical_bounds.merge(_control_world_rect(player_marker))
+	var available_width := maxf(1.0, track_viewport.size.x - ACTIVE_WINDOW_SIDE_PADDING * 2.0)
+	var available_height := maxf(1.0, track_viewport.size.y - VERTICAL_FRAME_PADDING * 2.0)
+	var fit_zoom := minf(available_width / player_bounds.size.x, available_height / maxf(1.0, vertical_bounds.size.y))
+	fit_zoom = clampf(fit_zoom, track_viewport.min_zoom, track_viewport.max_zoom)
+	# Starting or retrying discards stale user camera state. During play, retain a
+	# wider (zoomed-out) user view but clamp closer zoom down to the required fit.
+	var next_zoom := fit_zoom if opening else minf(track_viewport.zoom, fit_zoom)
+	var target_center := Vector2(player_bounds.get_center().x, vertical_bounds.get_center().y)
+	var next_pan: Vector2 = track_viewport.size * 0.5 - target_center * next_zoom
+	track_viewport.set_camera(next_pan, next_zoom)
+
+
+func _window_world_bounds(nodes: Array, start_index: int) -> Rect2:
+	if nodes.is_empty():
+		return Rect2()
+	var first_index := clampi(start_index, 0, nodes.size() - 1)
+	var last_index := clampi(start_index + window_size - 1, 0, nodes.size() - 1)
+	return _control_world_rect(nodes[first_index] as Control).merge(_control_world_rect(nodes[last_index] as Control))
+
+
+func _control_world_rect(control: Control) -> Rect2:
+	if not is_instance_valid(control) or not is_instance_valid(track_viewport) or not is_instance_valid(track_viewport.world):
+		return Rect2()
+	var inverse: Transform2D = track_viewport.world.get_global_transform_with_canvas().affine_inverse()
+	var global_rect := control.get_global_rect()
+	var top_left: Vector2 = inverse * global_rect.position
+	var bottom_right: Vector2 = inverse * global_rect.end
+	return Rect2(top_left, bottom_right - top_left)
+
+
 func _place_window(frame: PanelContainer, nodes: Array, start_index: int) -> void:
 	if not is_instance_valid(frame) or nodes.is_empty():
 		return
@@ -365,19 +424,16 @@ func _place_window(frame: PanelContainer, nodes: Array, start_index: int) -> voi
 func _place_marker(marker: Control, nodes: Array, start_index: int, y_lift: float) -> void:
 	if not is_instance_valid(marker) or nodes.is_empty():
 		return
-	var mid := clampi(start_index + window_size / 2, 0, nodes.size() - 1)
-	var node: Control = nodes[mid]
-	var center := lanes.get_global_transform_with_canvas().affine_inverse() * (node.get_global_rect().get_center())
-	marker.position = center + Vector2(-marker.custom_minimum_size.x * 0.5, y_lift)
+	var first_index := clampi(start_index, 0, nodes.size() - 1)
+	var last_index := clampi(start_index + window_size - 1, 0, nodes.size() - 1)
+	var first: Control = nodes[first_index]
+	var last: Control = nodes[last_index]
+	var active_center_global := Vector2((first.get_global_rect().position.x + last.get_global_rect().end.x) * 0.5, (first.get_global_rect().get_center().y + last.get_global_rect().get_center().y) * 0.5)
+	var center := lanes.get_global_transform_with_canvas().affine_inverse() * active_center_global
+	var marker_width := marker.size.x if marker.size.x > 0.0 else marker.custom_minimum_size.x
+	marker.position = center + Vector2(-marker_width * 0.5, y_lift)
 	marker.visible = active
 	marker.move_to_front()
-
-
-func _center_window() -> void:
-	if not is_instance_valid(track_viewport) or value_buttons.is_empty():
-		return
-	var mid_index := mini(value_buttons.size() - 1, window_pos + window_size / 2)
-	track_viewport.focus_control(value_buttons[mid_index], Vector2(0.5, 0.42))
 
 
 func _build_ui() -> void:
