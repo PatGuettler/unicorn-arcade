@@ -56,6 +56,14 @@ func _capture() -> void:
 		push_error("capture_alpha requires --output=<absolute png path>")
 		get_tree().quit(2)
 		return
+	if mode == "profile":
+		AppState.data = SaveService.default_profile("Profile Capture")
+		AppState.data["player"]["coins"] = 4321
+		AppState.data["progress"] = {
+			"unicorn_jump": {"max_level": 3, "completed": [1, 2]},
+			"sentence_sprout": {"max_level": 2, "completed": [1]},
+			"opposite_orbit": {"max_level": 4, "completed": [1, 2, 3]},
+		}
 	AppState.data["player"]["name"] = "" if mode == "login" else "Playtester"
 	AppState.data["player"]["equipped_companion"] = companion_id
 	if owned_all:
@@ -110,6 +118,8 @@ func _capture() -> void:
 	# objective plaque, tutorial layer, and safe-area behavior are included in QA.
 	if mode == "game":
 		get_tree().current_scene = captured
+	elif captured.has_signal("page_build_complete"):
+		await captured.page_build_complete
 	if background_walk:
 		var background_preview := captured.find_child("MeadowCompanion_*", true, false)
 		if is_instance_valid(background_preview):
