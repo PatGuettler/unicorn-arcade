@@ -7,6 +7,7 @@ extends Control
 const Catalog = preload("res://scripts/meta_catalog.gd")
 const Rules = preload("res://scripts/room_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
+const ScrollTapGuard = preload("res://scripts/ui/scroll_tap_guard.gd")
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -53,16 +54,8 @@ var _previous_button: Button
 var _next_button: Button
 var _companions_tab: Button
 var _decor_tab: Button
-var category_dragging := false
-var _category_touch_active := false
-var _category_touch_start := Vector2.ZERO
-var _category_scroll_start := 0
-var _category_suppress_until_ms := 0
-var catalog_dragging := false
-var _catalog_touch_active := false
-var _catalog_touch_start := Vector2.ZERO
-var _catalog_scroll_start := 0
-var _catalog_suppress_until_ms := 0
+var category_tap_guard := ScrollTapGuard.new(4.0)
+var catalog_tap_guard := ScrollTapGuard.new(4.0)
 
 
 func _ready() -> void:
@@ -98,11 +91,14 @@ func _build_fixed_tree() -> void:
 	catalog_scroll.offset_top = 168
 	catalog_scroll.offset_bottom = -20
 	catalog_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	catalog_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
+	catalog_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	catalog_scroll.scroll_deadzone = 4
 	catalog_scroll.follow_focus = false
 	catalog_scroll.clip_contents = true
 	catalog_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	catalog_scroll.gui_input.connect(_on_catalog_scroll_gui_input)
+	catalog_scroll.scroll_started.connect(catalog_tap_guard.on_scroll_started)
+	catalog_scroll.scroll_ended.connect(catalog_tap_guard.on_scroll_ended)
 	add_child(catalog_scroll)
 
 	content = Control.new()
@@ -187,11 +183,14 @@ func _build_decor_filters() -> void:
 	category_scroll = ScrollContainer.new()
 	category_scroll.name = "DecorCategoryScroll"
 	_anchor_rect(category_scroll, 0.0, 1.0, 14, -14, 233, 291)
-	category_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_ALWAYS
+	category_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
 	category_scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	category_scroll.scroll_deadzone = 4
 	category_scroll.follow_focus = false
 	category_scroll.mouse_filter = Control.MOUSE_FILTER_PASS
+	category_scroll.gui_input.connect(_on_category_scroll_gui_input)
+	category_scroll.scroll_started.connect(category_tap_guard.on_scroll_started)
+	category_scroll.scroll_ended.connect(category_tap_guard.on_scroll_ended)
 	category_scroll.clip_contents = true
 	add_child(category_scroll)
 	var chips := Control.new()
@@ -420,58 +419,32 @@ func _set_decor_category(category_id: String) -> void:
 
 
 func _guarded_category_action(category_id: String) -> void:
-	if Time.get_ticks_msec() < _category_suppress_until_ms:
+	if category_tap_guard.is_action_suppressed():
 		return
 	_set_decor_category(category_id)
 
 
-func _input(event: InputEvent) -> void:
+func _on_category_scroll_gui_input(event: InputEvent) -> void:
+	_observe_scroll_gesture(category_tap_guard, "category", "horizontal", event)
+
+
+func _on_catalog_scroll_gui_input(event: InputEvent) -> void:
+	_observe_scroll_gesture(catalog_tap_guard, "catalog", "vertical", event)
+
+
+func _observe_scroll_gesture(guard: ScrollTapGuard, surface: String, axis: String, event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
-			if tab == "decor" and category_scroll.visible and category_scroll.get_global_rect().has_point(touch.position):
-				_category_touch_active = true
-				category_dragging = false
-				_category_touch_start = touch.position
-				_category_scroll_start = category_scroll.scroll_horizontal
-			elif catalog_scroll.get_global_rect().has_point(touch.position):
-				_catalog_touch_active = true
-				catalog_dragging = false
-				_catalog_touch_start = touch.position
-				_catalog_scroll_start = catalog_scroll.scroll_vertical
-		elif not touch.pressed:
-			if category_dragging:
-				_category_suppress_until_ms = Time.get_ticks_msec() + 220
-			if catalog_dragging:
-				_catalog_suppress_until_ms = Time.get_ticks_msec() + 220
-			_category_touch_active = false
-			category_dragging = false
-			_catalog_touch_active = false
-			catalog_dragging = false
-	elif event is InputEventScreenDrag and _category_touch_active:
-		var drag := event as InputEventScreenDrag
-		var delta := drag.position - _category_touch_start
-		if not category_dragging and absf(delta.x) > absf(delta.y) and absf(delta.x) >= category_scroll.scroll_deadzone:
-			category_dragging = true
-		if category_dragging:
-			var bar := category_scroll.get_h_scroll_bar()
-			var maximum := maxi(0, int(round(bar.max_value - bar.page)))
-			category_scroll.scroll_horizontal = clampi(_category_scroll_start - int(round(delta.x)), 0, maximum)
-			get_viewport().set_input_as_handled()
-	elif event is InputEventScreenDrag and _catalog_touch_active:
-		var catalog_drag := event as InputEventScreenDrag
-		var catalog_delta := catalog_drag.position - _catalog_touch_start
-		if not catalog_dragging and absf(catalog_delta.y) > absf(catalog_delta.x) and absf(catalog_delta.y) >= catalog_scroll.scroll_deadzone:
-			catalog_dragging = true
-		if catalog_dragging:
-			var catalog_bar := catalog_scroll.get_v_scroll_bar()
-			var catalog_maximum := maxi(0, int(round(catalog_bar.max_value - catalog_bar.page)))
-			catalog_scroll.scroll_vertical = clampi(_catalog_scroll_start - int(round(catalog_delta.y)), 0, catalog_maximum)
-			get_viewport().set_input_as_handled()
+			guard.begin(surface, axis, touch)
+		else:
+			guard.finish(touch)
+	elif event is InputEventScreenDrag:
+		guard.observe_drag(event as InputEventScreenDrag)
 
 
 func _catalog_action_suppressed() -> bool:
-	return Time.get_ticks_msec() < _catalog_suppress_until_ms
+	return catalog_tap_guard.is_action_suppressed()
 
 
 func _previous_decor_page() -> void:

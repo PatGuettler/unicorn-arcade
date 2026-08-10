@@ -6,6 +6,7 @@ const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd
 const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
+const ScrollTapGuard = preload("res://scripts/ui/scroll_tap_guard.gd")
 const FURNITURE_BAG_ICON := preload("res://assets/ui/furniture_bag_v1.svg")
 const DECOR_THUMBNAIL_DIRECTORY := "res://assets/store/decor_thumbnails/"
 
@@ -42,14 +43,8 @@ var bag_grid: GridContainer
 var bag_category_scroll: ScrollContainer
 var bag_catalog_scroll: ScrollContainer
 var bag_category := "all"
-var bag_category_dragging := false
-var bag_catalog_dragging := false
-var suppress_bag_actions_until_ms := 0
-var _bag_scroll_touch_index := -1
-var _bag_scroll_target := ""
-var _bag_scroll_axis := ""
-var _bag_scroll_motion := Vector2.ZERO
-var _bag_scroll_surface_active := ""
+var bag_category_tap_guard := ScrollTapGuard.new(SCROLL_TOUCH_DEADZONE)
+var bag_catalog_tap_guard := ScrollTapGuard.new(SCROLL_TOUCH_DEADZONE)
 var roaming_actor: RoomItemPreview3D
 var roam_target := Vector2.ZERO
 var roam_pause := 0.0
@@ -111,66 +106,44 @@ func _finish_item_drag() -> bool:
 
 
 func _on_bag_category_scroll_gui_input(event: InputEvent) -> void:
-	_observe_bag_scroll_gesture("category", "horizontal", event)
+	_observe_bag_scroll_gesture(bag_category_tap_guard, "category", "horizontal", event)
 
 
 func _on_bag_catalog_scroll_gui_input(event: InputEvent) -> void:
-	_observe_bag_scroll_gesture("catalog", "vertical", event)
+	_observe_bag_scroll_gesture(bag_catalog_tap_guard, "catalog", "vertical", event)
 
 
-func _observe_bag_scroll_gesture(surface: String, axis: String, event: InputEvent) -> void:
+func _observe_bag_scroll_gesture(guard: ScrollTapGuard, surface: String, axis: String, event: InputEvent) -> void:
 	if event is InputEventScreenTouch:
 		var touch := event as InputEventScreenTouch
 		if touch.pressed:
-			# A fresh touch also cancels any interrupted prior gesture.
-			bag_category_dragging = false
-			bag_catalog_dragging = false
-			_bag_scroll_touch_index = touch.index
-			_bag_scroll_target = surface
-			_bag_scroll_axis = ""
-			_bag_scroll_motion = Vector2.ZERO
-		elif touch.index == _bag_scroll_touch_index:
-			if _bag_scroll_target == surface and _bag_scroll_axis == axis and (bag_category_dragging or bag_catalog_dragging):
-				# gui_input release can precede ScrollContainer.scroll_ended.
-				suppress_bag_actions_until_ms = Time.get_ticks_msec() + 220
-			_reset_bag_scroll_gesture()
-		return
-	if not event is InputEventScreenDrag:
-		return
-	var drag := event as InputEventScreenDrag
-	if drag.index != _bag_scroll_touch_index or _bag_scroll_target != surface:
-		return
-	_bag_scroll_motion += drag.relative
-	if not _bag_scroll_axis.is_empty() or _bag_scroll_motion.length() < SCROLL_TOUCH_DEADZONE:
-		return
-	_bag_scroll_axis = "horizontal" if absf(_bag_scroll_motion.x) > absf(_bag_scroll_motion.y) else "vertical"
-	# ScrollContainer owns physical movement. This only identifies a completed
-	# swipe so the touched chip or bag item cannot immediately activate.
-	if _bag_scroll_axis == axis:
-		if surface == "category":
-			bag_category_dragging = true
+			guard.begin(surface, axis, touch)
 		else:
-			bag_catalog_dragging = true
+			guard.finish(touch)
+	elif event is InputEventScreenDrag:
+		# ScrollContainer owns physical movement. The guard only observes the
+		# matching touch and dominant axis for post-scroll action suppression.
+		guard.observe_drag(event as InputEventScreenDrag)
 
 
-func _on_bag_scroll_started(surface: String) -> void:
-	_bag_scroll_surface_active = surface
+func _on_bag_scroll_started(guard: ScrollTapGuard) -> void:
+	guard.on_scroll_started()
 
 
-func _on_bag_scroll_ended(surface: String) -> void:
-	if _bag_scroll_surface_active == surface or _bag_scroll_target == surface:
-		suppress_bag_actions_until_ms = Time.get_ticks_msec() + 220
-		_reset_bag_scroll_gesture()
+func _on_bag_scroll_ended(guard: ScrollTapGuard) -> void:
+	guard.on_scroll_ended()
 
 
 func _reset_bag_scroll_gesture() -> void:
-	bag_category_dragging = false
-	bag_catalog_dragging = false
-	_bag_scroll_touch_index = -1
-	_bag_scroll_target = ""
-	_bag_scroll_axis = ""
-	_bag_scroll_motion = Vector2.ZERO
-	_bag_scroll_surface_active = ""
+	bag_category_tap_guard = ScrollTapGuard.new(SCROLL_TOUCH_DEADZONE)
+	bag_catalog_tap_guard = ScrollTapGuard.new(SCROLL_TOUCH_DEADZONE)
+
+
+func _bag_action_suppressed() -> bool:
+	return (
+		bag_category_tap_guard.is_action_suppressed()
+		or bag_catalog_tap_guard.is_action_suppressed()
+	)
 
 
 func _clear_ui() -> void:
@@ -194,7 +167,6 @@ func _clear_ui() -> void:
 	bag_category_scroll = null
 	bag_catalog_scroll = null
 	_reset_bag_scroll_gesture()
-	suppress_bag_actions_until_ms = 0
 
 
 func _build_editor() -> void:
@@ -710,8 +682,8 @@ func _show_bag() -> void:
 	bag_category_scroll.scroll_deadzone = 12
 	bag_category_scroll.custom_minimum_size.y = 58
 	bag_category_scroll.gui_input.connect(_on_bag_category_scroll_gui_input)
-	bag_category_scroll.scroll_started.connect(_on_bag_scroll_started.bind("category"))
-	bag_category_scroll.scroll_ended.connect(_on_bag_scroll_ended.bind("category"))
+	bag_category_scroll.scroll_started.connect(_on_bag_scroll_started.bind(bag_category_tap_guard))
+	bag_category_scroll.scroll_ended.connect(_on_bag_scroll_ended.bind(bag_category_tap_guard))
 	content.add_child(bag_category_scroll)
 	var categories := HBoxContainer.new()
 	categories.add_theme_constant_override("separation", 6)
@@ -746,8 +718,8 @@ func _show_bag() -> void:
 	bag_catalog_scroll.follow_focus = false
 	bag_catalog_scroll.clip_contents = true
 	bag_catalog_scroll.gui_input.connect(_on_bag_catalog_scroll_gui_input)
-	bag_catalog_scroll.scroll_started.connect(_on_bag_scroll_started.bind("catalog"))
-	bag_catalog_scroll.scroll_ended.connect(_on_bag_scroll_ended.bind("catalog"))
+	bag_catalog_scroll.scroll_started.connect(_on_bag_scroll_started.bind(bag_catalog_tap_guard))
+	bag_catalog_scroll.scroll_ended.connect(_on_bag_scroll_ended.bind(bag_catalog_tap_guard))
 	content.add_child(bag_catalog_scroll)
 	bag_grid = GridContainer.new()
 	bag_grid.name = "BagGrid"
@@ -772,7 +744,6 @@ func _close_bag() -> void:
 	bag_category_scroll = null
 	bag_catalog_scroll = null
 	_reset_bag_scroll_gesture()
-	suppress_bag_actions_until_ms = 0
 	if is_instance_valid(bag_button):
 		bag_button.show()
 	if is_instance_valid(status_label):
@@ -780,7 +751,7 @@ func _close_bag() -> void:
 
 
 func _set_bag_category(category_id: String) -> void:
-	if Time.get_ticks_msec() < suppress_bag_actions_until_ms:
+	if _bag_action_suppressed():
 		return
 	bag_category = category_id
 	_close_bag()
@@ -845,7 +816,6 @@ func _apply_decor_preview(preview: TextureRect, texture: Texture2D) -> void:
 
 
 func _rebuild_bag_grid(count_label: Label) -> void:
-	_reset_bag_scroll_gesture()
 	bag_grid.columns = 3
 	for child in bag_grid.get_children():
 		child.queue_free()
@@ -904,7 +874,7 @@ func _rebuild_bag_grid(count_label: Label) -> void:
 
 
 func _place_from_bag(item_id: String) -> void:
-	if Time.get_ticks_msec() < suppress_bag_actions_until_ms:
+	if _bag_action_suppressed():
 		return
 	var items := AppState.room_items(companion_id)
 	var item := {

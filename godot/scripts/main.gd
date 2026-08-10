@@ -380,40 +380,30 @@ func _show_profile() -> void:
 	var generation := _page_generation
 	_add_header("PROFILE", true, true, func() -> void: _show_home())
 	var content := _make_vertical_scroll("ProfileContent", 18)
-	var loading := Label.new()
-	loading.name = "ProfileLoading"
-	loading.text = "Opening your profile…"
-	loading.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	loading.add_theme_font_size_override("font_size", 20)
-	loading.add_theme_color_override("font_color", MUTED)
-	content.add_child(loading)
-	_populate_profile.call_deferred(content, generation)
-	page_build_complete.emit()
+	var profile_scroll := content.get_parent() as ScrollContainer
+	profile_scroll.visible = false
+	await _populate_profile(content, generation)
+	if _profile_page_is_current(content, generation):
+		page_build_complete.emit()
 
 
 func _populate_profile(content: VBoxContainer, generation: int) -> void:
 	if not _profile_page_is_current(content, generation):
 		return
-	var loading := content.get_node_or_null("ProfileLoading")
-	if is_instance_valid(loading):
-		loading.queue_free()
 	content.add_child(_build_profile_unicorn_banner())
 	content.add_child(_build_profile_stat_strip())
 	content.add_child(_profile_section_title("MAGIC RINGS"))
 	content.add_child(_build_profile_progress_rings())
-	await get_tree().process_frame
-	if not _profile_page_is_current(content, generation):
-		return
 	content.add_child(_profile_section_title("YOUR GAMES"))
 	content.add_child(_build_profile_category_chips())
 	var game_grid := _build_profile_game_grid_shell()
 	content.add_child(game_grid)
-	await _populate_profile_game_grid(game_grid, generation)
-	if not _profile_page_is_current(content, generation):
-		return
+	_populate_profile_game_grid(game_grid)
 	content.add_child(_profile_section_title("SETTINGS & LEARNING"))
 	content.add_child(_build_profile_settings())
 	var logout := _make_button("LOG OUT", Color("7c2948"), 60)
+	logout.name = "ProfileLogoutButton"
+	logout.mouse_filter = Control.MOUSE_FILTER_PASS
 	logout.pressed.connect(func() -> void:
 		AppState.logout()
 		_show_login()
@@ -422,7 +412,11 @@ func _populate_profile(content: VBoxContainer, generation: int) -> void:
 	var bottom_pad := Control.new()
 	bottom_pad.custom_minimum_size.y = 24
 	content.add_child(bottom_pad)
+	for _frame in 2:
+		await get_tree().process_frame
 	if _profile_page_is_current(content, generation):
+		content.custom_minimum_size.y = content.get_combined_minimum_size().y
+		(content.get_parent() as ScrollContainer).show()
 		profile_build_complete.emit()
 
 
@@ -440,6 +434,7 @@ func _build_profile_unicorn_banner() -> PanelContainer:
 	var ability_definition := CompanionAbilityService.definition()
 	var banner := PanelContainer.new()
 	banner.name = "EquippedUnicornBanner"
+	banner.mouse_filter = Control.MOUSE_FILTER_PASS
 	banner.custom_minimum_size.y = 268
 	banner.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("241c55"), Color("f26fa7"), 24))
 	var stack := VBoxContainer.new()
@@ -480,6 +475,7 @@ func _build_profile_unicorn_banner() -> PanelContainer:
 	identity.add_child(power)
 	var alley := _make_button("VISIT UNICORN ALLEY", Color("c45186"), 54)
 	alley.name = "ProfileAlleyButton"
+	alley.mouse_filter = Control.MOUSE_FILTER_PASS
 	alley.pressed.connect(_open_unicorn_alley)
 	stack.add_child(alley)
 	return banner
@@ -532,6 +528,7 @@ func _build_profile_progress_rings() -> PanelContainer:
 func _build_profile_category_chips() -> HFlowContainer:
 	var row := HFlowContainer.new()
 	row.name = "ProfileCategoryChips"
+	row.mouse_filter = Control.MOUSE_FILTER_PASS
 	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.alignment = FlowContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("h_separation", 8)
@@ -540,16 +537,15 @@ func _build_profile_category_chips() -> HFlowContainer:
 		var chip := Button.new()
 		chip.text = category.to_upper()
 		chip.custom_minimum_size = Vector2(88, 48)
+		chip.mouse_filter = Control.MOUSE_FILTER_PASS
+		chip.set_meta("profile_category", category)
 		chip.toggle_mode = true
 		chip.button_pressed = profile_category_filter == category
 		var fill := Color("22345f")
 		if profile_category_filter == category:
 			fill = StorybookUI.GOLD if category == "All" else _category_color(category)
 		StorybookUI.apply_button(chip, fill, profile_category_filter == category and category == "All", 14)
-		chip.pressed.connect(func() -> void:
-			profile_category_filter = category
-			_show_profile()
-		)
+		chip.pressed.connect(_apply_profile_category_filter.bind(category))
 		row.add_child(chip)
 	return row
 
@@ -564,16 +560,41 @@ func _build_profile_game_grid_shell() -> GridContainer:
 	return grid
 
 
-func _populate_profile_game_grid(grid: GridContainer, generation: int) -> void:
+func _populate_profile_game_grid(grid: GridContainer) -> void:
+	for child in grid.get_children():
+		grid.remove_child(child)
+		child.queue_free()
 	var categories := ["Number", "Word", "Mystery", "Arcade"] if profile_category_filter == "All" else [profile_category_filter]
-	var added := 0
 	for category in categories:
 		for game in GameRegistry.games_in_category(category):
-			if not _profile_page_is_current(grid, generation):
-				return
-			var tile := _build_profile_game_tile(game, category)
-			grid.add_child(tile)
-			added += 1
+			grid.add_child(_build_profile_game_tile(game, category))
+	# The profile's outer extent must not change when a chip filters the existing
+	# grid. Reserve its largest (All-games) row count so a preserved scroll offset
+	# never clamps or shifts when a narrower category is selected.
+	var maximum_rows := ceili(float(GameRegistry.all_games().size()) / float(grid.columns))
+	grid.custom_minimum_size.y = maximum_rows * 126.0 + maxf(0.0, maximum_rows - 1.0) * 10.0
+
+
+func _apply_profile_category_filter(category: String) -> void:
+	var grid := page.find_child("ProfileGameGrid", true, false) as GridContainer
+	var chips := page.find_child("ProfileCategoryChips", true, false) as HFlowContainer
+	var profile_scroll := grid.get_parent().get_parent() as ScrollContainer if is_instance_valid(grid) else null
+	if not is_instance_valid(grid) or not is_instance_valid(chips) or not is_instance_valid(profile_scroll):
+		return
+	var preserved_scroll := profile_scroll.scroll_vertical
+	profile_category_filter = category
+	_populate_profile_game_grid(grid)
+	for child in chips.get_children():
+		var chip := child as Button
+		if not is_instance_valid(chip):
+			continue
+		var chip_category := str(chip.get_meta("profile_category", ""))
+		var active := chip_category == profile_category_filter
+		chip.button_pressed = active
+		var fill := StorybookUI.GOLD if active and chip_category == "All" else (_category_color(chip_category) if active else Color("22345f"))
+		StorybookUI.apply_button(chip, fill, active and chip_category == "All", 14)
+	profile_scroll.scroll_vertical = preserved_scroll
+	profile_scroll.set_deferred("scroll_vertical", preserved_scroll)
 
 
 func _build_profile_game_tile(game: Dictionary, category: String) -> PanelContainer:
@@ -582,6 +603,7 @@ func _build_profile_game_tile(game: Dictionary, category: String) -> PanelContai
 	var tile := PanelContainer.new()
 	tile.custom_minimum_size = Vector2(0, 126)
 	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tile.mouse_filter = Control.MOUSE_FILTER_PASS
 	tile.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), _category_color(category), 14))
 	var stack := VBoxContainer.new()
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -611,6 +633,7 @@ func _build_profile_game_tile(game: Dictionary, category: String) -> PanelContai
 func _build_profile_settings() -> PanelContainer:
 	var settings_card := PanelContainer.new()
 	settings_card.name = "ProfileSettings"
+	settings_card.mouse_filter = Control.MOUSE_FILTER_PASS
 	settings_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), StorybookUI.GOLD, 18))
 	var settings_stack := VBoxContainer.new()
 	settings_stack.add_theme_constant_override("separation", 8)
@@ -625,11 +648,18 @@ func _build_profile_settings() -> PanelContainer:
 		toggle.text = setting_data["label"]
 		toggle.button_pressed = bool(AppState.setting(setting_data["key"], setting_data["key"] != "reduced_motion"))
 		toggle.custom_minimum_size.y = 56
+		toggle.mouse_filter = Control.MOUSE_FILTER_PASS
 		toggle.add_theme_font_size_override("font_size", 19)
 		toggle.add_theme_color_override("font_color", StorybookUI.INK)
 		toggle.toggled.connect(func(value: bool) -> void: AppState.set_setting(setting_data["key"], value))
 		settings_stack.add_child(toggle)
+	var feedback := Label.new()
+	feedback.name = "ProfileSettingsFeedback"
+	feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	feedback.add_theme_color_override("font_color", Color("254b54"))
 	var reset_tutorials := _make_button("RESET ALL TUTORIALS", Color("6d3f83"), 60)
+	reset_tutorials.name = "ProfileResetTutorialsButton"
+	reset_tutorials.mouse_filter = Control.MOUSE_FILTER_PASS
 	reset_tutorials.pressed.connect(func() -> void:
 		var dialog := ConfirmationDialog.new()
 		dialog.title = "Reset tutorials?"
@@ -637,16 +667,13 @@ func _build_profile_settings() -> PanelContainer:
 		page.add_child(dialog)
 		dialog.confirmed.connect(func() -> void:
 			AppState.reset_tutorials()
-			status_label.text = "Tutorial progress reset."
+			feedback.text = "Tutorial progress reset."
 			dialog.queue_free()
 		)
 		dialog.popup_centered(Vector2i(520, 260))
 	)
 	settings_stack.add_child(reset_tutorials)
-	status_label = Label.new()
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	status_label.add_theme_color_override("font_color", Color("254b54"))
-	settings_stack.add_child(status_label)
+	settings_stack.add_child(feedback)
 	return settings_card
 
 
@@ -665,6 +692,8 @@ func _make_vertical_scroll(content_name: String, separation: int = 14) -> VBoxCo
 	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	scroll.follow_focus = false
+	scroll.scroll_deadzone = 8
 	scroll.clip_contents = true
 	page.add_child(scroll)
 	var content := VBoxContainer.new()

@@ -9,6 +9,10 @@ const PINK := Color("f26fa7")
 
 var icon_id := "number"
 var accent := CYAN
+var style_rebuild_count := 0
+var _tile_style: StyleBoxFlat
+var _style_side := -1.0
+var _style_accent := Color.TRANSPARENT
 
 
 func setup(value: String, color: Color) -> void:
@@ -27,19 +31,28 @@ func _notification(what: int) -> void:
 func _draw() -> void:
 	var side := minf(size.x, size.y)
 	var tile := Rect2((size.x - side) * 0.5 + 2, (size.y - side) * 0.5 + 2, side - 4, side - 4)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(NAVY, 0.94)
-	style.border_color = Color(accent, 0.95)
-	style.set_border_width_all(3)
-	style.set_corner_radius_all(int(side * 0.24))
-	style.shadow_color = Color(0.02, 0.03, 0.12, 0.48)
-	style.shadow_size = 4
-	style.shadow_offset = Vector2(0, 3)
-	draw_style_box(style, tile)
+	draw_style_box(_style_for(side), tile)
 	var scale_factor := side / 96.0
 	draw_set_transform(size * 0.5, 0.0, Vector2(scale_factor, scale_factor))
 	_draw_symbol()
 	draw_set_transform(Vector2.ZERO, 0.0, Vector2.ONE)
+
+
+func _style_for(side: float) -> StyleBoxFlat:
+	if _tile_style == null or not is_equal_approx(_style_side, side) or _style_accent != accent:
+		if _tile_style == null:
+			_tile_style = StyleBoxFlat.new()
+		_tile_style.bg_color = Color(NAVY, 0.94)
+		_tile_style.border_color = Color(accent, 0.95)
+		_tile_style.set_border_width_all(3)
+		_tile_style.set_corner_radius_all(int(side * 0.24))
+		_tile_style.shadow_color = Color(0.02, 0.03, 0.12, 0.48)
+		_tile_style.shadow_size = 4
+		_tile_style.shadow_offset = Vector2(0, 3)
+		_style_side = side
+		_style_accent = accent
+		style_rebuild_count += 1
+	return _tile_style
 
 
 func _draw_symbol() -> void:
