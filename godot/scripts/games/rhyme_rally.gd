@@ -1,5 +1,6 @@
 extends ArcadeGameController
 
+const WordRules = preload("res://scripts/games/word_game_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 
 const CHALLENGES := [
@@ -40,6 +41,7 @@ var prompt_label: Label
 var progress_label: Label
 var message_label: Label
 var option_buttons: Array[Button] = []
+var rng := RandomNumberGenerator.new()
 
 
 static func target_for_level(for_level: int) -> int:
@@ -47,9 +49,14 @@ static func target_for_level(for_level: int) -> int:
 
 
 func _ready() -> void:
+	rng.randomize()
 	level = AppState.current_level("rhyme_rally")
 	_build_ui()
 	_start_level()
+
+
+func set_random_seed(seed: int) -> void:
+	rng.seed = seed
 
 
 func _start_level() -> void:
@@ -71,17 +78,24 @@ func _start_level_with_lifecycle(begin_run: bool) -> void:
 
 
 func _show_round() -> void:
-	var ceiling := mini(CHALLENGES.size(), maxi(4, roundi((level + round_index) * 1.5)))
-	var floor_index := maxi(0, ceiling - maxi(5, roundi(ceiling * 0.6)))
-	challenge = CHALLENGES[randi_range(floor_index, ceiling - 1)].duplicate(true)
+	var window := WordRules.selection_window(CHALLENGES.size(), level + round_index)
+	challenge = CHALLENGES[rng.randi_range(window.x, window.y - 1)].duplicate(true)
 	var options: Array = challenge["options"].duplicate()
-	options.shuffle()
+	_shuffle_options(options)
 	prompt_label.text = challenge["prompt"]
 	progress_label.text = "%d / %d" % [round_index, target_rounds]
 	for index in option_buttons.size():
 		option_buttons[index].text = options[index]
 		option_buttons[index].disabled = false
 		option_buttons[index].modulate = Color.WHITE
+
+
+func _shuffle_options(options: Array) -> void:
+	for index in range(options.size() - 1, 0, -1):
+		var swap_index := rng.randi_range(0, index)
+		var value = options[index]
+		options[index] = options[swap_index]
+		options[swap_index] = value
 
 
 func _pick(answer: String) -> void:
