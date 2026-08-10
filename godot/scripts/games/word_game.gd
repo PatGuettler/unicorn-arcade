@@ -2,13 +2,13 @@ extends ArcadeGameController
 
 const Rules = preload("res://scripts/games/word_game_rules.gd")
 const RoundCatalog = preload("res://scripts/games/word_round_catalog.gd")
+const WordChoiceStrategy = preload("res://scripts/games/word_choice_strategy.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
 const CYAN := Color("58d6e8")
 const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
-const VOWELS := ["a", "e", "i", "o", "u"]
 
 var game_id := ""
 var game_info: Dictionary = {}
@@ -30,6 +30,7 @@ var blast_words: Array = []
 var blast_source_exhausted := false
 var spawn_elapsed := 0.0
 var suppress_text_event := false
+var choice_strategy := WordChoiceStrategy.new()
 
 var title_label: Label
 var coin_label: Label
@@ -112,57 +113,45 @@ func _load_round() -> void:
 	secondary_label.text = ""
 	progress_label.text = "%d / %d" % [round_index, target_rounds]
 	lives_label.text = "♥ %d" % lives if lives > 0 else ""
+	if _load_choice_round():
+		return
 	match game_id:
 		"sentence_sprout":
 			_load_sequence("sentence_build", "words", "Build the sentence in order", "sentence")
-		"missing_magic":
-			current = Rules.pick_for_level("missing_word", level + round_index, rng)
-			instruction_label.text = "Fill the magic blank"
-			_render_missing_magic()
 		"sight_spark":
 			_load_sight_spark()
-		"prefix_potion":
-			current = Rules.pick_for_level("prefix_mix", level + round_index, rng)
-			instruction_label.text = "Brew prefix + root into a real word"
-			prompt_label.text = "%s + %s = %s" % [current.get("prefix", ""), current.get("root", ""), current.get("answer", "?") if hint_visible else "?"]
-			var choices: Array = [current.get("answer", "")]
-			choices.append_array(current.get("wrong", []))
-			choices.shuffle()
-			_render_choice_buttons(choices)
-		"vowel_vines":
-			_load_vowel_vines()
 		"letter_lift":
 			_load_letter_lift()
 		"syllable_stamp":
 			_load_sequence("syllable_words", "parts", "Stamp syllables in order", "syllable")
-		"caption_quest":
-			current = Rules.pick_for_level("caption_scenes", level + round_index, rng)
-			instruction_label.text = current.get("prompt", "Choose the best caption")
-			prompt_label.text = current.get("emoji", "")
-			var caption_options: Array = current.get("options", []).duplicate()
-			caption_options.shuffle()
-			_render_choice_buttons(caption_options)
-		"opposite_orbit":
-			current = Rules.pick_for_level("opposite_challenges", level + round_index, rng)
-			instruction_label.text = "Choose the opposite of"
-			prompt_label.text = current.get("word", "")
-			var opposite_options: Array = current.get("options", []).duplicate()
-			opposite_options.shuffle()
-			_render_choice_buttons(opposite_options)
 		"scramble_spell":
 			_load_scramble()
-		"odd_one_out":
-			_load_odd_one_out()
 		"size_line_up":
 			_load_size_line_up()
-		"chain_link":
-			_load_chain_link()
 		"unicorn_blast":
 			_load_unicorn_blast()
 		_:
 			_fail("This game is not configured.")
 	if active and game_id in ["missing_magic", "prefix_potion", "caption_quest", "opposite_orbit", "scramble_spell", "odd_one_out", "size_line_up", "chain_link"] and current.is_empty():
 		_fail("This word round needs a refresh. Try again soon.")
+
+
+func _load_choice_round() -> bool:
+	var choice_round := choice_strategy.begin_round(_strategy_context())
+	if not bool(choice_round.get("handled", false)):
+		return false
+	if not bool(choice_round.get("ok", false)):
+		_fail("This word round needs a refresh. Try again soon.")
+		return true
+	_apply_choice_round(choice_round)
+	return true
+
+
+func _apply_choice_round(choice_round: Dictionary) -> void:
+	current = choice_round.get("current", {})
+	instruction_label.text = str(choice_round.get("instruction", ""))
+	prompt_label.text = str(choice_round.get("prompt", ""))
+	_render_choice_specs(choice_round.get("options", []))
 
 
 func _load_sequence(key: String, field: String, instruction: String, mode: String) -> void:
@@ -202,15 +191,7 @@ func _finish_sight_flash() -> void:
 
 
 func _load_vowel_vines() -> void:
-	var prepared := RoundCatalog.vowel_round(Rules.data(), VOWELS, level, round_index, rng)
-	if prepared.is_empty() or (prepared.get("choices", []) as Array).is_empty():
-		_fail("This vowel round needs a refresh. Try again soon.")
-		return
-	var vowel: String = prepared["vowel"]
-	current = {"vowel": vowel}
-	instruction_label.text = "Choose a word beginning with"
-	prompt_label.text = vowel.to_upper()
-	_render_choice_buttons(prepared["choices"])
+	_load_choice_round()
 
 
 func _load_letter_lift() -> void:
@@ -237,13 +218,7 @@ func _load_scramble() -> void:
 
 
 func _load_odd_one_out() -> void:
-	current = Rules.pick_for_level("odd_one_out", level + round_index, rng)
-	instruction_label.text = current.get("theme", "Find the odd one out")
-	prompt_label.text = "CASE FILE"
-	var items: Array = current.get("items", []).duplicate(true)
-	items.shuffle()
-	for item in items:
-		_add_option("%s\n%s" % [item.get("emoji", ""), item.get("label", "")], item.get("label", ""))
+	_load_choice_round()
 
 
 func _load_size_line_up() -> void:
@@ -257,13 +232,7 @@ func _load_size_line_up() -> void:
 
 
 func _load_chain_link() -> void:
-	current = Rules.pick_for_level("chain_links", level + round_index, rng)
-	instruction_label.text = "Continue with the last letter"
-	var start := str(current.get("start", ""))
-	prompt_label.text = "%s  →  %s…" % [start, start.right(1).to_upper()]
-	var choices: Array = current.get("options", []).duplicate()
-	choices.shuffle()
-	_render_choice_buttons(choices)
+	_load_choice_round()
 
 
 func _load_unicorn_blast() -> void:
@@ -277,22 +246,17 @@ func _load_unicorn_blast() -> void:
 
 
 func _render_missing_magic() -> void:
-	var pieces: Array = current.get("text", [])
-	var rendered: Array[String] = []
-	for piece in pieces:
-		if piece == null:
-			rendered.append(str(current.get("answer", "")) if hint_visible else "___")
-		else:
-			rendered.append(str(piece))
-	prompt_label.text = " ".join(rendered)
-	var choices: Array = current.get("options", []).duplicate()
-	choices.shuffle()
-	_render_choice_buttons(choices)
+	_apply_choice_hint(choice_strategy.hint(_strategy_context()))
 
 
 func _render_choice_buttons(choices: Array) -> void:
 	for choice in choices:
 		_add_option(str(choice), choice)
+
+
+func _render_choice_specs(specs: Array) -> void:
+	for spec in specs:
+		_add_option(str(spec.get("text", "")), spec.get("payload"))
 
 
 func _render_sequence() -> void:
@@ -328,23 +292,18 @@ func _choose(payload) -> void:
 	if payload is Dictionary:
 		_choose_sequence(payload)
 		return
-	var value := str(payload)
-	var correct := false
-	match game_id:
-		"missing_magic", "prefix_potion", "caption_quest", "opposite_orbit":
-			correct = value == str(current.get("answer", ""))
-		"vowel_vines":
-			correct = value.left(1).to_lower() == str(current.get("vowel", ""))
-		"odd_one_out":
-			correct = value == str(current.get("odd", ""))
-		"chain_link":
-			correct = Rules.is_chain_link(str(current.get("start", "")), value)
-	if correct:
-		_successful_round()
-	elif game_id in ["caption_quest", "odd_one_out"]:
-		_lost_life()
-	else:
-		_fail(_fail_reason())
+	var choice_result := choice_strategy.submit(_strategy_context(), payload)
+	match str(choice_result.get("outcome", "ignored")):
+		"success":
+			_successful_round()
+			return
+		"lost_life":
+			_lost_life()
+			return
+		"failure":
+			_fail(_fail_reason())
+			return
+	_fail(_fail_reason())
 
 
 func _choose_sequence(payload: Dictionary) -> void:
@@ -486,12 +445,10 @@ func _show_hint() -> void:
 		_render_letter_lift()
 	elif phase in ["sentence", "syllable", "scramble", "size"]:
 		_render_sequence()
-	elif game_id == "missing_magic":
-		_render_missing_magic()
 	elif game_id == "sight_spark" and phase == "type":
 		prompt_label.text = expected_word
-	elif game_id == "prefix_potion":
-		prompt_label.text = "%s + %s = %s" % [current.get("prefix", ""), current.get("root", ""), current.get("answer", "")]
+	elif choice_strategy.supports(game_id):
+		_apply_choice_hint(choice_strategy.hint(_strategy_context()))
 	else:
 		message_label.text = _hint_text()
 
@@ -506,31 +463,44 @@ func _request_hint() -> void:
 
 
 func _hint_text() -> String:
-	match game_id:
-		"vowel_vines": return "Pick the word starting with %s." % str(current.get("vowel", "")).to_upper()
-		"caption_quest", "missing_magic", "prefix_potion", "opposite_orbit": return "Try: %s" % current.get("answer", "")
-		"odd_one_out": return "Investigate: %s" % current.get("odd", "")
-		"chain_link": return "Start with %s." % str(current.get("start", "")).right(1).to_upper()
+	if choice_strategy.supports(game_id):
+		var choice_hint := choice_strategy.hint(_strategy_context())
+		var choice_message := str(choice_hint.get("message", ""))
+		if not choice_message.is_empty():
+			return choice_message
 	return "Look closely at the prompt."
 
 
 func _fail_reason() -> String:
+	if choice_strategy.supports(game_id):
+		return choice_strategy.failure_reason(_strategy_context())
 	match game_id:
 		"sentence_sprout": return "Tap words in the right order!"
-		"missing_magic": return "Fill the magic blank!"
 		"sight_spark": return "Spell the spark word from memory!"
-		"prefix_potion": return "Brew the real word!"
-		"vowel_vines": return "Choose a word beginning with the target vowel!"
 		"letter_lift": return "Type each letter in order!"
 		"syllable_stamp": return "Stamp syllables in order!"
-		"caption_quest": return "Out of hearts—choose the best caption!"
-		"opposite_orbit": return "Pick the word that means the opposite!"
 		"scramble_spell": return "Tap letters in order to spell the word!"
-		"odd_one_out": return "Find the item that does not belong!"
 		"size_line_up": return "Tap shortest word first, then longer ones!"
-		"chain_link": return "Pick a word beginning with the last letter!"
 		"unicorn_blast": return "Words reached your cannon!"
 	return "Try this level again."
+
+
+func _strategy_context() -> Dictionary:
+	return {
+		"game_id": game_id,
+		"level": level,
+		"round_index": round_index,
+		"rng": rng,
+		"hint_visible": hint_visible,
+		"current": current,
+	}
+
+
+func _apply_choice_hint(hint: Dictionary) -> void:
+	if hint.has("prompt"):
+		prompt_label.text = str(hint["prompt"])
+	if hint.has("message"):
+		message_label.text = str(hint["message"])
 
 
 func _update_blast(delta: float) -> void:

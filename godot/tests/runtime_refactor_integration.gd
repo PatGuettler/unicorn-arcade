@@ -9,6 +9,9 @@ const RoomProceduralFurnitureBuilder = preload("res://scripts/meta/room_procedur
 const GameExperienceChromePresenter = preload("res://scripts/ui/game_experience_chrome_presenter.gd")
 const GameExperienceTutorialPresenter = preload("res://scripts/ui/game_experience_tutorial_presenter.gd")
 const GameExperienceOutcomePresenter = preload("res://scripts/ui/game_experience_outcome_presenter.gd")
+const WordGameModeStrategy = preload("res://scripts/games/word_game_mode_strategy.gd")
+const WordChoiceStrategy = preload("res://scripts/games/word_choice_strategy.gd")
+const WordRules = preload("res://scripts/games/word_game_rules.gd")
 
 class TutorialPauseProbe extends Control:
 	var level := 1
@@ -41,6 +44,7 @@ func _room_item(items: Array, instance_id: String) -> Dictionary:
 
 
 func _run() -> void:
+	_test_word_choice_strategy()
 	var tutorial_presenter := GameExperienceTutorialPresenter.new()
 	var tutorial_source: String = FileAccess.get_file_as_string("res://scripts/ui/game_experience_tutorial_presenter.gd")
 	_check(tutorial_presenter is RefCounted and not tutorial_source.contains("\nvar ") and not tutorial_source.contains("AppState") and not tutorial_source.contains("GameExperience.") and not tutorial_source.contains("TutorialCatalog") and not tutorial_source.contains("attached_scene") and not tutorial_source.contains("CompanionAbilityService"), "tutorial presenter is a stateless RefCounted that does not own game, tutorial catalog, or gameplay state")
@@ -460,3 +464,57 @@ func _run() -> void:
 	else:
 		for failure in failures: push_error(failure)
 		get_tree().quit(1)
+
+
+func _test_word_choice_strategy() -> void:
+	var base := WordGameModeStrategy.new()
+	_check(base is RefCounted and base.family().is_empty() and not base.supports("missing_magic") and base.begin_round({}) == {"handled": false} and base.submit({}, "answer") == {"outcome": "ignored"} and base.hint({}).is_empty() and base.tick({}, 0.1).is_empty() and base.failure_reason({}) == "Try this level again.", "WordGameModeStrategy exposes the stateless safe defaults")
+	var source := FileAccess.get_file_as_string("res://scripts/games/word_choice_strategy.gd")
+	_check(not source.contains("AppState") and not source.contains("ArcadeGameController") and not source.contains("StorybookUI") and not source.contains("GameRegistry"), "choice strategy stays inside Rules and RoundCatalog data boundaries")
+	var strategy := WordChoiceStrategy.new()
+	var supported := ["missing_magic", "prefix_potion", "vowel_vines", "caption_quest", "opposite_orbit", "odd_one_out", "chain_link"]
+	_check(strategy.family() == "choice" and supported.all(func(game_id: String) -> bool: return strategy.supports(game_id)) and not strategy.supports("sentence_sprout"), "choice strategy exposes exactly the migrated mode IDs")
+	for game_id in supported:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 1337
+		var round := strategy.begin_round({"game_id": game_id, "level": 1, "round_index": 0, "rng": rng, "hint_visible": false})
+		var current: Dictionary = round.get("current", {})
+		var options: Array = round.get("options", [])
+		_check(bool(round.get("handled", false)) and bool(round.get("ok", false)) and not current.is_empty() and not str(round.get("instruction", "")).is_empty() and not options.is_empty(), "%s begins with a renderable choice contract" % game_id)
+		if game_id == "odd_one_out":
+			var odd_spec: Dictionary = options[0]
+			_check(odd_spec.get("text", "").contains("\n") and not str(odd_spec.get("payload", "")).contains("\n"), "Odd One Out keeps display text separate from its selection payload")
+		var current_before := current.duplicate(true)
+		var options_before := options.duplicate(true)
+		strategy.hint({"game_id": game_id, "current": current})
+		strategy.hint({"game_id": game_id, "current": current})
+		_check(current == current_before and options == options_before, "%s hint derives from current without repicking or reordering" % game_id)
+		var correct_payload: Variant = _choice_correct_payload(game_id, current, options)
+		var wrong_outcome := "lost_life" if game_id in ["caption_quest", "odd_one_out"] else "failure"
+		_check(strategy.submit({"game_id": game_id, "current": current}, correct_payload).get("outcome") == "success" and strategy.submit({"game_id": game_id, "current": current}, "__wrong_choice__").get("outcome") == wrong_outcome, "%s returns success and its expected incorrect outcome" % game_id)
+		_check(not strategy.failure_reason({"game_id": game_id}).is_empty(), "%s has a concrete failure reason" % game_id)
+	var saved_cache := WordRules._cache.duplicate(true)
+	WordRules._cache = {"vowel_words": {}}
+	var empty_rng := RandomNumberGenerator.new()
+	_check(not bool(strategy.begin_round({"game_id": "vowel_vines", "level": 1, "round_index": 0, "rng": empty_rng}).get("ok", true)), "Vowel Vines reports an invalid round when every vowel source is empty")
+	WordRules._cache = saved_cache
+	_check(strategy.failure_reason({"game_id": "caption_quest"}) == "Out of hearts—choose the best caption!" and strategy.failure_reason({"game_id": "chain_link"}) == "Pick a word beginning with the last letter!", "choice strategy preserves the exact failure copy")
+
+
+func _choice_correct_payload(game_id: String, current: Dictionary, options: Array):
+	match game_id:
+		"missing_magic", "prefix_potion", "caption_quest", "opposite_orbit":
+			return current.get("answer", "")
+		"vowel_vines":
+			for option in options:
+				var payload := str(option.get("payload", ""))
+				if payload.left(1).to_lower() == str(current.get("vowel", "")):
+					return option.get("payload")
+		"odd_one_out":
+			return current.get("odd", "")
+		"chain_link":
+			for option in options:
+				var payload := str(option.get("payload", ""))
+				if WordRules.is_chain_link(str(current.get("start", "")), payload):
+					return option.get("payload")
+	return ""

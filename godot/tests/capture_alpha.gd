@@ -84,6 +84,9 @@ func _capture() -> void:
 			get_tree().quit(2)
 			return
 		captured = load(scene_path).instantiate()
+	elif mode == "word_choice_fixture":
+		AppState.selected_game_id = game_id
+		captured = WORD_SCENE.instantiate()
 	elif mode == "game_chrome_fixture":
 		captured = Control.new()
 		captured.name = "GameChromeFixture"
@@ -140,6 +143,11 @@ func _capture() -> void:
 	# objective plaque, tutorial layer, and safe-area behavior are included in QA.
 	if mode == "game":
 		get_tree().current_scene = captured
+	elif mode == "word_choice_fixture":
+		seed(1337)
+		var word_rng := captured.get("rng") as RandomNumberGenerator
+		word_rng.seed = 1337
+		captured.call("_start_level")
 	elif mode == "game_chrome_fixture":
 		_build_game_chrome_fixture(captured as Control, game_id)
 	elif mode == "game_tutorial_fixture":
