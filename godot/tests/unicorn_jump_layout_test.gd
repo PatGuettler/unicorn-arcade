@@ -1,6 +1,7 @@
 extends Node
 
 const JumpScene = preload("res://scenes/games/unicorn_jump.tscn")
+const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
 
 var failures: Array[String] = []
 
@@ -36,10 +37,9 @@ func _run() -> void:
 	experience.attached_scene = jump
 	experience.attached_game_id = "unicorn_jump"
 	var objective_plaque := experience.call("_build_objective_plaque") as PanelContainer
-	var hud_mascot := objective_plaque.find_child("EquippedCompanionMascot", true, false) as RoomItemPreview3D
-	var hud_cameras := hud_mascot.find_children("*", "Camera3D", true, false) if is_instance_valid(hud_mascot) else []
-	var hud_camera: Camera3D = hud_cameras[0] as Camera3D if not hud_cameras.is_empty() else null
-	_check(is_instance_valid(hud_mascot) and hud_mascot.presentation_context == "game_hud" and hud_mascot.custom_minimum_size.x >= 96.0 and is_instance_valid(hud_camera) and hud_camera.size >= 8.8, "the shared objective HUD uses an isolated padded companion framing without clipping other preview contexts")
+	var hud_mascot := objective_plaque.find_child("EquippedCompanionMascot", true, false) as TextureRect
+	var expected_thumbnail_path := CompanionAssets.thumbnail_path(AppState.equipped_companion())
+	_check(is_instance_valid(hud_mascot) and hud_mascot.custom_minimum_size.x >= 96.0 and hud_mascot.texture != null and hud_mascot.texture.resource_path == expected_thumbnail_path, "the shared objective HUD uses the equipped companion thumbnail at its isolated padded size")
 	objective_plaque.queue_free()
 	experience.call("_show_notice", "Lucky Rainbow", "Gives a chance at bonus coins.")
 	await get_tree().process_frame

@@ -19,6 +19,7 @@ var kills := 0
 var score := 0
 var lives := 3
 var active := false
+var gameplay_paused := false
 var player_x := 0.5
 var bullets: Array[Dictionary] = []
 var bolt_flashes: Array[Dictionary] = []
@@ -80,7 +81,7 @@ func _process(delta: float) -> void:
 
 
 func _input(event: InputEvent) -> void:
-	if not active:
+	if not active or gameplay_paused:
 		return
 	if event is InputEventScreenTouch or event is InputEventScreenDrag:
 		player_x = clampf(event.position.x / maxf(1.0, size.x), 0.08, 0.92)
@@ -107,7 +108,9 @@ func _start_level(for_level: int) -> void:
 	invulnerable = 0.0
 	boss_spawned = false
 	opening_left = 3 + level
-	opening_timer = 0.0
+	# Keep the original opening beat so the tutorial has time to mount before
+	# the first wave appears.
+	opening_timer = 1500.0
 	started_ms = Time.get_ticks_msec()
 	active = true
 	CompanionAbilityService.begin_level("galaxy_unicorn", level)
@@ -115,6 +118,10 @@ func _start_level(for_level: int) -> void:
 	message_label.text = "Drag %s left and right. Rainbow bolts fire automatically." % companion_name
 	action_button.hide()
 	_update_hud()
+
+
+func set_gameplay_paused(paused: bool) -> void:
+	gameplay_paused = paused
 
 
 func _spawn_enemy(force_boss: bool) -> void:
