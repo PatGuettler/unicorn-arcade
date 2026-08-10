@@ -105,13 +105,8 @@ func _process(delta: float) -> void:
 	if update_accumulator >= 0.15:
 		update_accumulator = 0.0
 		_update_runtime_ui()
-	var scene_active := bool(attached_controller.runtime_snapshot().get("active", true)) if is_instance_valid(attached_controller) else true
-	if was_active and not scene_active:
-		if _is_retry_failure() and CompanionAbilityService.consume_checkpoint_retry():
-			_show_sparkle_retry_notice.call_deferred(_outcome_message())
-		else:
-			_show_game_outcome.call_deferred()
-	was_active = scene_active
+	if not is_instance_valid(attached_controller):
+		_poll_legacy_run_activity(scene)
 	var current_level := int(attached_controller.runtime_snapshot().get("level", 1)) if is_instance_valid(attached_controller) else _scene_int(scene, "level", 1)
 	if current_level != last_level:
 		last_level = current_level
@@ -195,9 +190,22 @@ func _on_runtime_state_changed(snapshot: Dictionary) -> void:
 
 
 func _on_run_activity_changed(active: bool) -> void:
+	_handle_run_activity_transition(active)
+
+
+func _poll_legacy_run_activity(scene: Node) -> void:
+	if not _has_property(scene, "active"):
+		return
+	_handle_run_activity_transition(bool(scene.get("active")))
+
+
+func _handle_run_activity_transition(active: bool) -> void:
 	if was_active and not active:
-		if is_instance_valid(attached_controller) and bool(attached_controller.runtime_snapshot().get("retry_available", false)) and CompanionAbilityService.consume_checkpoint_retry():
-			_show_sparkle_retry_notice.call_deferred(str(attached_controller.runtime_snapshot().get("outcome_message", "")))
+		var snapshot := attached_controller.runtime_snapshot() if is_instance_valid(attached_controller) else {}
+		var retry_available := bool(snapshot.get("retry_available", false)) if is_instance_valid(attached_controller) else _is_retry_failure()
+		var outcome_message := str(snapshot.get("outcome_message", "")) if is_instance_valid(attached_controller) else _outcome_message()
+		if retry_available and CompanionAbilityService.consume_checkpoint_retry():
+			_show_sparkle_retry_notice.call_deferred(outcome_message)
 		else:
 			_show_game_outcome.call_deferred()
 	was_active = active

@@ -57,6 +57,43 @@ func _run() -> void:
 	AdBarService.set("_banner_requested", original_banner_requested)
 	AdBarService.set("_banner_loaded", original_banner_loaded)
 	AdBarService.set("_banner_request_started_ms", original_banner_request_started_ms)
+	var sdk_state := {
+		"initialized": AdBarService.get("_sdk_initialized"),
+		"initializing": AdBarService.get("_sdk_initializing"),
+		"started": AdBarService.get("_sdk_init_started_ms"),
+		"last_attempt": AdBarService.get("_sdk_last_attempt_ms"),
+		"generation": AdBarService.get("_sdk_init_generation"),
+		"shutting_down": AdBarService.get("_shutting_down"),
+	}
+	AdBarService.set("_shutting_down", false)
+	AdBarService.set("_sdk_initialized", false)
+	AdBarService.set("_sdk_initializing", true)
+	AdBarService.set("_sdk_init_started_ms", 1000)
+	AdBarService.set("_sdk_last_attempt_ms", 1000)
+	AdBarService.set("_sdk_init_generation", 40)
+	_check(not AdBarService.call("_expire_sdk_initialization", 10999) and bool(AdBarService.get("_sdk_initializing")), "AdBarService keeps a pre-timeout SDK initialization live")
+	_check(AdBarService.call("_expire_sdk_initialization", 11000) and not bool(AdBarService.get("_sdk_initializing")) and int(AdBarService.get("_sdk_init_generation")) == 41, "AdBarService timeout clears and invalidates the initialization generation")
+	_check(not AdBarService.call("_on_mobile_ads_initialized", 40) and not bool(AdBarService.get("_sdk_initialized")), "AdBarService ignores a late callback from an expired generation")
+	AdBarService.set("_sdk_initializing", true)
+	AdBarService.set("_sdk_init_started_ms", 41000)
+	AdBarService.set("_sdk_init_generation", 42)
+	_check(not AdBarService.call("_on_mobile_ads_initialized", 41) and bool(AdBarService.get("_sdk_initializing")) and not bool(AdBarService.get("_sdk_initialized")), "AdBarService ignores a stale callback while a newer initialization remains live")
+	_check(AdBarService.call("_on_mobile_ads_initialized", 42) and bool(AdBarService.get("_sdk_initialized")) and not bool(AdBarService.get("_sdk_initializing")), "AdBarService accepts only the current initialization generation")
+	AdBarService.set("_sdk_initialized", false)
+	AdBarService.set("_sdk_last_attempt_ms", 5000)
+	_check(not AdBarService.call("_can_begin_sdk_initialization", 34999) and AdBarService.call("_can_begin_sdk_initialization", 35000), "AdBarService enforces the thirty-second initialization retry boundary")
+	AdBarService.set("_sdk_last_attempt_ms", -1)
+	_check(AdBarService.call("_can_begin_sdk_initialization", 1), "AdBarService first initialization attempt is not blocked by early process uptime")
+	if not Engine.has_singleton("PoingGodotAdMob"):
+		AdBarService.set("_sdk_initializing", false)
+		AdBarService.call("_initialize_mobile_ads", 72000)
+		_check(not bool(AdBarService.get("_sdk_initializing")) and int(AdBarService.get("_sdk_last_attempt_ms")) == 72000, "AdBarService missing native singleton exits cleanly and rate-limits the attempt")
+	AdBarService.set("_sdk_initialized", sdk_state["initialized"])
+	AdBarService.set("_sdk_initializing", sdk_state["initializing"])
+	AdBarService.set("_sdk_init_started_ms", sdk_state["started"])
+	AdBarService.set("_sdk_last_attempt_ms", sdk_state["last_attempt"])
+	AdBarService.set("_sdk_init_generation", sdk_state["generation"])
+	AdBarService.set("_shutting_down", sdk_state["shutting_down"])
 	await get_tree().process_frame
 	await get_tree().process_frame
 	var app_layout := get_tree().root.find_child("AppViewportLayout", true, false) as VBoxContainer

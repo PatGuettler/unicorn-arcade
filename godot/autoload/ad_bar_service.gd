@@ -8,10 +8,15 @@ const EXAMPLE_PATH := "res://config/admob.example.json"
 const GOOGLE_TEST_BANNER_UNIT_ID := "ca-app-pub-3940256099942544/6300978111"
 const CONTENT_TO_BANNER_GUTTER_LOGICAL_PIXELS := 24
 const BANNER_REQUEST_STALE_MS := 8000
+const SDK_INITIALIZATION_TIMEOUT_MS := 10000
+const SDK_INITIALIZATION_RETRY_MS := 30000
 var _config: Dictionary = {}
 var _ad_view: AdView
 var _sdk_initialized := false
 var _sdk_initializing := false
+var _sdk_init_started_ms := -1
+var _sdk_last_attempt_ms := -1
+var _sdk_init_generation := 0
 var _banner_logical_height := 60.0
 var _banner_requested := false
 var _banner_loaded := false
@@ -41,6 +46,7 @@ func _exit_tree() -> void:
 	# reservation, which would try to rebuild AppViewportLayout while root child
 	# removal is in progress and can recurse through failed add_child calls.
 	_shutting_down = true
+	_invalidate_sdk_initialization()
 	_banner_requested = false
 	_reservation_active = false
 	_layout_sync_queued = false
@@ -50,6 +56,10 @@ func _exit_tree() -> void:
 	_app_content_viewport = null
 	_ad_bar_area = null
 	_hosted_scene = null
+
+
+func _process(_delta: float) -> void:
+	_expire_sdk_initialization()
 
 
 func _reload_config() -> void:
@@ -135,21 +145,32 @@ func _banner_unit_id() -> String:
 	return str(_config.get("android_banner_unit_id", "")).strip_edges()
 
 
-func _initialize_mobile_ads() -> void:
+func _initialize_mobile_ads(now_ms := -1) -> void:
+	if now_ms < 0:
+		now_ms = Time.get_ticks_msec()
 	if _shutting_down:
 		return
 	if _sdk_initialized:
 		_show_banner_if_attached()
 		return
 	if _sdk_initializing:
+		_expire_sdk_initialization(now_ms)
+	if _sdk_initializing or not _can_begin_sdk_initialization(now_ms):
 		return
 	_sdk_initializing = true
+	_sdk_init_started_ms = now_ms
+	_sdk_last_attempt_ms = now_ms
+	_sdk_init_generation += 1
+	var generation := _sdk_init_generation
 
 	if not Engine.has_singleton("PoingGodotAdMob"):
+		_sdk_initializing = false
+		_sdk_init_started_ms = -1
 		# Native plugin missing from APK/AAB (common when android/bin AARs were not exported).
 		push_warning(
 			"AdBarService: PoingGodotAdMob singleton missing — AdMob Android binaries were not packaged"
 		)
+		return
 
 	var request_config := RequestConfiguration.new()
 	if bool(_config.get("child_directed", true)):
@@ -175,14 +196,42 @@ func _initialize_mobile_ads() -> void:
 
 	var listener := OnInitializationCompleteListener.new()
 	listener.on_initialization_complete = func(_status: InitializationStatus) -> void:
-		_sdk_initializing = false
-		if _shutting_down:
-			return
-		_sdk_initialized = true
-		print("AdBarService: MobileAds initialized")
-		_show_banner_if_attached()
+		_on_mobile_ads_initialized(generation)
 
 	MobileAds.initialize(listener)
+
+
+func _can_begin_sdk_initialization(now_ms := -1) -> bool:
+	if now_ms < 0:
+		now_ms = Time.get_ticks_msec()
+	return _sdk_last_attempt_ms < 0 or now_ms - _sdk_last_attempt_ms >= SDK_INITIALIZATION_RETRY_MS
+
+
+func _expire_sdk_initialization(now_ms := -1) -> bool:
+	if now_ms < 0:
+		now_ms = Time.get_ticks_msec()
+	if not _sdk_initializing or _sdk_init_started_ms < 0 or now_ms - _sdk_init_started_ms < SDK_INITIALIZATION_TIMEOUT_MS:
+		return false
+	_invalidate_sdk_initialization()
+	push_warning("AdBarService: MobileAds initialization timed out; a later route or focus event may retry.")
+	return true
+
+
+func _invalidate_sdk_initialization() -> void:
+	_sdk_init_generation += 1
+	_sdk_initializing = false
+	_sdk_init_started_ms = -1
+
+
+func _on_mobile_ads_initialized(generation: int) -> bool:
+	if _shutting_down or not _sdk_initializing or generation != _sdk_init_generation:
+		return false
+	_sdk_initializing = false
+	_sdk_init_started_ms = -1
+	_sdk_initialized = true
+	print("AdBarService: MobileAds initialized")
+	_show_banner_if_attached()
+	return true
 
 
 func _show_banner() -> void:
