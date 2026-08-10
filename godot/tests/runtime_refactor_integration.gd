@@ -2,6 +2,7 @@ extends Node
 
 const RoomEditor = preload("res://scripts/meta/room_editor.gd")
 const RoomItemPreview3D = preload("res://scripts/meta/room_item_preview_3d.gd")
+const RoomPreviewViewport = preload("res://scripts/meta/room_preview_viewport.gd")
 
 var failures: Array[String] = []
 
@@ -45,9 +46,30 @@ func _run() -> void:
 	rotation_preview.setup(definition.merged({"animate": false, "presentation": "cache"}, true))
 	rotation_preview.set_display_yaw(0.0)
 	var rotation_root := rotation_preview.display_rotation_root
+	var rotation_owner = rotation_preview.preview_viewport
+	var rotation_viewport := rotation_preview.get_node_or_null("SubViewport") as SubViewport
+	var rotation_stage := rotation_viewport.get_node_or_null("PreviewStage") as Node3D if is_instance_valid(rotation_viewport) else null
 	var zero_yaw_is_upright := is_instance_valid(rotation_root) and is_zero_approx(rotation_root.rotation_degrees.x) and is_zero_approx(rotation_root.rotation_degrees.y) and is_zero_approx(rotation_root.rotation_degrees.z)
 	rotation_preview.set_display_yaw(yaw)
-	_check(zero_yaw_is_upright and is_equal_approx(rotation_root.rotation_degrees.y, yaw) and is_zero_approx(rotation_root.rotation_degrees.x) and is_zero_approx(rotation_root.rotation_degrees.z), "3D decor rotation root turns only around Y for each requested yaw")
+	_check(rotation_owner is RoomPreviewViewport and is_instance_valid(rotation_viewport) and rotation_viewport.size == Vector2i(192, 192) and rotation_viewport.own_world_3d and rotation_viewport.transparent_bg and rotation_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE and rotation_preview.find_children("*", "SubViewport", true, false).size() == 1 and rotation_preview.find_children("PreviewStage", "Node3D", true, false).size() == 1 and rotation_preview.find_children("DisplayRotationRoot", "Node3D", true, false).size() == 1 and rotation_owner.viewport == rotation_viewport and rotation_owner.stage == rotation_stage and rotation_owner.display_rotation_root == rotation_root and rotation_stage.get_parent() == rotation_viewport and rotation_root.get_parent() == rotation_stage and zero_yaw_is_upright and is_equal_approx(rotation_root.rotation_degrees.y, yaw) and is_zero_approx(rotation_root.rotation_degrees.x) and is_zero_approx(rotation_root.rotation_degrees.z), "RoomPreviewViewport owns the exact furniture viewport/stage/rotation-root chain")
+	rotation_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	rotation_preview.set_display_yaw(90.0)
+	_check(rotation_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE, "static furniture yaw requests one redraw after a disabled viewport")
+	var static_companion := RoomItemPreview3D.new()
+	static_companion.setup({"id": "companion_sparkle", "category": "companions", "animate": false, "presentation": "game_hud"})
+	var companion_viewport := static_companion.get_node_or_null("SubViewport") as SubViewport
+	var companion_stage := static_companion.preview_viewport.stage as Node3D
+	var companion_cameras := companion_stage.find_children("*", "Camera3D", false, false) if is_instance_valid(companion_stage) else []
+	var companion_camera := companion_cameras[0] as Camera3D if companion_cameras.size() == 1 else null
+	_check(static_companion.preview_viewport is RoomPreviewViewport and is_instance_valid(companion_viewport) and companion_viewport.size == Vector2i(448, 320) and companion_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE and companion_cameras.size() == 1 and is_instance_valid(companion_camera) and companion_camera.projection == Camera3D.PROJECTION_ORTHOGONAL and is_equal_approx(companion_camera.size, 8.80) and companion_camera.position.is_equal_approx(Vector3(-8.40, 4.28, 0.90)) and companion_camera.current, "static companion uses the expected HUD viewport and orthographic framing")
+	static_companion.preview_viewport.shutdown()
+	_check(companion_viewport.render_target_update_mode == SubViewport.UPDATE_DISABLED, "RoomPreviewViewport shutdown disables its render target")
+	for _frame in 120:
+		if not RuntimeAssetLoader.is_processing():
+			break
+		await get_tree().process_frame
+	await get_tree().process_frame
+	static_companion.free()
 	rotation_preview.free()
 	_check(DecorPreviewCache.cache_key(definition, 0.0) != DecorPreviewCache.cache_key(definition, yaw), "decor cache keeps 0 and 45 degree renders in distinct yaw keys")
 	var transparent_readback := Image.create(2, 2, false, Image.FORMAT_RGBA8)
