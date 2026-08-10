@@ -7,6 +7,14 @@ const RoomPreviewViewport = preload("res://scripts/meta/room_preview_viewport.gd
 const RoomAuthoredFurnitureLoader = preload("res://scripts/meta/room_authored_furniture_loader.gd")
 const RoomProceduralFurnitureBuilder = preload("res://scripts/meta/room_procedural_furniture_builder.gd")
 const GameExperienceChromePresenter = preload("res://scripts/ui/game_experience_chrome_presenter.gd")
+const GameExperienceTutorialPresenter = preload("res://scripts/ui/game_experience_tutorial_presenter.gd")
+
+class TutorialPauseProbe extends Control:
+	var level := 1
+	var pause_calls: Array[bool] = []
+
+	func set_gameplay_paused(value: bool) -> void:
+		pause_calls.append(value)
 
 var failures: Array[String] = []
 
@@ -32,6 +40,56 @@ func _room_item(items: Array, instance_id: String) -> Dictionary:
 
 
 func _run() -> void:
+	var tutorial_presenter := GameExperienceTutorialPresenter.new()
+	var tutorial_source: String = FileAccess.get_file_as_string("res://scripts/ui/game_experience_tutorial_presenter.gd")
+	_check(tutorial_presenter is RefCounted and not tutorial_source.contains("\nvar ") and not tutorial_source.contains("AppState") and not tutorial_source.contains("GameExperience.") and not tutorial_source.contains("TutorialCatalog") and not tutorial_source.contains("attached_scene") and not tutorial_source.contains("CompanionAbilityService"), "tutorial presenter is a stateless RefCounted that does not own game, tutorial catalog, or gameplay state")
+	var tutorial_overlay := Control.new()
+	tutorial_overlay.set_meta("lessons", ["FIRST STEP", "SECOND STEP", "THIRD STEP"])
+	tutorial_overlay.set_meta("step", 0)
+	tutorial_overlay.set_meta("tutorial_level", 2)
+	var tutorial_card := PanelContainer.new()
+	tutorial_overlay.add_child(tutorial_card)
+	tutorial_presenter.build(tutorial_card, tutorial_overlay, 2, ["FIRST STEP", "SECOND STEP", "THIRD STEP"], func(_overlay: Control) -> void: pass)
+	var tutorial_heading := tutorial_overlay.find_child("TutorialHeading", true, false) as Label
+	var tutorial_lesson := tutorial_overlay.find_child("TutorialLesson", true, false) as Label
+	var tutorial_next := tutorial_overlay.find_child("TutorialNext", true, false) as Button
+	_check(is_instance_valid(tutorial_heading) and tutorial_heading.text == "GUIDED LEVEL 2  •  STEP 1 OF 3" and is_instance_valid(tutorial_lesson) and tutorial_lesson.text == "FIRST STEP" and is_instance_valid(tutorial_next) and tutorial_next.text == "SHOW ME THE NEXT STEP", "tutorial presenter builds the exact heading, lesson, and next-button contract")
+	var first_advance_complete := tutorial_presenter.advance(tutorial_overlay)
+	_check(not first_advance_complete and int(tutorial_overlay.get_meta("step")) == 1 and tutorial_heading.text == "GUIDED LEVEL 2  •  STEP 2 OF 3" and tutorial_lesson.text == "SECOND STEP" and tutorial_next.text == "SHOW ME THE NEXT STEP", "tutorial presenter advances the step copy without consuming the overlay")
+	var second_advance_complete := tutorial_presenter.advance(tutorial_overlay)
+	_check(not second_advance_complete and int(tutorial_overlay.get_meta("step")) == 2 and tutorial_heading.text == "GUIDED LEVEL 2  •  STEP 3 OF 3" and tutorial_lesson.text == "THIRD STEP" and tutorial_next.text == "LET ME PLAY", "tutorial presenter preserves the final-step button transition")
+	_check(tutorial_presenter.advance(tutorial_overlay), "tutorial presenter returns completion only after all tutorial steps are consumed")
+	tutorial_overlay.free()
+	var saved_tutorial_scene := GameExperience.attached_scene
+	var saved_tutorial_controller := GameExperience.attached_controller
+	var saved_tutorial_game_id := GameExperience.attached_game_id
+	var saved_tutorials: Dictionary = AppState.data.get("tutorials", {}).duplicate(true)
+	var tutorial_host := Control.new()
+	add_child(tutorial_host)
+	GameExperience.attached_scene = tutorial_host
+	GameExperience.attached_controller = null
+	GameExperience.attached_game_id = "coin_count"
+	GameExperience._maybe_show_tutorial(true)
+	var host_tutorial := tutorial_host.get_node_or_null("GuidedTutorialOverlay") as Control
+	_check(is_instance_valid(host_tutorial) and str(host_tutorial.get_meta("game_id")) == "coin_count" and int(host_tutorial.get_meta("tutorial_level")) == 1 and host_tutorial.find_child("TutorialHeading", true, false) != null and host_tutorial.find_child("TutorialLesson", true, false) != null and host_tutorial.find_child("TutorialNext", true, false) != null, "GameExperience tutorial wrapper retains overlay metadata and presenter node contracts")
+	GameExperience._advance_tutorial(host_tutorial)
+	_check(int(host_tutorial.get_meta("step")) == 1 and (host_tutorial.find_child("TutorialHeading", true, false) as Label).text == "GUIDED LEVEL 1  •  STEP 2 OF 3", "GameExperience tutorial advance wrapper delegates presentation while retaining host metadata")
+	var galaxy_probe := TutorialPauseProbe.new()
+	add_child(galaxy_probe)
+	GameExperience.attached_scene = galaxy_probe
+	GameExperience.attached_game_id = "galaxy_unicorn"
+	GameExperience._maybe_show_tutorial(true)
+	var galaxy_tutorial := galaxy_probe.get_node_or_null("GuidedTutorialOverlay") as Control
+	_check(is_instance_valid(galaxy_tutorial) and galaxy_probe.pause_calls == [true], "GameExperience pauses Galaxy gameplay when mounting its tutorial overlay")
+	galaxy_tutorial.queue_free()
+	await get_tree().process_frame
+	_check(galaxy_probe.pause_calls == [true, false], "GameExperience unpauses Galaxy gameplay when its tutorial overlay exits")
+	GameExperience.attached_scene = saved_tutorial_scene
+	GameExperience.attached_controller = saved_tutorial_controller
+	GameExperience.attached_game_id = saved_tutorial_game_id
+	AppState.data["tutorials"] = saved_tutorials
+	tutorial_host.free()
+	galaxy_probe.free()
 	var chrome_presenter := GameExperienceChromePresenter.new()
 	var presenter_source: String = FileAccess.get_file_as_string("res://scripts/ui/game_experience_chrome_presenter.gd")
 	_check(chrome_presenter is RefCounted and not presenter_source.contains("\nvar ") and not presenter_source.contains("AppState") and not presenter_source.contains("CompanionAbilityService"), "chrome presenter is a stateless RefCounted that receives presentation inputs instead of owning game state")
