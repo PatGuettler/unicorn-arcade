@@ -4,6 +4,7 @@ const RoomEditor = preload("res://scripts/meta/room_editor.gd")
 const RoomItemPreview3D = preload("res://scripts/meta/room_item_preview_3d.gd")
 const RoomPreviewViewport = preload("res://scripts/meta/room_preview_viewport.gd")
 const RoomAuthoredFurnitureLoader = preload("res://scripts/meta/room_authored_furniture_loader.gd")
+const RoomProceduralFurnitureBuilder = preload("res://scripts/meta/room_procedural_furniture_builder.gd")
 
 var failures: Array[String] = []
 
@@ -29,6 +30,22 @@ func _room_item(items: Array, instance_id: String) -> Dictionary:
 
 
 func _run() -> void:
+	var procedural_rug_parent := Node3D.new()
+	RoomProceduralFurnitureBuilder.new().build(procedural_rug_parent, "missing_procedural_rug", "rugs")
+	var rug_mesh_count := 0
+	for child in procedural_rug_parent.get_children():
+		if child is MeshInstance3D and child.get_parent() == procedural_rug_parent:
+			rug_mesh_count += 1
+	_check(procedural_rug_parent.get_node_or_null("Rug") != null and rug_mesh_count == 4, "procedural builder creates the generic rug plus three direct inlay meshes")
+	procedural_rug_parent.free()
+	var procedural_chair_parent := Node3D.new()
+	RoomProceduralFurnitureBuilder.new().build(procedural_chair_parent, "missing_procedural_chair", "unknown")
+	var chair_mesh_count := 0
+	for child in procedural_chair_parent.get_children():
+		if child is MeshInstance3D and child.get_parent() == procedural_chair_parent:
+			chair_mesh_count += 1
+	_check(procedural_chair_parent.get_node_or_null("Seat") != null and procedural_chair_parent.get_node_or_null("Back") != null and chair_mesh_count == 6, "procedural builder falls back to a chair with direct Seat, Back, and four leg meshes")
+	procedural_chair_parent.free()
 	var authored_parent := Node3D.new()
 	var authored_lamp := RoomAuthoredFurnitureLoader.build("lamp", authored_parent)
 	var authored_missing := RoomAuthoredFurnitureLoader.build("missing_loader_id", authored_parent)
