@@ -3,6 +3,7 @@ extends Node
 const MAIN_SCENE = preload("res://scenes/main.tscn")
 const WORD_SCENE = preload("res://scenes/games/word_game.tscn")
 const CASH_SCENE = preload("res://scenes/games/cash_counter.tscn")
+const RoomItemPreview3D = preload("res://scripts/meta/room_item_preview_3d.gd")
 
 
 func _ready() -> void:
@@ -83,6 +84,11 @@ func _capture() -> void:
 			get_tree().quit(2)
 			return
 		captured = load(scene_path).instantiate()
+	elif mode == "procedural_preview":
+		# A catalog-miss forces RoomItemPreview3D through the procedural fallback.
+		captured = RoomItemPreview3D.new()
+		captured.setup({"id": "capture_unknown_rug", "category": "rugs", "animate": false, "presentation": "marketplace"})
+		captured.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	elif mode in ["marketplace", "marketplace_decor", "alley", "room", "room_selected", "room_bag", "room_bag_empty"]:
 		var meta_paths := {
 			"marketplace": "res://scenes/meta/marketplace.tscn",
