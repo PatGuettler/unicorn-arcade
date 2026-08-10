@@ -2,6 +2,7 @@ extends Node
 
 const MAIN_SCENE = preload("res://scenes/main.tscn")
 const ArcadePictogramScene = preload("res://scripts/ui/arcade_pictogram.gd")
+const ProfileView = preload("res://scripts/ui/profile_view.gd")
 
 func _ready() -> void:
 	_run.call_deferred()
@@ -12,6 +13,10 @@ func _run() -> void:
 	AppState.data = profile
 	AppState.shell_view = "profile"
 	var shell := MAIN_SCENE.instantiate()
+	var profile_build_signals: Array[bool] = []
+	var page_build_signals: Array[bool] = []
+	shell.profile_build_complete.connect(func() -> void: profile_build_signals.append(true))
+	shell.page_build_complete.connect(func() -> void: page_build_signals.append(true))
 	# Begin on a narrower filter to ensure the profile reserves its maximum grid
 	# height before a later in-place switch back to All games.
 	shell.profile_category_filter = "Word"
@@ -64,11 +69,23 @@ func _run() -> void:
 	var chips_pass := is_instance_valid(chips) and chips.get_children().all(func(child: Node) -> bool: return child is Button and (child as Button).mouse_filter == Control.MOUSE_FILTER_PASS)
 	var settings_controls_pass := is_instance_valid(settings) and settings.find_children("*", "BaseButton", true, false).all(func(child: Node) -> bool: return (child as Control).mouse_filter == Control.MOUSE_FILTER_PASS)
 	var filter_kept_identity: bool = is_instance_valid(shell.page) and shell.page.get_instance_id() == page_id and is_instance_valid(content) and content.get_instance_id() == content_id and is_instance_valid(grid) and grid.get_instance_id() == grid_id and is_instance_valid(scroll) and scroll.get_instance_id() == scroll_id and scroll.scroll_vertical == preserved_scroll and grid.get_child_count() == GameRegistry.all_games().size()
+	var stale_build_frame := Engine.get_process_frames()
+	var stale_build_signal_count := 0
+	var stale_view := ProfileView.new()
+	stale_view.configure("All", func() -> bool: return Engine.get_process_frames() == stale_build_frame, Callable(), Callable(), self)
+	stale_view.build_complete.connect(func() -> void: stale_build_signal_count += 1)
+	add_child(stale_view)
+	await stale_view.build()
+	var stale_build_cancelled := not stale_view.visible and stale_build_signal_count == 0 and is_instance_valid(stale_view.content)
+	stale_view.queue_free()
 	var issues: Array[String] = []
 	if not is_instance_valid(grid) or grid.get_child_count() != GameRegistry.all_games().size(): issues.append("All filter updates the existing grid")
 	if not is_instance_valid(settings) or meadow != null: issues.append("profile sections exclude the meadow")
 	if not is_instance_valid(alley) or not alley.pressed.is_connected(Callable(shell, "_open_unicorn_alley")): issues.append("ProfileAlleyButton route")
 	if not is_instance_valid(scroll) or scroll.follow_focus or scroll.scroll_deadzone != 8: issues.append("profile scroll settings")
+	if not scroll is ProfileView or not is_instance_valid(scroll.content) or scroll.content != content or shell.profile_category_filter != "All" or not shell.has_method("_apply_profile_category_filter"): issues.append("ProfileView owns profile content and shell filter stays compatible")
+	if not scroll.visible or profile_build_signals.size() != 1 or page_build_signals.size() != 1: issues.append("current ProfileView reveals atomically and forwards both shell build signals exactly once")
+	if not stale_build_cancelled: issues.append("stale ProfileView build stays hidden and does not emit completion")
 	if not no_loading_growth or stable_content_height <= 0.0 or stable_grid_height <= 0.0: issues.append("hidden atomic profile height")
 	if not chips_pass or not settings_controls_pass: issues.append("profile drag-pass controls")
 	if not is_instance_valid(filtered_first_tile) or filtered_first_tile.mouse_filter != Control.MOUSE_FILTER_PASS: issues.append("profile game tile pass filter")

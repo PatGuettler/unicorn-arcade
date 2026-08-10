@@ -13,12 +13,11 @@ const MEADOW_BACKGROUND = preload("res://assets/meta/environments/magical_meadow
 const TITLE_SIGN = preload("res://assets/ui/title_sign_option3_v1.png")
 const HOME_TITLE_SIGN = preload("res://assets/ui/title_sign_option3_compact_v1.png")
 const ALLEY_STREET_SIGN = preload("res://assets/ui/unicorn_alley_street_sign_compact_v1.png")
-const PENNY_TEXTURE_PATH := "res://assets/games/currency/penny.png"
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 const MeadowCompanionStageScene = preload("res://scripts/meta/meadow_companion_stage_3d.gd")
 const ArcadePictogramScene = preload("res://scripts/ui/arcade_pictogram.gd")
-const ProgressRingScene = preload("res://scripts/ui/progress_ring.gd")
 const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
+const ProfileView = preload("res://scripts/ui/profile_view.gd")
 
 var page: VBoxContainer
 var status_label: Label
@@ -379,310 +378,25 @@ func _show_profile() -> void:
 		return
 	var generation := _page_generation
 	_add_header("PROFILE", true, true, func() -> void: _show_home())
-	var content := _make_vertical_scroll("ProfileContent", 18)
-	var profile_scroll := content.get_parent() as ScrollContainer
-	profile_scroll.visible = false
-	await _populate_profile(content, generation)
-	if _profile_page_is_current(content, generation):
-		page_build_complete.emit()
-
-
-func _populate_profile(content: VBoxContainer, generation: int) -> void:
-	if not _profile_page_is_current(content, generation):
-		return
-	content.add_child(_build_profile_unicorn_banner())
-	content.add_child(_build_profile_stat_strip())
-	content.add_child(_profile_section_title("MAGIC RINGS"))
-	content.add_child(_build_profile_progress_rings())
-	content.add_child(_profile_section_title("YOUR GAMES"))
-	content.add_child(_build_profile_category_chips())
-	var game_grid := _build_profile_game_grid_shell()
-	content.add_child(game_grid)
-	_populate_profile_game_grid(game_grid)
-	content.add_child(_profile_section_title("SETTINGS & LEARNING"))
-	content.add_child(_build_profile_settings())
-	var logout := _make_button("LOG OUT", Color("7c2948"), 60)
-	logout.name = "ProfileLogoutButton"
-	logout.mouse_filter = Control.MOUSE_FILTER_PASS
-	logout.pressed.connect(func() -> void:
-		if AppState.logout():
-			_show_login()
-	)
-	content.add_child(logout)
-	var bottom_pad := Control.new()
-	bottom_pad.custom_minimum_size.y = 24
-	content.add_child(bottom_pad)
-	for _frame in 2:
-		await get_tree().process_frame
-	if _profile_page_is_current(content, generation):
-		content.custom_minimum_size.y = content.get_combined_minimum_size().y
-		(content.get_parent() as ScrollContainer).show()
+	var profile_view := ProfileView.new()
+	profile_view.configure(profile_category_filter, func() -> bool: return generation == _page_generation and AppState.shell_view == "profile", Callable(self, "_open_unicorn_alley"), Callable(self, "_show_login"), page)
+	page.add_child(profile_view)
+	await profile_view.build()
+	if generation == _page_generation and is_instance_valid(profile_view) and profile_view.is_inside_tree() and AppState.shell_view == "profile":
+		profile_category_filter = profile_view.category_filter
 		profile_build_complete.emit()
-
-
-func _profile_page_is_current(content: Control, generation: int) -> bool:
-	return (
-		generation == _page_generation
-		and is_instance_valid(content)
-		and content.is_inside_tree()
-		and AppState.shell_view == "profile"
-	)
-
-
-func _build_profile_unicorn_banner() -> PanelContainer:
-	var companion := MetaCatalog.companion(AppState.equipped_companion())
-	var ability_definition := CompanionAbilityService.definition()
-	var banner := PanelContainer.new()
-	banner.name = "EquippedUnicornBanner"
-	banner.mouse_filter = Control.MOUSE_FILTER_PASS
-	banner.custom_minimum_size.y = 268
-	banner.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("241c55"), Color("f26fa7"), 24))
-	var stack := VBoxContainer.new()
-	stack.add_theme_constant_override("separation", 10)
-	banner.add_child(stack)
-	var eyebrow := Label.new()
-	eyebrow.text = "EQUIPPED UNICORN"
-	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	eyebrow.add_theme_font_size_override("font_size", 15)
-	eyebrow.add_theme_color_override("font_color", Color("f4d37f"))
-	stack.add_child(eyebrow)
-	var hero_row := HBoxContainer.new()
-	hero_row.add_theme_constant_override("separation", 14)
-	stack.add_child(hero_row)
-	var preview := TextureRect.new()
-	preview.name = "ProfileCompanionPortrait"
-	preview.texture = load("res://assets/characters/unicorns/thumbnails/%s.png" % AppState.equipped_companion())
-	preview.custom_minimum_size = Vector2(188, 168)
-	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	preview.tooltip_text = "%s portrait" % str(companion.get("name", "Companion"))
-	preview.set_meta("source_model_id", AppState.equipped_companion())
-	hero_row.add_child(preview)
-	var identity := VBoxContainer.new()
-	identity.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	identity.alignment = BoxContainer.ALIGNMENT_CENTER
-	identity.add_theme_constant_override("separation", 8)
-	hero_row.add_child(identity)
-	identity.add_child(_card_label(AppState.player_name().to_upper(), 28, Color("fff3d6"), HORIZONTAL_ALIGNMENT_CENTER))
-	identity.add_child(_card_label(str(companion.get("name", "Sparkle")).to_upper(), 24, Color("f26fa7"), HORIZONTAL_ALIGNMENT_CENTER))
-	var power := Label.new()
-	power.text = "✦ %s\n%s" % [str(ability_definition.get("name", "Companion Power")).to_upper(), str(ability_definition.get("description", ""))]
-	power.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	power.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	power.add_theme_font_size_override("font_size", 17)
-	power.add_theme_color_override("font_color", Color("c9d3ef"))
-	identity.add_child(power)
-	var alley := _make_button("VISIT UNICORN ALLEY", Color("c45186"), 54)
-	alley.name = "ProfileAlleyButton"
-	alley.mouse_filter = Control.MOUSE_FILTER_PASS
-	alley.pressed.connect(_open_unicorn_alley)
-	stack.add_child(alley)
-	return banner
+		page_build_complete.emit()
 
 
 func _open_unicorn_alley() -> void:
 	_change_scene_safely.call_deferred("res://scenes/meta/unicorn_alley.tscn")
 
 
-func _build_profile_stat_strip() -> GridContainer:
-	var grid := GridContainer.new()
-	grid.name = "ProfileStatStrip"
-	grid.columns = 2
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
-	for card in [
-		_profile_money_stat(AppState.coins(), "COINS"),
-		_profile_stat("%d" % AppState.completed_run_count(), "RUNS"),
-		_profile_stat("%d / 6" % AppState.owned_companions().size(), "UNICORNS"),
-		_profile_stat("%d" % AppState.data.get("inventory", {}).size(), "DECOR"),
-	]:
-		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		grid.add_child(card)
-	return grid
-
-
-func _build_profile_progress_rings() -> PanelContainer:
-	var card := PanelContainer.new()
-	card.name = "ProfileProgressRings"
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254d"), StorybookUI.GOLD, 20))
-	var grid := GridContainer.new()
-	grid.columns = 2
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 8)
-	grid.add_theme_constant_override("v_separation", 8)
-	card.add_child(grid)
-	for category in ["Number", "Word", "Mystery", "Arcade"]:
-		var progress := _category_progress_ratio(category)
-		var runs := _category_run_count(category)
-		var ring := ProgressRingScene.new()
-		ring.setup(progress, category.to_upper(), "%d RUNS" % runs, _category_color(category))
-		ring.custom_minimum_size = Vector2(0, 148)
-		ring.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		grid.add_child(ring)
-	return card
-
-
-func _build_profile_category_chips() -> HFlowContainer:
-	var row := HFlowContainer.new()
-	row.name = "ProfileCategoryChips"
-	row.mouse_filter = Control.MOUSE_FILTER_PASS
-	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.alignment = FlowContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("h_separation", 8)
-	row.add_theme_constant_override("v_separation", 8)
-	for category in ["All", "Number", "Word", "Mystery", "Arcade"]:
-		var chip := Button.new()
-		chip.text = category.to_upper()
-		chip.custom_minimum_size = Vector2(88, 48)
-		chip.mouse_filter = Control.MOUSE_FILTER_PASS
-		chip.set_meta("profile_category", category)
-		chip.toggle_mode = true
-		chip.button_pressed = profile_category_filter == category
-		var fill := Color("22345f")
-		if profile_category_filter == category:
-			fill = StorybookUI.GOLD if category == "All" else _category_color(category)
-		StorybookUI.apply_button(chip, fill, profile_category_filter == category and category == "All", 14)
-		chip.pressed.connect(_apply_profile_category_filter.bind(category))
-		row.add_child(chip)
-	return row
-
-
-func _build_profile_game_grid_shell() -> GridContainer:
-	var grid := GridContainer.new()
-	grid.name = "ProfileGameGrid"
-	grid.columns = 2
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
-	return grid
-
-
-func _populate_profile_game_grid(grid: GridContainer) -> void:
-	for child in grid.get_children():
-		grid.remove_child(child)
-		child.queue_free()
-	var categories := ["Number", "Word", "Mystery", "Arcade"] if profile_category_filter == "All" else [profile_category_filter]
-	for category in categories:
-		for game in GameRegistry.games_in_category(category):
-			grid.add_child(_build_profile_game_tile(game, category))
-	# The profile's outer extent must not change when a chip filters the existing
-	# grid. Reserve its largest (All-games) row count so a preserved scroll offset
-	# never clamps or shifts when a narrower category is selected.
-	var maximum_rows := ceili(float(GameRegistry.all_games().size()) / float(grid.columns))
-	grid.custom_minimum_size.y = maximum_rows * 126.0 + maxf(0.0, maximum_rows - 1.0) * 10.0
-
-
 func _apply_profile_category_filter(category: String) -> void:
-	var grid := page.find_child("ProfileGameGrid", true, false) as GridContainer
-	var chips := page.find_child("ProfileCategoryChips", true, false) as HFlowContainer
-	var profile_scroll := grid.get_parent().get_parent() as ScrollContainer if is_instance_valid(grid) else null
-	if not is_instance_valid(grid) or not is_instance_valid(chips) or not is_instance_valid(profile_scroll):
-		return
-	var preserved_scroll := profile_scroll.scroll_vertical
-	profile_category_filter = category
-	_populate_profile_game_grid(grid)
-	for child in chips.get_children():
-		var chip := child as Button
-		if not is_instance_valid(chip):
-			continue
-		var chip_category := str(chip.get_meta("profile_category", ""))
-		var active := chip_category == profile_category_filter
-		chip.button_pressed = active
-		var fill := StorybookUI.GOLD if active and chip_category == "All" else (_category_color(chip_category) if active else Color("22345f"))
-		StorybookUI.apply_button(chip, fill, active and chip_category == "All", 14)
-	profile_scroll.scroll_vertical = preserved_scroll
-	profile_scroll.set_deferred("scroll_vertical", preserved_scroll)
-
-
-func _build_profile_game_tile(game: Dictionary, category: String) -> PanelContainer:
-	var completed: Array = AppState.progress_for_game(game["id"]).get("completed", [])
-	var level := AppState.current_level(game["id"])
-	var tile := PanelContainer.new()
-	tile.custom_minimum_size = Vector2(0, 126)
-	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	tile.mouse_filter = Control.MOUSE_FILTER_PASS
-	tile.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), _category_color(category), 14))
-	var stack := VBoxContainer.new()
-	stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	stack.add_theme_constant_override("separation", 4)
-	tile.add_child(stack)
-	var pictogram := ArcadePictogramScene.new()
-	pictogram.custom_minimum_size = Vector2(58, 58)
-	pictogram.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	pictogram.setup(str(game["id"]), _category_color(category))
-	stack.add_child(pictogram)
-	var title_line := Label.new()
-	title_line.text = str(game["title"]).to_upper()
-	title_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title_line.add_theme_font_size_override("font_size", 15)
-	title_line.add_theme_color_override("font_color", StorybookUI.INK)
-	stack.add_child(title_line)
-	var progress_line := Label.new()
-	progress_line.text = "LV %d  •  %d RUNS" % [level, completed.size()]
-	progress_line.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	progress_line.add_theme_font_size_override("font_size", 14)
-	progress_line.add_theme_color_override("font_color", Color("254b54"))
-	stack.add_child(progress_line)
-	return tile
-
-
-func _build_profile_settings() -> PanelContainer:
-	var settings_card := PanelContainer.new()
-	settings_card.name = "ProfileSettings"
-	settings_card.mouse_filter = Control.MOUSE_FILTER_PASS
-	settings_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), StorybookUI.GOLD, 18))
-	var settings_stack := VBoxContainer.new()
-	settings_stack.add_theme_constant_override("separation", 8)
-	settings_card.add_child(settings_stack)
-	for setting_data in [
-		{"key": "music", "label": "Music"},
-		{"key": "sound", "label": "Sound effects"},
-		{"key": "reduced_motion", "label": "Reduced motion"},
-		{"key": "tutorials_enabled", "label": "Guided first three levels"},
-	]:
-		var toggle := CheckButton.new()
-		toggle.text = setting_data["label"]
-		toggle.button_pressed = bool(AppState.setting(setting_data["key"], setting_data["key"] != "reduced_motion"))
-		toggle.custom_minimum_size.y = 56
-		toggle.mouse_filter = Control.MOUSE_FILTER_PASS
-		toggle.add_theme_font_size_override("font_size", 19)
-		toggle.add_theme_color_override("font_color", StorybookUI.INK)
-		toggle.toggled.connect(func(value: bool) -> void: AppState.set_setting(setting_data["key"], value))
-		settings_stack.add_child(toggle)
-	var feedback := Label.new()
-	feedback.name = "ProfileSettingsFeedback"
-	feedback.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	feedback.add_theme_color_override("font_color", Color("254b54"))
-	var reset_tutorials := _make_button("RESET ALL TUTORIALS", Color("6d3f83"), 60)
-	reset_tutorials.name = "ProfileResetTutorialsButton"
-	reset_tutorials.mouse_filter = Control.MOUSE_FILTER_PASS
-	reset_tutorials.pressed.connect(func() -> void:
-		var dialog := ConfirmationDialog.new()
-		dialog.title = "Reset tutorials?"
-		dialog.dialog_text = "The first three guided levels will be available again in every game."
-		page.add_child(dialog)
-		dialog.confirmed.connect(func() -> void:
-			AppState.reset_tutorials()
-			feedback.text = "Tutorial progress reset."
-			dialog.queue_free()
-		)
-		dialog.popup_centered(Vector2i(520, 260))
-	)
-	settings_stack.add_child(reset_tutorials)
-	settings_stack.add_child(feedback)
-	return settings_card
-
-
-func _category_progress_ratio(category: String) -> float:
-	return ProfileViewComponents.category_progress(GameRegistry.games_in_category(category), AppState.current_level)
-
-
-func _category_run_count(category: String) -> int:
-	return ProfileViewComponents.category_runs(GameRegistry.games_in_category(category), AppState.progress_for_game)
+	var profile_view := page.find_child("ProfileContentScroll", true, false) as ProfileView
+	if is_instance_valid(profile_view):
+		profile_view.apply_category_filter(category)
+		profile_category_filter = profile_view.category_filter
 
 
 func _make_vertical_scroll(content_name: String, separation: int = 14) -> VBoxContainer:
@@ -702,18 +416,6 @@ func _make_vertical_scroll(content_name: String, separation: int = 14) -> VBoxCo
 	content.add_theme_constant_override("separation", separation)
 	scroll.add_child(content)
 	return content
-
-
-func _profile_stat(value: String, caption: String) -> PanelContainer:
-	return ProfileViewComponents.stat(value, caption)
-
-
-func _profile_money_stat(amount: int, caption: String) -> PanelContainer:
-	return ProfileViewComponents.money_stat(amount, caption, load(PENNY_TEXTURE_PATH) as Texture2D)
-
-
-func _profile_section_title(value: String) -> Label:
-	return ProfileViewComponents.section_title(value)
 
 
 func _add_header(title: String, show_back: bool, show_home: bool, back_action: Callable = Callable()) -> void:
