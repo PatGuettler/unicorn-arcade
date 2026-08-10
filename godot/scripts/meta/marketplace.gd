@@ -7,7 +7,7 @@ extends Control
 const Catalog = preload("res://scripts/meta_catalog.gd")
 const Rules = preload("res://scripts/room_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
-const ScrollTapGuard = preload("res://scripts/ui/scroll_tap_guard.gd")
+const MarketplaceCatalogController = preload("res://scripts/meta/marketplace_catalog_controller.gd")
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -36,12 +36,33 @@ var catalog_scroll: ScrollContainer
 var category_scroll: ScrollContainer
 var coin_label: Label
 var message_label: Label
-var tab := "companions"
-var category := "all"
-var query := ""
+var catalog_controller: MarketplaceCatalogController = MarketplaceCatalogController.new()
+var tab: String:
+	get:
+		return catalog_controller.tab
+	set(value):
+		catalog_controller.tab = value
+var category: String:
+	get:
+		return catalog_controller.category
+	set(value):
+		catalog_controller.category = value
+var query: String:
+	get:
+		return catalog_controller.query
+	set(value):
+		catalog_controller.query = value
 var catalog_ready := false
-var _decor_filtered: Array = []
-var _decor_page := 0
+var _decor_filtered: Array:
+	get:
+		return catalog_controller.decor_filtered
+	set(value):
+		catalog_controller.decor_filtered = value
+var _decor_page: int:
+	get:
+		return catalog_controller.decor_page
+	set(value):
+		catalog_controller.decor_page = value
 var _companion_cards: Array[Dictionary] = []
 var _decor_cards: Array[Dictionary] = []
 var _category_chips: Array[Button] = []
@@ -54,8 +75,16 @@ var _previous_button: Button
 var _next_button: Button
 var _companions_tab: Button
 var _decor_tab: Button
-var category_tap_guard := ScrollTapGuard.new(4.0)
-var catalog_tap_guard := ScrollTapGuard.new(4.0)
+var category_tap_guard: ScrollTapGuard:
+	get:
+		return catalog_controller.category_tap_guard
+	set(value):
+		catalog_controller.category_tap_guard = value
+var catalog_tap_guard: ScrollTapGuard:
+	get:
+		return catalog_controller.catalog_tap_guard
+	set(value):
+		catalog_controller.catalog_tap_guard = value
 
 
 func _ready() -> void:
@@ -313,7 +342,7 @@ func _build_decor_pool() -> void:
 
 
 func _show_companions() -> void:
-	tab = "companions"
+	catalog_controller.show_companions()
 	_companions_panel.visible = true
 	_decor_panel.visible = false
 	_search.visible = false
@@ -327,7 +356,7 @@ func _show_companions() -> void:
 
 
 func _open_decor_tab() -> void:
-	tab = "decor"
+	catalog_controller.open_decor_tab()
 	_companions_panel.visible = false
 	_decor_panel.visible = true
 	_search.visible = true
@@ -335,7 +364,6 @@ func _open_decor_tab() -> void:
 	category_scroll.visible = true
 	catalog_scroll.offset_top = 301
 	catalog_scroll.scroll_vertical = 0
-	_decor_page = 0
 	_refresh_decor_filter()
 	_refresh_chrome()
 
@@ -359,9 +387,7 @@ func _refresh_companions() -> void:
 
 
 func _refresh_decor_filter() -> void:
-	_decor_filtered = Catalog.filtered_furniture(category, query)
-	var pages := _decor_page_count()
-	_decor_page = clampi(_decor_page, 0, pages - 1)
+	catalog_controller.refresh_decor_filter()
 	_refresh_decor_cards()
 	for chip in _category_chips:
 		var active := chip.name == "Category_%s" % category
@@ -369,11 +395,11 @@ func _refresh_decor_filter() -> void:
 
 
 func _refresh_decor_cards() -> void:
-	var first := _decor_page * DECOR_SLOTS
+	var page_items := catalog_controller.decor_page_items()
 	for slot_index in _decor_cards.size():
 		var card_data: Dictionary = _decor_cards[slot_index]
 		var card := card_data["card"] as Panel
-		var item: Dictionary = _decor_filtered[first + slot_index] if first + slot_index < _decor_filtered.size() else {}
+		var item: Dictionary = page_items[slot_index] if slot_index < page_items.size() else {}
 		card_data["item"] = item
 		card.visible = not item.is_empty()
 		if item.is_empty():
@@ -404,103 +430,85 @@ func _refresh_chrome() -> void:
 
 
 func _apply_decor_search() -> void:
-	query = _search.text.strip_edges()
-	_decor_page = 0
+	catalog_controller.apply_decor_search(_search.text)
 	catalog_scroll.scroll_vertical = 0
 	_refresh_decor_filter()
 	message_label.text = ""
 
 
 func _set_decor_category(category_id: String) -> void:
-	category = category_id
-	_decor_page = 0
+	catalog_controller.set_decor_category(category_id)
 	catalog_scroll.scroll_vertical = 0
 	_refresh_decor_filter()
 
 
 func _guarded_category_action(category_id: String) -> void:
-	if category_tap_guard.is_action_suppressed():
+	if not catalog_controller.guarded_category_action(category_id):
 		return
-	_set_decor_category(category_id)
+	catalog_scroll.scroll_vertical = 0
+	_refresh_decor_filter()
 
 
 func _on_category_scroll_gui_input(event: InputEvent) -> void:
-	_observe_scroll_gesture(category_tap_guard, "category", "horizontal", event)
+	catalog_controller.observe_scroll_gesture(category_tap_guard, "category", "horizontal", event)
 
 
 func _on_catalog_scroll_gui_input(event: InputEvent) -> void:
-	_observe_scroll_gesture(catalog_tap_guard, "catalog", "vertical", event)
+	catalog_controller.observe_scroll_gesture(catalog_tap_guard, "catalog", "vertical", event)
 
 
 func _observe_scroll_gesture(guard: ScrollTapGuard, surface: String, axis: String, event: InputEvent) -> void:
-	if event is InputEventScreenTouch:
-		var touch := event as InputEventScreenTouch
-		if touch.pressed:
-			guard.begin(surface, axis, touch)
-		else:
-			guard.finish(touch)
-	elif event is InputEventScreenDrag:
-		guard.observe_drag(event as InputEventScreenDrag)
+	catalog_controller.observe_scroll_gesture(guard, surface, axis, event)
 
 
 func _catalog_action_suppressed() -> bool:
-	return catalog_tap_guard.is_action_suppressed()
+	return catalog_controller.catalog_action_suppressed()
 
 
 func _previous_decor_page() -> void:
-	if _catalog_action_suppressed():
-		return
-	if _decor_page > 0:
-		_decor_page -= 1
+	if catalog_controller.previous_decor_page():
 		catalog_scroll.scroll_vertical = 0
 		_refresh_decor_cards()
 
 
 func _next_decor_page() -> void:
-	if _catalog_action_suppressed():
-		return
-	if _decor_page < _decor_page_count() - 1:
-		_decor_page += 1
+	if catalog_controller.next_decor_page():
 		catalog_scroll.scroll_vertical = 0
 		_refresh_decor_cards()
 
 
 func _companion_action(slot_index: int) -> void:
-	if _catalog_action_suppressed():
-		return
 	var definition: Dictionary = _companion_cards[slot_index]["definition"]
-	var id := str(definition.get("id", ""))
-	var was_owned := id in AppState.owned_companions()
-	var result := AppState.equip_companion(id) if was_owned else AppState.buy_companion(id)
-	message_label.text = "%s equipped." % str(definition.get("name", id)) if result and was_owned else ("Not enough coins." if not result else "%s adopted!" % str(definition.get("name", id)))
+	var action := catalog_controller.companion_action(definition)
+	if not action.get("handled", false):
+		return
+	message_label.text = str(action["message"])
 	_refresh_companions()
 	_refresh_chrome()
 
 
 func _buy_decor(slot_index: int) -> void:
-	if _catalog_action_suppressed():
-		return
 	var item: Dictionary = _decor_cards[slot_index]["item"]
-	if item.is_empty():
+	var action := catalog_controller.buy_decor(item)
+	if not action.get("handled", false):
 		return
-	message_label.text = "Purchased." if AppState.buy_furniture(str(item.get("id", ""))) else "Not enough coins."
+	message_label.text = str(action["message"])
 	_refresh_decor_cards()
 	_refresh_chrome()
 
 
 func _sell_decor(slot_index: int) -> void:
-	if _catalog_action_suppressed():
-		return
 	var item: Dictionary = _decor_cards[slot_index]["item"]
-	if item.is_empty():
+	var action := catalog_controller.sell_decor(item)
+	if not action.get("handled", false):
 		return
-	message_label.text = "Sold one unused item." if AppState.sell_furniture(str(item.get("id", ""))) else "Only unused bag items can be sold."
+	message_label.text = str(action["message"])
 	_refresh_decor_cards()
 	_refresh_chrome()
 
 
 func _decor_page_count() -> int:
-	return maxi(1, ceili(float(_decor_filtered.size()) / float(DECOR_SLOTS)))
+	return catalog_controller.decor_page_count()
 
 
 func _update_coins() -> void:
@@ -513,7 +521,7 @@ func _go_home() -> void:
 
 
 func _go_alley() -> void:
-	if _catalog_action_suppressed():
+	if not catalog_controller.alley_action_allowed():
 		return
 	get_tree().change_scene_to_file("res://scenes/meta/unicorn_alley.tscn")
 
