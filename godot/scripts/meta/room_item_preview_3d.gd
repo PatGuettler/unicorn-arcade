@@ -2,7 +2,7 @@ class_name RoomItemPreview3D
 extends SubViewportContainer
 
 const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
-const STORE_MODEL_CATALOG_PATH := "res://data/store_model_catalog.json"
+const RoomAuthoredFurnitureLoader = preload("res://scripts/meta/room_authored_furniture_loader.gd")
 const CHARACTER_SCALE_MULTIPLIER := 3.0
 const ANIMATED_CAMERA_SIZE := 6.80
 const STATIC_CAMERA_SIZE := 6.80
@@ -18,8 +18,6 @@ const SIDE_CAMERA_TARGET := Vector3(0.0, 1.72, -0.15)
 const UnicornIdleAnimatorScene = preload("res://scripts/meta/unicorn_idle_animator.gd")
 const RoomPreviewViewportScene = preload("res://scripts/meta/room_preview_viewport.gd")
 
-static var _store_model_catalog: Dictionary = {}
-static var _store_scene_cache: Dictionary = {}
 
 var item_id := ""
 var category := "cozy"
@@ -216,7 +214,9 @@ func _build_furniture(stage: Node3D) -> void:
 	display_rotation_root.add_child(model)
 	var palette := _palette()
 	_add_shadow(model)
-	uses_authored_furniture_model = _build_authored_furniture(model)
+	var authored_result := RoomAuthoredFurnitureLoader.build(item_id, model)
+	uses_authored_furniture_model = bool(authored_result.get("built", false))
+	source_furniture_model_id = str(authored_result.get("source_model_id", ""))
 	if uses_authored_furniture_model:
 		pass
 	elif item_id == "lamp":
@@ -256,59 +256,6 @@ func _build_furniture(stage: Node3D) -> void:
 	stage.add_child(camera)
 	camera.look_at_from_position(Vector3(3.7, 2.75, 4.8), Vector3(0.0, 0.62, 0.0), Vector3.UP)
 	camera.current = true
-
-
-func _build_authored_furniture(parent: Node3D) -> bool:
-	var definition: Dictionary = _store_catalog_items().get(item_id, {})
-	if definition.is_empty():
-		return false
-	var scene_path := str(definition.get("scene", ""))
-	var node_name := str(definition.get("node", item_id))
-	var packed_scene := _load_store_scene(scene_path)
-	if packed_scene == null:
-		return false
-	var source_root := packed_scene.instantiate() as Node3D
-	if source_root == null:
-		return false
-	var source_node := source_root.find_child(node_name, true, false) as Node3D
-	if source_node == null:
-		source_root.free()
-		return false
-	var source_parent := source_node.get_parent()
-	if source_parent != null:
-		source_parent.remove_child(source_node)
-	source_node.owner = null
-	parent.add_child(source_node)
-	source_node.name = "AuthoredFurniture_%s" % item_id
-	source_node.transform = Transform3D.IDENTITY
-	source_node.scale = Vector3.ONE * float(definition.get("scale", 1.0))
-	source_root.free()
-	var source_name := scene_path.get_file().get_basename().trim_suffix("_mobile")
-	source_furniture_model_id = "%s:%s" % [source_name, item_id]
-	return true
-
-
-static func _store_catalog_items() -> Dictionary:
-	if not _store_model_catalog.is_empty():
-		return _store_model_catalog
-	var file := FileAccess.open(STORE_MODEL_CATALOG_PATH, FileAccess.READ)
-	if file == null:
-		return {}
-	var parsed = JSON.parse_string(file.get_as_text())
-	if typeof(parsed) == TYPE_DICTIONARY:
-		_store_model_catalog = parsed.get("items", {})
-	return _store_model_catalog
-
-
-static func _load_store_scene(scene_path: String) -> PackedScene:
-	if scene_path.is_empty():
-		return null
-	if _store_scene_cache.has(scene_path):
-		return _store_scene_cache[scene_path] as PackedScene
-	var packed_scene := load(scene_path) as PackedScene
-	if packed_scene != null:
-		_store_scene_cache[scene_path] = packed_scene
-	return packed_scene
 
 
 func _build_lava_lamp(parent: Node3D, palette: Dictionary) -> void:
