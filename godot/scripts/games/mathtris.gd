@@ -94,11 +94,17 @@ func _unhandled_key_input(event: InputEvent) -> void:
 
 
 func _start_game() -> void:
+	_start_game_with_lifecycle(true)
+
+
+func _start_game_with_lifecycle(begin_run: bool) -> void:
+	if begin_run:
+		level_run.begin("mathtris", 1)
 	score = 0
 	level = 1
 	drops_placed = 0
 	fall_accumulator = 0.0
-	started_ms = Time.get_ticks_msec()
+	started_ms = level_run.started_ms
 	last_spawn_col = -1
 	selected = Vector2i(-1, -1)
 	equation_charge = 0
@@ -106,10 +112,9 @@ func _start_game() -> void:
 	board = _make_board()
 	_seed_bottom_pile()
 	falling.clear()
-	active = true
+	active = level_run.active
 	action_button.hide()
 	message_label.text = "Make true five-tile equations. Swipe neighboring settled tiles to swap."
-	CompanionAbilityService.begin_level("mathtris", level)
 	_spawn_wave()
 	_refresh()
 
@@ -616,12 +621,28 @@ func _cell_at(global_point: Vector2) -> Vector2i:
 
 
 func _game_over() -> void:
-	active = false
+	level_run.fail("Top out! Final score %d." % score)
+	active = level_run.active
 	falling.clear()
 	message_label.text = "Top out! Final score %d." % score
 	action_button.text = "PLAY AGAIN"
 	action_button.show()
 	_refresh()
+
+
+func can_retry_failure() -> bool:
+	return level_run.can_retry()
+
+
+func retry_failure() -> void:
+	if can_retry_failure():
+		level_run.retry()
+		_start_game_with_lifecycle(false)
+
+
+func _advance_game() -> void:
+	if level_run.outcome == LevelRunController.Outcome.FAILURE:
+		retry_failure()
 
 
 func _refresh() -> void:
@@ -701,10 +722,7 @@ func _build_ui() -> void:
 		StorybookUI.apply_game_action(button, 76)
 		button.pressed.connect(_nudge.bind(definition["direction"]))
 		controls.add_child(button)
-	var hint := Button.new()
-	hint.text = "HINT"
-	StorybookUI.apply_game_action(hint, 110)
-	hint.pressed.connect(_show_hint)
+	var hint := StorybookUI.hint_highlight_button("HINT", 110, _show_hint)
 	controls.add_child(hint)
 	message_label = Label.new()
 	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -713,8 +731,5 @@ func _build_ui() -> void:
 	message_label.add_theme_font_size_override("font_size", 18)
 	message_label.add_theme_color_override("font_color", Color("fff3d6"))
 	root.add_child(message_label)
-	action_button = Button.new()
-	action_button.text = "PLAY AGAIN"
-	StorybookUI.apply_game_action(action_button, 180)
-	action_button.pressed.connect(_start_game)
+	action_button = StorybookUI.progression_action_button("PLAY AGAIN", 180, _advance_game)
 	root.add_child(action_button)

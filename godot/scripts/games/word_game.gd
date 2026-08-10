@@ -72,8 +72,17 @@ func _process(delta: float) -> void:
 
 
 func _start_level() -> void:
+	_start_level_with_lifecycle(true)
+
+
+func _start_level_with_lifecycle(begin_run: bool) -> void:
 	_clear_blast_words()
 	level = AppState.current_level(game_id) if level < 1 else level
+	if begin_run:
+		level_run.begin(game_id, level)
+		level = level_run.level
+	else:
+		level = level_run.level
 	round_index = 0
 	target_rounds = Rules.target_for_level(level)
 	if game_id == "caption_quest":
@@ -81,8 +90,8 @@ func _start_level() -> void:
 	elif game_id == "odd_one_out":
 		target_rounds = Rules.odd_one_out_target(level)
 	lives = 3 if game_id in ["caption_quest", "odd_one_out", "unicorn_blast"] else 0
-	started_ms = Time.get_ticks_msec()
-	active = true
+	started_ms = level_run.started_ms
+	active = level_run.active
 	blast_source_exhausted = false
 	hint_visible = level == 1
 	phase = "choice"
@@ -420,26 +429,46 @@ func _lost_life() -> void:
 
 
 func _complete_level() -> void:
-	active = false
+	var reward := level_run.complete()
+	active = level_run.active
 	flash_timer.stop()
-	var reward := AppState.complete_level(game_id, level, Time.get_ticks_msec() - started_ms)
 	message_label.text = "Level complete! +%d coins" % reward
 	coin_label.text = "★ %d" % AppState.coins()
 	retry_button.text = "NEXT LEVEL"
 	retry_button.show()
 	hint_button.disabled = true
 	input_line.editable = false
-	level += 1
+	level = level_run.next_level
 
 
 func _fail(reason: String) -> void:
-	active = false
+	level_run.fail(reason)
+	active = level_run.active
 	flash_timer.stop()
 	message_label.text = reason
 	retry_button.text = "RETRY"
 	retry_button.show()
 	hint_button.disabled = true
 	input_line.editable = false
+
+
+func can_retry_failure() -> bool:
+	return level_run.can_retry()
+
+
+func retry_failure() -> void:
+	if can_retry_failure():
+		level_run.retry()
+		_start_level_with_lifecycle(false)
+
+
+func _advance_level() -> void:
+	match level_run.outcome:
+		LevelRunController.Outcome.SUCCESS:
+			level_run.retry()
+			_start_level_with_lifecycle(false)
+		LevelRunController.Outcome.FAILURE:
+			retry_failure()
 
 
 func can_show_hint() -> bool:
@@ -638,10 +667,8 @@ func _build_ui() -> void:
 	layout.add_theme_constant_override("separation", 10)
 	margin.add_child(layout)
 	var header := HBoxContainer.new()
-	var back := Button.new()
-	StorybookUI.apply_game_action(back, 120)
+	var back := StorybookUI.category_back_button("", 120, return_to_category)
 	back.text = "‹ BACK"
-	back.pressed.connect(_go_back)
 	header.add_child(back)
 	title_label = Label.new()
 	title_label.text = str(game_info.get("title", "WORD GAME")).to_upper()
@@ -735,13 +762,9 @@ func _build_ui() -> void:
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	actions.add_theme_constant_override("separation", 12)
 	layout.add_child(actions)
-	hint_button = Button.new()
-	StorybookUI.apply_game_action(hint_button, 140)
-	hint_button.pressed.connect(_request_hint)
+	hint_button = StorybookUI.hint_highlight_button("", 140, _request_hint)
 	actions.add_child(hint_button)
-	retry_button = Button.new()
-	StorybookUI.apply_game_action(retry_button, 160)
-	retry_button.pressed.connect(_start_level)
+	retry_button = StorybookUI.progression_action_button("", 160, _advance_level)
 	actions.add_child(retry_button)
 	flash_timer = Timer.new()
 	flash_timer.one_shot = true
