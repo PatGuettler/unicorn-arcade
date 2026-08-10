@@ -39,6 +39,33 @@ static func apply_game_action(button: BaseButton, minimum_width: float = 150.0) 
 	button.set_meta("storybook_game_action", true)
 
 
+static func category_back_button(text: String, minimum_width: float, callback: Callable) -> Button:
+	var button := Button.new()
+	button.text = text
+	apply_game_action(button, minimum_width)
+	button.set_meta("storybook_action", "category_back")
+	button.pressed.connect(callback)
+	return button
+
+
+static func progression_action_button(text: String, minimum_width: float, callback: Callable) -> Button:
+	var button := Button.new()
+	button.text = text
+	apply_game_action(button, minimum_width)
+	button.set_meta("storybook_action", "progression")
+	button.pressed.connect(callback)
+	return button
+
+
+static func hint_highlight_button(text: String, minimum_width: float, callback: Callable) -> Button:
+	var button := Button.new()
+	button.text = text
+	apply_game_action(button, minimum_width)
+	button.set_meta("storybook_action", "hint_highlight")
+	button.pressed.connect(callback)
+	return button
+
+
 static func apply_home_button(button: BaseButton, icon_width: int = 34) -> void:
 	apply_button(button, Color("22345f"), false, 14)
 	button.text = ""

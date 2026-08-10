@@ -32,6 +32,14 @@ func _ready() -> void:
 
 
 func _start_round() -> void:
+	_start_round_with_lifecycle(true)
+
+
+func _start_round_with_lifecycle(begin_run: bool) -> void:
+	if begin_run:
+		level_run.begin("coin_count", level)
+	else:
+		level = level_run.level
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	if level <= 3:
@@ -42,8 +50,8 @@ func _start_round() -> void:
 		target = rng.randi_range(100, 499)
 	total = 0
 	failed = false
-	active = true
-	started_ms = Time.get_ticks_msec()
+	active = level_run.active
+	started_ms = level_run.started_ms
 	target_label.text = "Make %s" % _money(target)
 	total_label.text = _money(total)
 	message_label.text = "Tap coins. Exact wins; overshoot ends the round."
@@ -58,25 +66,35 @@ func _add_coin(value: int) -> void:
 	total += value
 	total_label.text = _money(total)
 	if total == target:
-		active = false
+		var reward := level_run.complete()
+		active = level_run.active
 		_set_buttons_enabled(false)
-		var reward := AppState.complete_level("coin_count", level, Time.get_ticks_msec() - started_ms)
 		message_label.text = "Perfect! +%d coins" % reward
 		level += 1
 	elif total > target:
-		active = false
-		failed = true
+		level_run.fail("Too much—try this level again.")
+		active = level_run.active
+		failed = level_run.outcome == LevelRunController.Outcome.FAILURE
 		message_label.text = "Too much—try this level again."
 		_set_buttons_enabled(false)
 
 
 func can_retry_failure() -> bool:
-	return failed
+	return level_run.can_retry()
 
 
 func retry_failure() -> void:
-	if failed:
-		_start_round()
+	if level_run.can_retry():
+		level = level_run.retry()
+		_start_round_with_lifecycle(false)
+
+
+func _advance_round() -> void:
+	if level_run.outcome == LevelRunController.Outcome.RUNNING:
+		_start_round_with_lifecycle(true)
+		return
+	level = level_run.retry()
+	_start_round_with_lifecycle(false)
 
 
 func _show_hint() -> void:
@@ -158,25 +176,11 @@ func _build_ui() -> void:
 	var actions := HBoxContainer.new()
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	layout.add_child(actions)
-	var retry := Button.new()
-	retry.text = "Retry / Next"
-	retry.custom_minimum_size = Vector2(210, 58)
-	StorybookUI.apply_game_action(retry, 210)
-	retry.pressed.connect(_start_round)
+	var retry := StorybookUI.progression_action_button("Retry / Next", 210, _advance_round)
 	actions.add_child(retry)
-	var hint := Button.new()
-	StorybookUI.apply_game_action(hint, 120)
-	hint.text = "Hint"
-	hint.pressed.connect(_request_hint)
+	var hint := StorybookUI.hint_highlight_button("Hint", 120, _request_hint)
 	actions.add_child(hint)
-	var back := Button.new()
-	back.text = "Number Games"
-	back.custom_minimum_size = Vector2(210, 58)
-	StorybookUI.apply_game_action(back, 210)
-	back.pressed.connect(func() -> void:
-		AppState.set_shell_destination("category", "Number")
-		get_tree().change_scene_to_file("res://scenes/main.tscn")
-	)
+	var back := StorybookUI.category_back_button("Number Games", 210, return_to_category)
 	actions.add_child(back)
 
 
