@@ -21,11 +21,54 @@ var update_accumulator := 0.0
 var was_active := false
 var outcome_overlay: Control
 var sparkle_retry_overlay: Control
+var persistence_warning_layer: CanvasLayer
+var persistence_warning_banner: PanelContainer
 
 
 func _ready() -> void:
 	process_mode = Node.PROCESS_MODE_ALWAYS
 	AppState.coins_changed.connect(_update_coin_button)
+	AppState.save_failed.connect(_show_persistence_warning)
+	AppState.save_recovered.connect(_clear_persistence_warning)
+	if AppState.has_unsaved_changes():
+		_show_persistence_warning("Latest progress is kept in memory. Saving will retry automatically.")
+
+
+func _show_persistence_warning(message: String) -> void:
+	if not is_instance_valid(persistence_warning_layer):
+		persistence_warning_layer = CanvasLayer.new()
+		persistence_warning_layer.name = "PersistenceWarningLayer"
+		persistence_warning_layer.layer = 120
+		add_child(persistence_warning_layer)
+		persistence_warning_banner = PanelContainer.new()
+		persistence_warning_banner.name = "PersistenceWarningBanner"
+		persistence_warning_banner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		persistence_warning_banner.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+		persistence_warning_banner.offset_left = 14
+		persistence_warning_banner.offset_right = -14
+		persistence_warning_banner.offset_top = 10
+		persistence_warning_banner.offset_bottom = 82
+		persistence_warning_banner.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("5b2438f2"), Color("ffd166"), 16))
+		persistence_warning_layer.add_child(persistence_warning_banner)
+		var label := Label.new()
+		label.name = "PersistenceWarningText"
+		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		label.add_theme_font_size_override("font_size", 17)
+		label.add_theme_color_override("font_color", Color("fff3d6"))
+		persistence_warning_banner.add_child(label)
+	var warning_text := persistence_warning_banner.get_node_or_null("PersistenceWarningText") as Label
+	if is_instance_valid(warning_text):
+		warning_text.text = "SAVE PAUSED — %s\nWe'll retry automatically; avoid closing the app until saving recovers." % message
+
+
+func _clear_persistence_warning() -> void:
+	if is_instance_valid(persistence_warning_layer):
+		persistence_warning_layer.queue_free()
+	persistence_warning_layer = null
+	persistence_warning_banner = null
 
 
 func _input(_event: InputEvent) -> void:

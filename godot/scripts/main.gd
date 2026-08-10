@@ -405,8 +405,8 @@ func _populate_profile(content: VBoxContainer, generation: int) -> void:
 	logout.name = "ProfileLogoutButton"
 	logout.mouse_filter = Control.MOUSE_FILTER_PASS
 	logout.pressed.connect(func() -> void:
-		AppState.logout()
-		_show_login()
+		if AppState.logout():
+			_show_login()
 	)
 	content.add_child(logout)
 	var bottom_pad := Control.new()

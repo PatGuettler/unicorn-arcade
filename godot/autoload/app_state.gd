@@ -6,12 +6,14 @@ const RoomRules = preload("res://scripts/room_rules.gd")
 signal state_changed
 signal coins_changed(coins: int)
 signal save_failed(message: String)
+signal save_recovered
 
 var data: Dictionary = {}
 var selected_game_id := ""
 var selected_category := "Number"
 var shell_view := "home"
 var active_room_companion := "sparkle"
+var _has_unsaved_changes := false
 
 
 func _ready() -> void:
@@ -20,8 +22,25 @@ func _ready() -> void:
 
 
 func _notification(what: int) -> void:
-	if (what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT) and SaveService.has_active_profile():
-		_save_and_emit()
+	if (what == NOTIFICATION_APPLICATION_PAUSED or what == NOTIFICATION_WM_WINDOW_FOCUS_OUT) and _has_unsaved_changes and SaveService.has_active_profile():
+		flush_pending_save()
+
+
+func has_unsaved_changes() -> bool:
+	return _has_unsaved_changes
+
+
+func flush_pending_save() -> bool:
+	if not _has_unsaved_changes:
+		return true
+	if not SaveService.has_active_profile():
+		return false
+	if not SaveService.save_state(data):
+		save_failed.emit(SaveService.last_error)
+		return false
+	_has_unsaved_changes = false
+	save_recovered.emit()
+	return true
 
 
 func profile_names() -> Array[String]:
@@ -29,6 +48,8 @@ func profile_names() -> Array[String]:
 
 
 func select_profile(display_name: String) -> bool:
+	if _has_unsaved_changes and not flush_pending_save():
+		return false
 	var selected := SaveService.select_profile(display_name)
 	if selected.is_empty():
 		return false
@@ -58,6 +79,8 @@ func player_name() -> String:
 func set_player_name(value: String) -> void:
 	var requested := value.strip_edges()
 	if player_name().is_empty():
+		if _has_unsaved_changes and not flush_pending_save():
+			return
 		var created := SaveService.create_profile(requested)
 		if not created.is_empty():
 			data = created
@@ -68,14 +91,18 @@ func set_player_name(value: String) -> void:
 	_save_and_emit()
 
 
-func logout() -> void:
+func logout() -> bool:
 	# Signing out must not erase the selected profile's display name or progress.
+	if _has_unsaved_changes and not flush_pending_save():
+		return false
 	if not SaveService.deactivate_profile():
 		push_error("Unicorn Arcade logout save failed: %s" % SaveService.last_error)
+		return false
 	data = SaveService.default_profile()
 	shell_view = "home"
 	state_changed.emit()
 	coins_changed.emit(coins())
+	return true
 
 
 func current_level(game_id: String) -> int:
@@ -272,9 +299,16 @@ func complete_level(game_id: String, level: int, elapsed_ms: int) -> int:
 	return reward
 
 
-func _save_and_emit() -> void:
-	if not SaveService.save_state(data):
+func _save_and_emit() -> bool:
+	var was_dirty := _has_unsaved_changes
+	var saved := SaveService.save_state(data)
+	if not saved:
+		_has_unsaved_changes = true
 		push_error("Unicorn Arcade save failed: %s" % SaveService.last_error)
 		save_failed.emit(SaveService.last_error)
+	elif was_dirty:
+		_has_unsaved_changes = false
+		save_recovered.emit()
 	state_changed.emit()
 	coins_changed.emit(coins())
+	return saved

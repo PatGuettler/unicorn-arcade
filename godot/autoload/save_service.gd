@@ -10,12 +10,14 @@ var _envelope: Dictionary = {}
 var last_error := ""
 var _active_key := ""
 var _test_in_memory := false
+var _test_force_write_failure := false
 
 
 func begin_test_session() -> bool:
 	if not OS.has_feature("editor"):
 		return false
 	_test_in_memory = true
+	_test_force_write_failure = false
 	_envelope = default_state()
 	_active_key = ""
 	return true
@@ -23,6 +25,7 @@ func begin_test_session() -> bool:
 
 func end_test_session() -> void:
 	_test_in_memory = false
+	_test_force_write_failure = false
 	_envelope = {}
 	_active_key = ""
 
@@ -62,11 +65,13 @@ func select_profile(display_name: String) -> Dictionary:
 	var key := _canonical(display_name)
 	if key.is_empty() or not _envelope.get("users", {}).has(key):
 		return {}
-	_envelope["last_user"] = key
-	if not _write_envelope(_envelope):
+	var candidate := _envelope.duplicate(true)
+	candidate["last_user"] = key
+	if not _write_envelope(candidate):
 		return {}
+	_envelope = candidate
 	_active_key = key
-	return _profile_from_record(_envelope["users"][key])
+	return _profile_from_record(candidate["users"][key])
 
 
 func create_profile(display_name: String) -> Dictionary:
@@ -74,48 +79,81 @@ func create_profile(display_name: String) -> Dictionary:
 	var key := _canonical(shown)
 	if key.is_empty():
 		return {}
-	if _envelope.is_empty():
-		_envelope = default_state()
-	if not _envelope.has("users"):
-		_envelope["users"] = {}
-	if not _envelope["users"].has(key):
-		_envelope["users"][key] = {"display_name": shown, "profile": default_profile(shown)}
-	_envelope["last_user"] = key
-	if not _write_envelope(_envelope):
+	var candidate := _envelope.duplicate(true) if not _envelope.is_empty() else default_state()
+	if not candidate.has("users"):
+		candidate["users"] = {}
+	if not candidate["users"].has(key):
+		candidate["users"][key] = {"display_name": shown, "profile": default_profile(shown)}
+	candidate["last_user"] = key
+	if not _write_envelope(candidate):
 		return {}
+	_envelope = candidate
 	_active_key = key
-	return _profile_from_record(_envelope["users"][key])
+	return _profile_from_record(candidate["users"][key])
 
 
 func save_state(profile: Dictionary) -> bool:
 	if _envelope.is_empty():
-		_envelope = default_state()
-	var selected := _active_key
-	if selected.is_empty() or selected != str(_envelope.get("last_user", "")) or not _envelope.get("users", {}).has(selected):
 		last_error = "No active profile; refusing to overwrite saved users"
 		return false
-	_envelope["users"][selected] = {"display_name": str(profile.get("player", {}).get("name", selected)), "profile": _normalize_profile(profile)}
-	return _write_envelope(_envelope)
+	if not has_active_profile():
+		last_error = "No active profile; refusing to overwrite saved users"
+		return false
+	var candidate := _envelope.duplicate(true)
+	candidate["users"][_active_key] = {"display_name": str(profile.get("player", {}).get("name", _active_key)), "profile": _normalize_profile(profile)}
+	if not _write_envelope(candidate):
+		return false
+	_envelope = candidate
+	return true
 
 
 func deactivate_profile() -> bool:
 	# Persist the sign-out before AppState replaces its in-memory profile.  This is
 	# deliberately not a profile write, so focus/pause can never blank a user.
 	if _envelope.is_empty():
+		_active_key = ""
 		return true
+	var candidate := _envelope.duplicate(true)
+	candidate["last_user"] = ""
+	if not _write_envelope(candidate):
+		return false
+	_envelope = candidate
 	_active_key = ""
-	_envelope["last_user"] = ""
-	return _write_envelope(_envelope)
+	return true
 
 
 func has_active_profile() -> bool:
-	return not _active_key.is_empty() and _active_key == str(_envelope.get("last_user", ""))
+	return not _active_key.is_empty() and _active_key == str(_envelope.get("last_user", "")) and _envelope.get("users") is Dictionary and _envelope["users"].has(_active_key)
+
+
+func set_test_write_failure(enabled: bool) -> void:
+	if _test_in_memory and OS.has_feature("editor"):
+		_test_force_write_failure = enabled
+
+
+func import_profile(display_name: String, profile: Dictionary) -> bool:
+	var shown := display_name.strip_edges()
+	var key := _canonical(shown)
+	if key.is_empty():
+		last_error = "Imported profile needs a name"
+		return false
+	var candidate := _envelope.duplicate(true) if not _envelope.is_empty() else default_state()
+	if not candidate.has("users"):
+		candidate["users"] = {}
+	candidate["users"][key] = {"display_name": shown, "profile": _normalize_profile(profile)}
+	if not _write_envelope(candidate):
+		return false
+	_envelope = candidate
+	return true
 
 
 func mark_legacy_import(status: String, source_hash := "") -> bool:
-	if _envelope.is_empty(): _envelope = default_state()
-	_envelope["legacy_import"] = {"status": status, "hash": source_hash, "time": Time.get_datetime_string_from_system(true)}
-	return _write_envelope(_envelope)
+	var candidate := _envelope.duplicate(true) if not _envelope.is_empty() else default_state()
+	candidate["legacy_import"] = {"status": status, "hash": source_hash, "time": Time.get_datetime_string_from_system(true)}
+	if not _write_envelope(candidate):
+		return false
+	_envelope = candidate
+	return true
 
 
 func _read_best_envelope() -> Dictionary:
@@ -205,7 +243,9 @@ func _write_envelope(envelope: Dictionary) -> bool:
 	last_error = ""
 	envelope["version"] = SAVE_VERSION
 	if _test_in_memory:
-		_envelope = envelope.duplicate(true)
+		if _test_force_write_failure:
+			last_error = "Simulated test write failure"
+			return false
 		return true
 	var text := JSON.stringify(envelope, "  ")
 	var temp := "%s.tmp" % SAVE_PATH
