@@ -10,14 +10,13 @@ const YELLOW := Color("ffd166")
 const TEXT := Color("f7f1ff")
 const MUTED := Color("aab7e8")
 const MEADOW_BACKGROUND = preload("res://assets/meta/environments/magical_meadow_v1.png")
-const TITLE_SIGN = preload("res://assets/ui/title_sign_option3_v1.png")
 const HOME_TITLE_SIGN = preload("res://assets/ui/title_sign_option3_compact_v1.png")
 const ALLEY_STREET_SIGN = preload("res://assets/ui/unicorn_alley_street_sign_compact_v1.png")
-const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
 const MeadowCompanionStageScene = preload("res://scripts/meta/meadow_companion_stage_3d.gd")
 const ArcadePictogramScene = preload("res://scripts/ui/arcade_pictogram.gd")
 const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
 const ProfileView = preload("res://scripts/ui/profile_view.gd")
+const LoginView = preload("res://scripts/ui/login_view.gd")
 
 var page: VBoxContainer
 var status_label: Label
@@ -159,84 +158,12 @@ func _change_scene_safely(path: String) -> void:
 func _show_login() -> void:
 	if await _reset_page(true) == null:
 		return
-	var spacer := Control.new()
-	spacer.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page.add_child(spacer)
-	var brand := TextureRect.new()
-	brand.name = "IllustratedTitleSign"
-	brand.texture = TITLE_SIGN
-	brand.custom_minimum_size = Vector2(0, 245)
-	brand.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	brand.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	brand.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	page.add_child(brand)
-	var tagline_plaque := PanelContainer.new()
-	tagline_plaque.name = "TaglinePlaque"
-	tagline_plaque.custom_minimum_size = Vector2(0, 56)
-	tagline_plaque.add_theme_stylebox_override("panel", StorybookUI.plaque_style())
-	page.add_child(tagline_plaque)
-	var tagline := Label.new()
-	tagline.text = "Train your brain with code-based games."
-	tagline.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	tagline.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	tagline.add_theme_color_override("font_color", StorybookUI.INK)
-	tagline.add_theme_color_override("font_outline_color", Color("fff3d600"))
-	tagline.add_theme_constant_override("outline_size", 0)
-	tagline.add_theme_font_size_override("font_size", 19)
-	tagline_plaque.add_child(tagline)
-	var name_prompt := Label.new()
-	name_prompt.name = "PlayerNamePrompt"
-	name_prompt.text = "WHAT SHOULD WE CALL YOU?"
-	name_prompt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	name_prompt.add_theme_font_size_override("font_size", 22)
-	name_prompt.add_theme_color_override("font_color", StorybookUI.INK)
-	name_prompt.add_theme_color_override("font_outline_color", StorybookUI.CREAM)
-	name_prompt.add_theme_constant_override("outline_size", 3)
-	page.add_child(name_prompt)
-	var name_input := LineEdit.new()
-	name_input.name = "PlayerNameInput"
-	name_input.placeholder_text = "Tap here and enter your name"
-	name_input.custom_minimum_size = Vector2(0, 64)
-	name_input.add_theme_font_size_override("font_size", 21)
-	page.add_child(name_input)
-	var profiles := AppState.profile_names()
-	if not profiles.is_empty():
-		var choose_label := Label.new()
-		choose_label.text = "OR PICK A SAVED PROFILE"
-		choose_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		choose_label.add_theme_font_size_override("font_size", 15)
-		page.add_child(choose_label)
-		var choices := HBoxContainer.new()
-		choices.alignment = BoxContainer.ALIGNMENT_CENTER
-		choices.add_theme_constant_override("separation", 8)
-		page.add_child(choices)
-		for profile_name in profiles:
-			var profile_button := _make_button(profile_name.to_upper(), StorybookUI.NAVY, 52)
-			profile_button.pressed.connect(func() -> void:
-				if AppState.select_profile(profile_name): _show_view("home")
-			)
-			choices.add_child(profile_button)
-	var enter := _make_button("ENTER ARCADE", StorybookUI.NAVY, 68)
-	enter.disabled = true
-	name_input.text_changed.connect(func(value: String) -> void: enter.disabled = value.strip_edges().is_empty())
-	var submit := func() -> void:
-		if name_input.text.strip_edges().is_empty():
-			return
-		AppState.set_player_name(name_input.text)
-		AppState.shell_view = "home"
-		_show_view("home")
-	enter.pressed.connect(submit)
-	name_input.text_submitted.connect(func(_value: String) -> void: submit.call())
-	page.add_child(enter)
-	var preview := _build_sparkle_preview()
-	preview.name = "LoginCompanionPreview"
-	preview.custom_minimum_size.y = 210
-	page.add_child(preview)
-	var bottom := Control.new()
-	bottom.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	page.add_child(bottom)
-	# Leave the field unfocused. Android otherwise opens its keyboard before
-	# the child chooses to type and covers the lower half of the form.
+	var login_view := LoginView.new()
+	login_view.configure(Callable(self, "_show_view").bind("home"))
+	page.add_child(login_view)
+	login_view.build()
+	# Leave the field unfocused. Android otherwise opens its keyboard before the
+	# child chooses to type and covers the lower half of the form.
 	_sync_ad_bar()
 	page_build_complete.emit()
 
@@ -500,8 +427,6 @@ func _make_button(text: String, color: Color, height: float) -> Button:
 	button.add_theme_font_size_override("font_size", 18)
 	StorybookUI.apply_button(button, color, StorybookUI.uses_dark_ink(color))
 	return button
-
-
 func _make_category_card(definition: Dictionary, playable_count: int, game_count: int) -> Button:
 	var category_name := str(definition["name"])
 	var color: Color = definition["color"]
@@ -629,15 +554,4 @@ func _make_art_button(accessible_text: String, texture: Texture2D, height: float
 	button.button_down.connect(func() -> void: art.modulate = Color("e8d9ef"))
 	button.button_up.connect(func() -> void: art.modulate = Color.WHITE)
 	return button
-
-
-func _build_sparkle_preview() -> SubViewportContainer:
-	return _build_companion_preview(AppState.equipped_companion(), "hero", 300.0)
-
-
-func _build_companion_preview(companion_id: String, presentation: String, minimum_height: float) -> SubViewportContainer:
-	var container := RoomItemPreviewScene.new()
-	container.custom_minimum_size = Vector2(0, minimum_height)
-	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	container.setup({"id": "companion_%s" % companion_id, "category": "companions", "presentation": presentation})
-	return container
+# End of main shell UI helpers.
