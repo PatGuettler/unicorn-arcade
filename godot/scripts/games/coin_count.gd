@@ -1,4 +1,4 @@
-extends Control
+extends ArcadeGameController
 
 const COINS := {"Penny": 1, "Nickel": 5, "Dime": 10, "Quarter": 25}
 const COIN_SIZES := {"Penny": 0.86, "Nickel": 0.96, "Dime": 0.76, "Quarter": 1.0}

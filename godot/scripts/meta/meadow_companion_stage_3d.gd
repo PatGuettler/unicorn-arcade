@@ -1,7 +1,7 @@
 class_name MeadowCompanionStage3D
 extends Node
 
-const Preview = preload("res://scripts/meta/room_item_preview_3d.gd")
+const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
 const IdleAnimator = preload("res://scripts/meta/unicorn_idle_animator.gd")
 const HERO_POSITION := Vector3(-5.8, -2.6, 0.95)
 const HERO_SCALE_MULTIPLIER := 3.8
@@ -61,9 +61,12 @@ func _add_companion(stage: Node3D, id: String, position: Vector3, hero: bool, fo
 	var behavior := _behavior_options(id, hero, formation_slot)
 	root.set_meta("roam_behavior_signature", "%s|%.2f|%.2f|%.2f|%.2f|%.2f" % [id, behavior["walk_speed"], behavior["roam_radius_x"], behavior["roam_radius_z"], behavior["min_idle_seconds"], behavior["max_idle_seconds"]])
 	stage.add_child(root)
-	var model := Preview.CHARACTER_SCENES[id].instantiate() as Node3D
+	var packed_scene := load(CompanionAssets.model_path(id)) as PackedScene
+	if packed_scene == null:
+		return
+	var model := packed_scene.instantiate() as Node3D
 	model.name = "LiveUnicornModel_%s" % id
-	model.scale = Vector3.ONE * float(Preview.CHARACTER_SCALES.get(id, 1.0)) * (HERO_SCALE_MULTIPLIER if hero else 1.7)
+	model.scale = Vector3.ONE * CompanionAssets.scale_for(id) * (HERO_SCALE_MULTIPLIER if hero else 1.7)
 	model.position.y = -0.25
 	root.add_child(model)
 	var shadow := MeshInstance3D.new()

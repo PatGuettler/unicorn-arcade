@@ -1,4 +1,4 @@
-extends Control
+extends ArcadeGameController
 
 const Rules = preload("res://scripts/games/word_game_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")

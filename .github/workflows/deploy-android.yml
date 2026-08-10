@@ -6,6 +6,7 @@ on:
       - main
       - godot-port
       - codex/minigame-hardening
+      - codex/godot-performance-maintainability
   workflow_dispatch:
 
 env:

@@ -1,15 +1,7 @@
 class_name RoomItemPreview3D
 extends SubViewportContainer
 
-const CHARACTER_SCENES := {
-	"sparkle": preload("res://assets/characters/unicorns/unicorn_sparkle_v1.glb"),
-	"rainbow": preload("res://assets/characters/unicorns/unicorn_rainbow_v1.glb"),
-	"star": preload("res://assets/characters/unicorns/unicorn_star_v1.glb"),
-	"cloud": preload("res://assets/characters/unicorns/unicorn_cloud_v1.glb"),
-	"dream": preload("res://assets/characters/unicorns/unicorn_dreamer_v1.glb"),
-	"mystic": preload("res://assets/characters/unicorns/unicorn_mystic_v1.glb"),
-}
-const CHARACTER_SCALES := {"sparkle": 1.28, "rainbow": 1.28, "star": 1.28, "cloud": 1.28, "dream": 1.28, "mystic": 1.12}
+const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
 const STORE_MODEL_CATALOG_PATH := "res://data/store_model_catalog.json"
 const CHARACTER_SCALE_MULTIPLIER := 3.0
 const ANIMATED_CAMERA_SIZE := 6.80
@@ -39,6 +31,8 @@ var uses_authored_furniture_model := false
 var source_furniture_model_id := ""
 var display_rotation_root: Node3D
 var display_yaw_degrees := 0.0
+var _companion_request_generation := 0
+var _idle_animator: UnicornIdleAnimator
 
 
 func setup(definition: Dictionary) -> void:
@@ -91,42 +85,46 @@ func set_display_yaw(degrees: float) -> void:
 
 
 func set_motion_state(walking: bool) -> void:
-	var animator := find_child("IdleAnimator", true, false)
+	var animator: Node = _idle_animator if is_instance_valid(_idle_animator) else find_child("IdleAnimator", true, false)
 	if is_instance_valid(animator) and animator.has_method("set_motion_state"):
 		animator.call("set_motion_state", walking)
 
 
 func _build_companion(stage: Node3D) -> void:
-	var companion_id := item_id.trim_prefix("companion_")
-	if not CHARACTER_SCENES.has(companion_id):
-		companion_id = "sparkle"
+	var companion_id := CompanionAssets.normalized_id(item_id.trim_prefix("companion_"))
 	source_model_id = companion_id
-	var packed_scene: PackedScene = CHARACTER_SCENES[companion_id]
 	var travel_root := Node3D.new()
 	travel_root.name = "CompanionTravelRoot"
 	display_rotation_root.add_child(travel_root)
-	var model: Node3D = packed_scene.instantiate() as Node3D
-	model.name = "LiveUnicornModel"
-	model.position.y = -0.25
-	model.scale = Vector3.ONE * float(CHARACTER_SCALES.get(companion_id, 1.28)) * CHARACTER_SCALE_MULTIPLIER
-	travel_root.add_child(model)
-	mesh_count = _count_meshes(model)
-	_add_companion_shadow(travel_root)
 	if animate_character:
 		var animator := UnicornIdleAnimatorScene.new()
 		animator.name = "IdleAnimator"
-		stage.add_child(animator)
-		var roam_radius := 1.15
-		if presentation_context == "meadow_background":
-			roam_radius = 1.65
-		elif presentation_context == "hero":
-			roam_radius = 0.85
-		animator.setup(travel_root, {
-			"seed": "%s:%s" % [companion_id, presentation_context],
-			"roam_radius": roam_radius,
-		})
+		_idle_animator = animator
+		# Keep the controller under this preview control so room interaction can
+		# address it reliably even though the model itself lives in a SubViewport.
+		add_child(animator)
+	# The portrait remains visible in surrounding chrome while this request runs.
+	# Do not preload a GLB here: Home and Marketplace can exist without loading
+	# any unowned companion model into CPU or GPU memory.
+	var generation := _companion_request_generation + 1
+	_companion_request_generation = generation
+	var model_path := CompanionAssets.model_path(companion_id)
+	if animate_character:
+		# The sole room/meadow actor is interactive immediately. This is still
+		# lazy (only its requested companion is loaded), while avoiding a visible
+		# no-animation window during room entry.
+		var active_scene := RuntimeAssetLoader.cached_packed_scene(model_path)
+		if active_scene == null:
+			active_scene = ResourceLoader.load(model_path, "PackedScene") as PackedScene
+		if active_scene != null:
+			_instantiate_companion(active_scene, companion_id, travel_root)
 	else:
-		_pose_companion(model)
+		RuntimeAssetLoader.load_packed_scene(model_path, func(packed_scene: PackedScene) -> void:
+			if generation != _companion_request_generation or not is_instance_valid(travel_root) or packed_scene == null:
+				return
+			_instantiate_companion(packed_scene, companion_id, travel_root)
+		)
+	_add_companion_shadow(travel_root)
 	var camera := Camera3D.new()
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	if not animate_character:
@@ -148,6 +146,28 @@ func _build_companion(stage: Node3D) -> void:
 			frame_lift = ANIMATION_FRAME_LIFT
 	camera.look_at_from_position(SIDE_CAMERA_POSITION + frame_lift, SIDE_CAMERA_TARGET + frame_lift, Vector3.UP)
 	camera.current = true
+
+
+func _instantiate_companion(packed_scene: PackedScene, companion_id: String, travel_root: Node3D) -> void:
+	var model := packed_scene.instantiate() as Node3D
+	if model == null:
+		return
+	model.name = "LiveUnicornModel"
+	model.position.y = -0.25
+	model.scale = Vector3.ONE * CompanionAssets.scale_for(companion_id) * CHARACTER_SCALE_MULTIPLIER
+	travel_root.add_child(model)
+	mesh_count = _count_meshes(model)
+	if animate_character:
+		var animator := _idle_animator
+		if is_instance_valid(animator):
+			var roam_radius := 1.15
+			if presentation_context == "meadow_background":
+				roam_radius = 1.65
+			elif presentation_context == "hero":
+				roam_radius = 0.85
+			animator.setup(travel_root, {"seed": "%s:%s" % [companion_id, presentation_context], "roam_radius": roam_radius})
+	else:
+		_pose_companion(model)
 
 
 func _pose_companion(model: Node) -> void:

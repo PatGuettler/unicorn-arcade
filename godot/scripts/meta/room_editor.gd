@@ -3,9 +3,11 @@ extends Control
 const Catalog = preload("res://scripts/meta_catalog.gd")
 const Rules = preload("res://scripts/room_rules.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
 const FURNITURE_BAG_ICON := preload("res://assets/ui/furniture_bag_v1.svg")
+const DECOR_THUMBNAIL_DIRECTORY := "res://assets/store/decor_thumbnails/"
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -172,6 +174,7 @@ func _reset_bag_scroll_gesture() -> void:
 
 
 func _clear_ui() -> void:
+	_retire_selected_live_decor()
 	# A rebuild queues the old canvas for deletion, so its actor remains valid
 	# through this frame. Retire the reference and motion state explicitly or the
 	# new canvas will reflow that stale actor instead of creating its own.
@@ -243,6 +246,8 @@ func _build_editor() -> void:
 	room_canvas.add_child(room_bg)
 	for item in local_items:
 		_create_item_button(item)
+	if not selected_id.is_empty():
+		_activate_selected_live_decor()
 	room_canvas.resized.connect(_on_room_canvas_resized)
 	room_stage.resized.connect(_fit_room_canvas.bind(room_stage, room_texture.get_size()))
 	_fit_room_canvas.call_deferred(room_stage, room_texture.get_size())
@@ -308,12 +313,7 @@ func _create_item_button(item: Dictionary) -> void:
 	room_canvas.add_child(button)
 	if item_id == "companion_%s" % companion_id:
 		button.hide() # Actor below owns the room-scale presentation; this remains its saved home anchor.
-	var art := RoomItemPreviewScene.new()
-	art.name = "RoomItemPreview3D"
-	art.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	art.setup(definition.merged({"id": item_id}, true))
-	art.set_display_yaw(float(item.get("rotation", 0)))
-	button.add_child(art)
+	_add_cached_decor_preview(button, definition.merged({"id": item_id}, true), float(item.get("rotation", 0)), true)
 	item_buttons[str(item.get("instance_id", ""))] = button
 
 
@@ -407,8 +407,11 @@ func _item_input(event: InputEvent, instance_id: String, button: Button) -> void
 
 
 func _begin_item_drag(instance_id: String) -> void:
+	if selected_id != instance_id:
+		_retire_selected_live_decor()
 	selected_id = instance_id
 	dragging_id = instance_id
+	_activate_selected_live_decor()
 	_mark_selected()
 
 
@@ -422,6 +425,7 @@ func _room_canvas_input(event: InputEvent) -> void:
 
 
 func _clear_selection() -> void:
+	_retire_selected_live_decor()
 	selected_id = ""
 	dragging_id = ""
 	if is_instance_valid(selection_toolbar):
@@ -433,6 +437,73 @@ func _clear_selection() -> void:
 		_apply_item_button_style(item_buttons[instance_id], str(definition.get("category", "cozy")), false)
 	if is_instance_valid(status_label):
 		status_label.text = "%d decorations placed. Tap an item for controls." % local_items.size()
+
+
+func _selected_live_decor_preview(instance_id: String = selected_id) -> RoomItemPreview3D:
+	var button := item_buttons.get(instance_id) as Button
+	return button.get_node_or_null("RoomItemPreview3D") as RoomItemPreview3D if is_instance_valid(button) else null
+
+
+func _is_companion_anchor(item: Dictionary) -> bool:
+	return str(item.get("item_id", "")).begins_with("companion_")
+
+
+func _activate_selected_live_decor() -> void:
+	if selected_id.is_empty():
+		return
+	var item := _local_item(selected_id)
+	if item.is_empty() or _is_companion_anchor(item):
+		return
+	var button := item_buttons.get(selected_id) as Button
+	if not is_instance_valid(button):
+		return
+	var yaw := float(item.get("rotation", 0.0))
+	var live := _selected_live_decor_preview(selected_id)
+	if is_instance_valid(live):
+		live.set_display_yaw(yaw)
+		return
+	var cached := button.get_node_or_null("CachedDecorPreview") as TextureRect
+	if is_instance_valid(cached):
+		cached.hide()
+	var definition := _item_definition(str(item.get("item_id", ""))).merged({"id": str(item.get("item_id", "")), "animate": false, "presentation": "room_selected"}, true)
+	live = RoomItemPreviewScene.new()
+	live.name = "RoomItemPreview3D"
+	live.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	live.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	button.add_child(live)
+	live.setup(definition)
+	live.set_display_yaw(yaw)
+
+
+func _retire_selected_live_decor() -> void:
+	if selected_id.is_empty():
+		return
+	_retire_live_decor_preview(selected_id)
+
+
+func _retire_live_decor_preview(instance_id: String) -> void:
+	var item := _local_item(instance_id)
+	if item.is_empty() or _is_companion_anchor(item):
+		return
+	var button := item_buttons.get(instance_id) as Button
+	if not is_instance_valid(button):
+		return
+	var live := _selected_live_decor_preview(instance_id)
+	if not is_instance_valid(live):
+		return
+	var definition := _item_definition(str(item.get("item_id", ""))).merged({"id": str(item.get("item_id", ""))}, true)
+	var viewport := live.get_node_or_null("SubViewport") as SubViewport
+	var frozen: Texture2D = null
+	if is_instance_valid(viewport):
+		frozen = DecorPreviewCache.cache_visible_image(definition, float(item.get("rotation", 0.0)), viewport.get_texture().get_image())
+	var cached := button.get_node_or_null("CachedDecorPreview") as TextureRect
+	if is_instance_valid(cached):
+		if frozen != null:
+			cached.texture = frozen
+		# A transparent or unavailable readback must never leave the selected item
+		# invisible: retain its prior snapshot and restore the cached rect either way.
+		cached.show()
+	live.queue_free()
 
 
 func close_top_overlay() -> bool:
@@ -534,7 +605,11 @@ func _selection_action(action: String) -> void:
 	if item.is_empty():
 		return
 	match action:
-		"ROTATE": item["rotation"] = (int(item.get("rotation", 0)) + 45) % 360
+		"ROTATE":
+			item["rotation"] = (int(item.get("rotation", 0)) + 45) % 360
+			var live := _selected_live_decor_preview()
+			if is_instance_valid(live):
+				live.set_display_yaw(float(item["rotation"]))
 		"SMALLER": item["scale"] = clampf(float(item.get("scale", 1.0)) - 0.1, 0.5, 1.8)
 		"LARGER": item["scale"] = clampf(float(item.get("scale", 1.0)) + 0.1, 0.5, 1.8)
 		"BACK", "FRONT":
@@ -542,6 +617,7 @@ func _selection_action(action: String) -> void:
 			_refresh_room_items()
 			return
 		"REMOVE":
+			_retire_selected_live_decor()
 			AppState.remove_room_item(companion_id, selected_id)
 			selected_id = ""
 			_build_editor()
@@ -561,9 +637,9 @@ func _refresh_room_items() -> void:
 		button.custom_minimum_size = _item_base_size(str(item.get("item_id", ""))) * float(item.get("scale", 1.0))
 		button.size = button.custom_minimum_size
 		button.rotation_degrees = 0.0
-		var preview := button.get_node_or_null("RoomItemPreview3D") as RoomItemPreview3D
-		if is_instance_valid(preview):
-			preview.set_display_yaw(float(item.get("rotation", 0)))
+		var item_id := str(item.get("item_id", ""))
+		var definition := _item_definition(item_id).merged({"id": item_id}, true)
+		_refresh_cached_decor_preview(button, definition, float(item.get("rotation", 0)))
 		button.z_index = int(item.get("z_index", 0))
 	_position_items()
 	_mark_selected()
@@ -727,6 +803,63 @@ func _set_bag_category(category_id: String) -> void:
 	_show_bag()
 
 
+func _add_cached_decor_preview(parent: Control, definition: Dictionary, yaw: float, room_item: bool) -> void:
+	var preview := TextureRect.new()
+	preview.name = "CachedDecorPreview"
+	preview.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	preview.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if room_item:
+		preview.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	else:
+		preview.set_anchor(SIDE_LEFT, 0.0)
+		preview.set_anchor(SIDE_TOP, 0.0)
+		preview.set_anchor(SIDE_RIGHT, 1.0)
+		preview.set_anchor(SIDE_BOTTOM, 0.0)
+		preview.offset_left = 8
+		preview.offset_top = 5
+		preview.offset_right = -8
+		preview.offset_bottom = 88
+	parent.add_child(preview)
+	_refresh_cached_decor_preview(parent, definition, yaw)
+
+
+func _refresh_cached_decor_preview(parent: Control, definition: Dictionary, yaw: float) -> void:
+	var preview := parent.get_node_or_null("CachedDecorPreview") as TextureRect
+	if not is_instance_valid(preview):
+		return
+	var item_id := str(definition.get("id", definition.get("item_id", "")))
+	if item_id.begins_with("companion_"):
+		_apply_decor_preview(preview, load(CompanionAssets.thumbnail_path(item_id.trim_prefix("companion_"))) as Texture2D)
+		return
+	var key := DecorPreviewCache.cache_key(definition, yaw)
+	preview.set_meta("decor_preview_key", key)
+	var cached := DecorPreviewCache.cached_texture(definition, yaw)
+	if cached != null:
+		_apply_decor_preview(preview, cached)
+		return
+	_apply_decor_preview(preview, _decor_thumbnail(item_id))
+	DecorPreviewCache.request(definition, yaw, Callable(self, "_apply_cached_preview").bind(preview.get_instance_id(), definition.duplicate(true), yaw))
+
+
+func _decor_thumbnail(item_id: String) -> Texture2D:
+	return load("%s%s.png" % [DECOR_THUMBNAIL_DIRECTORY, item_id]) as Texture2D
+
+
+func _apply_cached_preview(texture: Texture2D, preview_instance_id: int, definition: Dictionary, yaw: float) -> void:
+	var preview := instance_from_id(preview_instance_id) as TextureRect
+	var key := DecorPreviewCache.cache_key(definition, yaw)
+	if is_instance_valid(preview) and texture != null and str(preview.get_meta("decor_preview_key", "")) == key:
+		_apply_decor_preview(preview, texture)
+
+
+func _apply_decor_preview(preview: TextureRect, texture: Texture2D) -> void:
+	preview.texture = texture
+	# Decor orientation belongs to the rendered 3D DisplayRotationRoot. A
+	# thumbnail fallback is deliberately upright rather than screen-rotated.
+	preview.rotation_degrees = 0.0
+
+
 func _rebuild_bag_grid(count_label: Label) -> void:
 	_reset_bag_scroll_gesture()
 	bag_grid.columns = 3
@@ -753,18 +886,7 @@ func _rebuild_bag_grid(count_label: Label) -> void:
 		place.mouse_filter = Control.MOUSE_FILTER_PASS
 		place.pressed.connect(_place_from_bag.bind(item_id))
 		bag_grid.add_child(place)
-		var art := RoomItemPreviewScene.new()
-		art.name = "RoomItemPreview3D"
-		art.set_anchor(SIDE_LEFT, 0.0)
-		art.set_anchor(SIDE_TOP, 0.0)
-		art.set_anchor(SIDE_RIGHT, 1.0)
-		art.set_anchor(SIDE_BOTTOM, 0.0)
-		art.offset_left = 8
-		art.offset_top = 5
-		art.offset_right = -8
-		art.offset_bottom = 88
-		art.setup(definition)
-		place.add_child(art)
+		_add_cached_decor_preview(place, definition, 0.0, false)
 		var item_label := Label.new()
 		item_label.text = "%s\nx%d" % [str(definition.get("name", item_id)), available]
 		item_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER

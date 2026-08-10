@@ -3,9 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b7y87l3n7bq7w"
-path="res://.godot/imported/unicorn_sparkle_v1_sparkle_base_color.jpg-89b480e04f4dee06b9a92a2db7c67f55.ctex"
+path.s3tc="res://.godot/imported/unicorn_sparkle_v1_sparkle_base_color.jpg-89b480e04f4dee06b9a92a2db7c67f55.s3tc.ctex"
+path.etc2="res://.godot/imported/unicorn_sparkle_v1_sparkle_base_color.jpg-89b480e04f4dee06b9a92a2db7c67f55.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 generator_parameters={
 "md5": "682e621e10f8aefb0ae465093ce469f4"
@@ -14,11 +16,11 @@ generator_parameters={
 [deps]
 
 source_file="res://assets/characters/unicorns/unicorn_sparkle_v1_sparkle_base_color.jpg"
-dest_files=["res://.godot/imported/unicorn_sparkle_v1_sparkle_base_color.jpg-89b480e04f4dee06b9a92a2db7c67f55.ctex"]
+dest_files=["res://.godot/imported/unicorn_sparkle_v1_sparkle_base_color.jpg-89b480e04f4dee06b9a92a2db7c67f55.s3tc.ctex", "res://.godot/imported/unicorn_sparkle_v1_sparkle_base_color.jpg-89b480e04f4dee06b9a92a2db7c67f55.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -39,5 +41,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=0
+process/size_limit=2048
 detect_3d/compress_to=1

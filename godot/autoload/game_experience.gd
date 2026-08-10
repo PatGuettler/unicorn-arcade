@@ -2,12 +2,13 @@ extends Node
 
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const TutorialCatalog = preload("res://scripts/tutorial_catalog.gd")
-const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
 const ProgressRingScene = preload("res://scripts/ui/progress_ring.gd")
 const PENNY_TEXTURE_PATH := "res://assets/games/currency/penny.png"
 const MEADOW_BACKGROUND_PATH := "res://assets/meta/environments/magical_meadow_v1.png"
 
 var attached_scene: Node
+var attached_controller: ArcadeGameController
 var attached_game_id := ""
 var objective_primary: Label
 var objective_detail: Label
@@ -37,6 +38,7 @@ func _process(delta: float) -> void:
 		scene = get_tree().current_scene
 	if scene != attached_scene:
 		attached_scene = scene
+		attached_controller = null
 		attached_game_id = ""
 		objective_primary = null
 		objective_detail = null
@@ -60,14 +62,14 @@ func _process(delta: float) -> void:
 	if update_accumulator >= 0.15:
 		update_accumulator = 0.0
 		_update_runtime_ui()
-	var scene_active := bool(attached_scene.get("active")) if _has_property(attached_scene, "active") else true
+	var scene_active := bool(attached_controller.runtime_snapshot().get("active", true)) if is_instance_valid(attached_controller) else true
 	if was_active and not scene_active:
 		if _is_retry_failure() and CompanionAbilityService.consume_checkpoint_retry():
 			_show_sparkle_retry_notice.call_deferred(_outcome_message())
 		else:
 			_show_game_outcome.call_deferred()
 	was_active = scene_active
-	var current_level := _scene_int(scene, "level", 1)
+	var current_level := int(attached_controller.runtime_snapshot().get("level", 1)) if is_instance_valid(attached_controller) else _scene_int(scene, "level", 1)
 	if current_level != last_level:
 		last_level = current_level
 		CompanionAbilityService.begin_level(attached_game_id, current_level)
@@ -86,6 +88,12 @@ func _attach_scene(scene: Node) -> void:
 	if scene != AdBarService.content_scene() or not is_instance_valid(scene):
 		return
 	attached_game_id = AppState.selected_game_id
+	attached_controller = scene as ArcadeGameController
+	if is_instance_valid(attached_controller):
+		if not attached_controller.runtime_state_changed.is_connected(_on_runtime_state_changed):
+			attached_controller.runtime_state_changed.connect(_on_runtime_state_changed)
+		if not attached_controller.run_activity_changed.is_connected(_on_run_activity_changed):
+			attached_controller.run_activity_changed.connect(_on_run_activity_changed)
 	if attached_game_id.is_empty():
 		attached_game_id = _fallback_game_id(str(scene.scene_file_path))
 	var game := GameRegistry.get_game(attached_game_id)
@@ -126,12 +134,30 @@ func _attach_scene(scene: Node) -> void:
 	_restyle_controls(scene)
 	_polish_game_labels(scene)
 	_hide_game_scrollbars(scene)
-	last_level = _scene_int(scene, "level", 1)
+	last_level = int(attached_controller.runtime_snapshot().get("level", 1)) if is_instance_valid(attached_controller) else _scene_int(scene, "level", 1)
 	CompanionAbilityService.begin_level(attached_game_id, last_level)
-	was_active = bool(scene.get("active")) if _has_property(scene, "active") else true
+	was_active = bool(attached_controller.runtime_snapshot().get("active", true)) if is_instance_valid(attached_controller) else true
 	_update_runtime_ui()
 	_update_ability_button()
 	_maybe_show_tutorial.call_deferred(false)
+
+
+func _on_runtime_state_changed(snapshot: Dictionary) -> void:
+	if is_instance_valid(objective_primary):
+		objective_primary.text = str(snapshot.get("objective_primary", "YOUR MISSION"))
+	if is_instance_valid(objective_detail):
+		objective_detail.text = str(snapshot.get("objective_detail", "Complete the enchanted challenge."))
+	if is_instance_valid(hint_button):
+		hint_button.disabled = not bool(snapshot.get("hint_available", false))
+
+
+func _on_run_activity_changed(active: bool) -> void:
+	if was_active and not active:
+		if is_instance_valid(attached_controller) and bool(attached_controller.runtime_snapshot().get("retry_available", false)) and CompanionAbilityService.consume_checkpoint_retry():
+			_show_sparkle_retry_notice.call_deferred(str(attached_controller.runtime_snapshot().get("outcome_message", "")))
+		else:
+			_show_game_outcome.call_deferred()
+	was_active = active
 
 
 func _fallback_game_id(path: String) -> String:
@@ -265,6 +291,17 @@ func _header_button(text: String, tooltip: String) -> Button:
 	return button
 
 
+func _companion_thumbnail(companion_id: String, minimum_size: Vector2) -> TextureRect:
+	var portrait := TextureRect.new()
+	portrait.name = "EquippedCompanionMascot"
+	portrait.texture = load(CompanionAssets.thumbnail_path(companion_id)) as Texture2D
+	portrait.custom_minimum_size = minimum_size
+	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return portrait
+
+
 func _build_objective_plaque() -> PanelContainer:
 	var plaque := PanelContainer.new()
 	plaque.name = "GameObjectivePlaque"
@@ -273,13 +310,8 @@ func _build_objective_plaque() -> PanelContainer:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	plaque.add_child(row)
-	var mascot := RoomItemPreviewScene.new()
+	var mascot := _companion_thumbnail(AppState.equipped_companion(), Vector2(96, 74))
 	mascot.name = "EquippedCompanionMascot"
-	# A dedicated, wider HUD presentation prevents ears and tails from clipping
-	# without changing marketplace or room preview framing.
-	mascot.custom_minimum_size = Vector2(96, 74)
-	mascot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	mascot.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": false, "presentation": "game_hud"})
 	row.add_child(mascot)
 	var copy := VBoxContainer.new()
 	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -321,6 +353,10 @@ func _build_objective_plaque() -> PanelContainer:
 
 func _update_runtime_ui() -> void:
 	if not is_instance_valid(attached_scene) or not is_instance_valid(objective_primary):
+		return
+	if is_instance_valid(attached_controller):
+		_on_runtime_state_changed(attached_controller.runtime_snapshot())
+		_update_coin_button(AppState.coins())
 		return
 	var objective := _objective_for_scene()
 	objective_primary.text = str(objective.get("primary", "YOUR MISSION"))
@@ -389,33 +425,32 @@ func _update_ability_button() -> void:
 
 func _ability_pressed() -> void:
 	var definition := CompanionAbilityService.definition()
-	if attached_game_id == "mathtris" and CompanionAbilityService.is_available() and attached_scene.has_method("apply_companion_power"):
-		if attached_scene.has_method("can_use_companion_power") and not bool(attached_scene.call("can_use_companion_power")):
-			_show_notice("Power charging", "Clear 3 true equations to charge your unicorn power.")
-			return
-		if bool(attached_scene.call("apply_companion_power", CompanionAbilityService.companion_id())):
+	if is_instance_valid(attached_controller) and CompanionAbilityService.is_available():
+		if attached_controller.request_companion_action(CompanionAbilityService.companion_id()):
 			CompanionAbilityService.consume_active_power()
 			_update_ability_button()
-		else:
-			_show_notice("Power ready", "No safe board move yet; your charge is saved.")
-	elif CompanionAbilityService.companion_id() == "mystic" and CompanionAbilityService.is_available():
+			return
+		if attached_game_id == "mathtris":
+			_show_notice("Power charging", "Clear 3 true equations to charge your unicorn power.")
+			return
+	if CompanionAbilityService.companion_id() == "mystic" and CompanionAbilityService.is_available():
 		_show_assist(true)
 	else:
 		_show_notice(str(definition.get("name", "Companion Power")), str(definition.get("description", "This power works automatically.")))
 
 
 func _ordinary_hint_pressed() -> void:
-	if not is_instance_valid(attached_scene) or not attached_scene.has_method("_show_hint"):
+	if not is_instance_valid(attached_controller):
 		_show_notice("Hint", "Keep trying — look for the next safe choice.")
 		return
-	if attached_scene.has_method("can_show_hint") and not bool(attached_scene.call("can_show_hint")):
+	if not attached_controller.can_show_hint():
 		_show_notice("Hint", "A hint is not available right now.")
 		return
-	var level := _scene_int(attached_scene, "level", 1)
+	var level := int(attached_controller.runtime_snapshot().get("level", 1))
 	if not AppState.spend_hint(level):
 		_show_notice("Hint", "You need 5 coins for another hint.")
 		return
-	attached_scene.call("_show_hint")
+	attached_controller.request_hint()
 
 
 func _hide_embedded_hint_controls(node: Node) -> void:
@@ -750,10 +785,7 @@ func _show_profile_overlay() -> void:
 	scroll.add_child(stack)
 	stack.add_child(_modal_title("PLAYER PROFILE"))
 	var companion := MetaCatalog.companion(AppState.equipped_companion())
-	var preview := RoomItemPreviewScene.new()
-	preview.custom_minimum_size = Vector2(160, 140)
-	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	preview.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": false, "presentation": "marketplace"})
+	var preview := _companion_thumbnail(AppState.equipped_companion(), Vector2(160, 140))
 	stack.add_child(preview)
 	var hero := Label.new()
 	hero.text = "%s\n%s  •  %d COINS  •  %d RUNS" % [AppState.player_name().to_upper(), str(companion.get("name", "Sparkle")).to_upper(), AppState.coins(), AppState.completed_run_count()]

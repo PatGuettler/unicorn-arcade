@@ -9,6 +9,10 @@ const MetaCatalog = preload("res://scripts/meta_catalog.gd")
 const RoomRules = preload("res://scripts/room_rules.gd")
 const TutorialCatalog = preload("res://scripts/tutorial_catalog.gd")
 const CompanionAbilityScript = preload("res://autoload/companion_ability_service.gd")
+const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
+const ProfileComponents = preload("res://scripts/ui/profile_view_components.gd")
+const AdRecoveryPolicy = preload("res://scripts/platform/ad_banner_recovery_policy.gd")
+const WordRoundCatalog = preload("res://scripts/games/word_round_catalog.gd")
 const UNICORN_IMPORTS := {
 	"sparkle": {"path": "res://assets/characters/unicorns/unicorn_sparkle_v1.glb"},
 	"rainbow": {"path": "res://assets/characters/unicorns/unicorn_rainbow_v1.glb"},
@@ -45,6 +49,21 @@ func _init() -> void:
 	var registered_ids: Array = registry.all_games().map(func(game: Dictionary): return game["id"])
 	_check(TutorialCatalog.covers_all(registered_ids), "all 23 games provide three guided tutorial levels")
 	_check(CompanionAbilityScript.ABILITIES.size() == 6, "all six unicorns have exactly one universal companion ability")
+	_check(is_equal_approx(ProfileComponents.category_progress([{"id":"a"},{"id":"b"}], func(id: String) -> int: return 21 if id == "a" else 1), 0.5) and ProfileComponents.category_runs([{"id":"a"}], func(_id: String) -> Dictionary: return {"completed":[1,2]} ) == 2, "profile component aggregates explicit level and progress callbacks")
+	var penny_texture := load("res://assets/games/currency/penny.png") as Texture2D
+	_check(ProfileComponents.stat("4", "RUNS") is PanelContainer and ProfileComponents.money_stat(12, "COINS", penny_texture) is PanelContainer, "profile component builders return reusable panel controls")
+	_check(AdRecoveryPolicy.is_stale(true, false, -3463, 4538, 8000) and not AdRecoveryPolicy.is_stale(true, false, 4538, 4538, 8000) and AdRecoveryPolicy.needs_recovery(false, true, false, 0, 0, 8000), "ad recovery policy handles negative early-start timestamps and missing views")
+	_check(WordRoundCatalog.word_for_round(["a","b"], 1, 2) == "b" and WordRoundCatalog.vowel_for_round(["a","e"], 1, 2) == "e", "word round catalog preserves modular round selection")
+	var sequence_round := WordRoundCatalog.sequence_round({"items": ["sun", "moon", "star"]}, "items")
+	_check(sequence_round["sequence"] == ["sun", "moon", "star"] and sequence_round["pool"].size() == 3 and "sun" in sequence_round["pool"] and "moon" in sequence_round["pool"] and "star" in sequence_round["pool"], "word sequence preparation preserves source order and creates a complete shuffled pool")
+	var vowel_rng := RandomNumberGenerator.new()
+	vowel_rng.seed = 4
+	var vowel_round := WordRoundCatalog.vowel_round({"vowel_words": {"a": ["ant"], "e": ["eel"], "i": ["ink"], "o": ["owl"]}}, ["a", "e", "i", "o"], 0, 0, vowel_rng)
+	_check(vowel_round["vowel"] == "a" and "ant" in vowel_round["choices"] and vowel_round["choices"].size() == 4 and "eel" in vowel_round["choices"] and "ink" in vowel_round["choices"] and "owl" in vowel_round["choices"], "vowel preparation builds four unique choices including the selected vowel word")
+	_check(CompanionAssets.MODEL_PATHS.size() == 6 and CompanionAssets.MODEL_PATHS.values().all(func(path: String) -> bool: return path.begins_with("res://assets/characters/unicorns/") and path.ends_with(".glb")), "companion catalog retains six lazy GLB paths without eager PackedScene constants")
+	_check(CompanionAssets.THUMBNAIL_PATHS.size() == 6 and CompanionAssets.THUMBNAIL_PATHS.values().all(func(path: String) -> bool: return ResourceLoader.exists(path)), "static companion chrome has checked-in thumbnail paths")
+	_check(_validate_companion_texture_imports(), "companion texture imports use 2K mipmapped VRAM settings with normal-map handling")
+	_check(_validate_game_controller_contract(), "every distinct registered game scene implements ArcadeGameController")
 	_check(CompanionAbilityScript.ABILITIES["rainbow"]["description"] == "Gives a chance at bonus coins.", "bonus coin power uses child-friendly copy")
 	_check(CompanionAbilityScript.ABILITIES.values().all(func(ability: Dictionary) -> bool: return not str(ability["description"]).contains("%") and not str(ability["description"]).contains("seconds")), "companion power descriptions avoid percentages and timing jargon")
 	_check(GameplayRules.math_swipe_target(1) == 3 and GameplayRules.math_swipe_target(10) == 8, "Math Swipe target formula matches React")
@@ -235,3 +254,58 @@ func _count_meshes(node: Node) -> int:
 	for child in node.get_children():
 		count += _count_meshes(child)
 	return count
+
+
+func _validate_companion_texture_imports() -> bool:
+	var directory := DirAccess.open("res://assets/characters/unicorns")
+	if directory == null:
+		return false
+	var valid := true
+	var relevant_count := 0
+	var normal_count := 0
+	for filename in directory.get_files():
+		if not filename.ends_with(".import") or not (filename.contains("base") or filename.contains("normal") or filename.contains("emissive") or filename.contains("emit") or filename.contains("roughness")):
+			continue
+		relevant_count += 1
+		var file := FileAccess.open("res://assets/characters/unicorns/%s" % filename, FileAccess.READ)
+		if file == null:
+			return false
+		var contents := file.get_as_text()
+		file.close()
+		if not contents.contains("compress/mode=2") or not contents.contains("mipmaps/generate=true") or not contents.contains("mipmaps/limit=-1") or not contents.contains("process/size_limit=2048"):
+			valid = false
+		if filename.contains("normal"):
+			normal_count += 1
+			if not contents.contains("compress/normal_map=1"):
+				valid = false
+	return valid and relevant_count == 24 and normal_count == 6
+
+
+func _validate_game_controller_contract() -> bool:
+	var checked_scenes := {}
+	for game in GameRegistryScript.GAMES:
+		var scene_path := str(game.get("scene", ""))
+		if scene_path.is_empty() or checked_scenes.has(scene_path):
+			continue
+		checked_scenes[scene_path] = true
+		var scene_file := FileAccess.open(scene_path, FileAccess.READ)
+		if scene_file == null:
+			return false
+		var scene_contents := scene_file.get_as_text()
+		scene_file.close()
+		var path_prefix := "path=\"res://scripts/games/"
+		var path_start := scene_contents.find(path_prefix)
+		if path_start < 0:
+			return false
+		path_start += "path=\"".length()
+		var path_end := scene_contents.find("\"", path_start)
+		if path_end < 0:
+			return false
+		var script_file := FileAccess.open(scene_contents.substr(path_start, path_end - path_start), FileAccess.READ)
+		if script_file == null:
+			return false
+		var valid := script_file.get_as_text().begins_with("extends ArcadeGameController")
+		script_file.close()
+		if not valid:
+			return false
+	return checked_scenes.size() == 10

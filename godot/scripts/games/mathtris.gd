@@ -1,4 +1,4 @@
-extends Control
+extends ArcadeGameController
 
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
@@ -35,6 +35,7 @@ func _ready() -> void:
 
 
 func _process(delta: float) -> void:
+	super(delta)
 	if not active:
 		return
 	fall_accumulator += delta * 1000.0 * CompanionAbilityService.time_scale()
@@ -428,6 +429,10 @@ func apply_companion_power(companion_id: String) -> bool:
 	equation_charge = 0
 	_refresh()
 	return true
+
+
+func request_companion_action(companion_id: String) -> bool:
+	return apply_companion_power(companion_id)
 
 
 func _equation_kits() -> Array[Array]:
