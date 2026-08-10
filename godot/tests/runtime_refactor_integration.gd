@@ -1,6 +1,7 @@
 extends Node
 
 const RoomEditor = preload("res://scripts/meta/room_editor.gd")
+const FurnitureBagOverlay = preload("res://scripts/meta/furniture_bag_overlay.gd")
 const RoomItemPreview3D = preload("res://scripts/meta/room_item_preview_3d.gd")
 const RoomPreviewViewport = preload("res://scripts/meta/room_preview_viewport.gd")
 const RoomAuthoredFurnitureLoader = preload("res://scripts/meta/room_authored_furniture_loader.gd")
@@ -117,9 +118,9 @@ func _run() -> void:
 	for frame in 3:
 		await get_tree().process_frame
 	_check(textures.size() == 2 and textures[0] is ImageTexture and _has_visible_pixels(textures[0]) and textures[0] == textures[1] and DecorPreviewCache.is_thumbnail_fallback(definition, yaw), "Fluffy Rug cache coalesces active duplicates into a visible thumbnail fallback ImageTexture")
-	var room_editor := RoomEditor.new()
-	var placeholder := room_editor.call("_decor_thumbnail", "rug") as Texture2D
-	_check(_has_visible_pixels(placeholder), "room editor assigns the Fluffy Rug thumbnail while its 3D preview is pending")
+	var bag_preview := FurnitureBagOverlay.new()
+	var placeholder := bag_preview.call("_decor_thumbnail", "rug") as Texture2D
+	_check(_has_visible_pixels(placeholder), "furniture bag assigns the Fluffy Rug thumbnail while its 3D preview is pending")
 	var preview_parent := Button.new()
 	preview_parent.size = Vector2(100, 100)
 	preview_parent.rotation_degrees = 0.0
@@ -127,10 +128,66 @@ func _run() -> void:
 	preview.name = "CachedDecorPreview"
 	preview.size = preview_parent.size
 	preview_parent.add_child(preview)
-	room_editor.call("_refresh_cached_decor_preview", preview_parent, definition, yaw)
-	_check(preview.texture == textures[0] and is_zero_approx(preview.rotation_degrees) and is_zero_approx(preview_parent.rotation_degrees), "room editor keeps both the fallback Fluffy Rug texture and its button upright")
+	bag_preview.call("_refresh_cached_decor_preview", preview_parent, definition, yaw)
+	_check(preview.texture == textures[0] and is_zero_approx(preview.rotation_degrees) and is_zero_approx(preview_parent.rotation_degrees), "furniture bag keeps both the fallback Fluffy Rug texture and its button upright")
 	preview_parent.free()
-	room_editor.free()
+	bag_preview.free()
+	var saved_bag_inventory: Dictionary = AppState.data.get("inventory", {}).duplicate(true)
+	AppState.data["inventory"]["lamp"] = 1
+	AppState.data["inventory"]["rug"] = 1
+	var bag_overlay := FurnitureBagOverlay.new()
+	bag_overlay.setup("sparkle")
+	add_child(bag_overlay)
+	await get_tree().process_frame
+	var bag_sheet := bag_overlay.get_node_or_null("FurnitureBagSheet") as PanelContainer
+	var bag_category_chips: Array[Node] = bag_overlay.category_scroll.find_children("*", "Button", true, false)
+	var bag_category_chip := bag_category_chips[0] as Button if not bag_category_chips.is_empty() else null
+	var bag_item := bag_overlay.grid.get_child(0) as Button if bag_overlay.grid.get_child_count() > 0 else null
+	_check(bag_overlay.name == "FurnitureBagOverlay" and is_instance_valid(bag_sheet) and is_equal_approx(bag_sheet.anchor_top, 0.34) and is_equal_approx(bag_sheet.anchor_bottom, 1.0) and bag_overlay.grid.name == "BagGrid" and bag_overlay.grid.columns == 3, "FurnitureBagOverlay owns the named bottom-sheet layout and three-column catalog grid")
+	_check(bag_overlay.category_scroll.name == "FurnitureBagCategoryScroll" and bag_overlay.catalog_scroll.name == "FurnitureBagScroll" and bag_overlay.category_scroll.horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_AUTO and bag_overlay.category_scroll.vertical_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED and bag_overlay.catalog_scroll.horizontal_scroll_mode == ScrollContainer.SCROLL_MODE_DISABLED and bag_overlay.catalog_scroll.vertical_scroll_mode == ScrollContainer.SCROLL_MODE_AUTO and is_instance_valid(bag_overlay.category_scroll.get_h_scroll_bar()) and is_instance_valid(bag_overlay.catalog_scroll.get_v_scroll_bar()), "FurnitureBagOverlay delegates category and catalog movement to native horizontal and vertical ScrollContainers")
+	_check(is_equal_approx(bag_overlay.category_scroll.scroll_deadzone, 12.0) and is_equal_approx(bag_overlay.catalog_scroll.scroll_deadzone, 12.0) and is_equal_approx(bag_overlay.category_tap_guard.deadzone, 12.0) and is_equal_approx(bag_overlay.catalog_tap_guard.deadzone, 12.0) and not bag_overlay.catalog_scroll.follow_focus and bag_overlay.grid.mouse_filter == Control.MOUSE_FILTER_PASS and is_instance_valid(bag_category_chip) and bag_category_chip.mouse_filter == Control.MOUSE_FILTER_PASS and is_instance_valid(bag_item) and bag_item.mouse_filter == Control.MOUSE_FILTER_PASS, "FurnitureBagOverlay keeps deadzones, focus behavior, and pass-through mouse filters on its native scrolling surfaces")
+	var selected_bag_items: Array[String] = []
+	var closed_bag_events: Array = []
+	bag_overlay.item_selected.connect(func(item_id: String) -> void: selected_bag_items.append(item_id))
+	bag_overlay.closed.connect(func() -> void: closed_bag_events.append(true))
+	bag_overlay.call("_select_item", "lamp")
+	var category_press := InputEventScreenTouch.new()
+	category_press.index = 21
+	category_press.pressed = true
+	bag_overlay.call("_on_bag_category_scroll_gui_input", category_press)
+	var category_drag := InputEventScreenDrag.new()
+	category_drag.index = 21
+	category_drag.relative = Vector2(-32, 1)
+	bag_overlay.call("_on_bag_category_scroll_gui_input", category_drag)
+	var category_release := InputEventScreenTouch.new()
+	category_release.index = 21
+	category_release.pressed = false
+	bag_overlay.call("_on_bag_category_scroll_gui_input", category_release)
+	bag_overlay.call("_set_bag_category", "beds")
+	var catalog_press := InputEventScreenTouch.new()
+	catalog_press.index = 22
+	catalog_press.pressed = true
+	bag_overlay.call("_on_bag_catalog_scroll_gui_input", catalog_press)
+	var catalog_drag := InputEventScreenDrag.new()
+	catalog_drag.index = 22
+	catalog_drag.relative = Vector2(1, -32)
+	bag_overlay.call("_on_bag_catalog_scroll_gui_input", catalog_drag)
+	var catalog_release := InputEventScreenTouch.new()
+	catalog_release.index = 22
+	catalog_release.pressed = false
+	bag_overlay.call("_on_bag_catalog_scroll_gui_input", catalog_release)
+	bag_overlay.call("_select_item", "rug")
+	_check(selected_bag_items == ["lamp"] and bag_overlay.category == "all" and bag_overlay.category_tap_guard.is_action_suppressed() and bag_overlay.catalog_tap_guard.is_action_suppressed(), "FurnitureBagOverlay suppresses immediate category and item actions after real touch drags")
+	bag_overlay.category_tap_guard.clear_suppression()
+	bag_overlay.catalog_tap_guard.clear_suppression()
+	bag_overlay.call("_set_bag_category", "lighting")
+	await get_tree().process_frame
+	_check(bag_overlay.category == "lighting" and is_instance_valid(bag_overlay.grid) and bag_overlay.grid.get_parent() == bag_overlay.catalog_scroll and bag_overlay.find_children("FurnitureBagCategoryScroll", "ScrollContainer", true, false).size() == 1 and bag_overlay.find_children("FurnitureBagScroll", "ScrollContainer", true, false).size() == 1, "FurnitureBagOverlay rebuilds a coherent single-scroll category view after changing categories")
+	bag_overlay.close()
+	bag_overlay.close()
+	await get_tree().process_frame
+	_check(closed_bag_events.size() == 1 and not is_instance_valid(bag_overlay), "FurnitureBagOverlay emits its closed signal exactly once and releases itself")
+	AppState.data["inventory"] = saved_bag_inventory
 	var lifecycle_host := Control.new()
 	add_child(lifecycle_host)
 	var lifecycle_editor := RoomEditor.new()

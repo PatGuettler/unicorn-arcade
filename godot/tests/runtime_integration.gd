@@ -408,63 +408,63 @@ func _run() -> void:
 	touch_room.call("_clear_selection")
 	touch_room.call("_show_bag")
 	await get_tree().process_frame
-	var empty_bag_message := touch_room.bag_grid.find_child("EmptyBagMessage", true, false) as Label
-	_check(is_instance_valid(touch_room.bag_overlay) and touch_room.bag_grid.columns == 1 and is_instance_valid(empty_bag_message) and empty_bag_message.custom_minimum_size.x >= 600.0, "empty furniture bag uses one full-width message instead of a one-character column")
+	var empty_bag_message := touch_room.bag_overlay.grid.find_child("EmptyBagMessage", true, false) as Label
+	_check(is_instance_valid(touch_room.bag_overlay) and touch_room.bag_overlay.grid.columns == 1 and is_instance_valid(empty_bag_message) and empty_bag_message.custom_minimum_size.x >= 600.0, "empty furniture bag uses one full-width message instead of a one-character column")
 	_check(not touch_room.bag_button.visible and not touch_room.status_label.visible, "open furniture bag hides the underlying floating button and room status")
 	_check(_ui_is_accessible(touch_room.bag_overlay), "Furniture Bag meets readable text, contrast, and touch-target minimums")
-	touch_room.bag_grid.custom_minimum_size.y = touch_room.bag_catalog_scroll.size.y + 400.0
+	touch_room.bag_overlay.grid.custom_minimum_size.y = touch_room.bag_overlay.catalog_scroll.size.y + 400.0
 	await get_tree().process_frame
-	var bag_category_chips: Array[Node] = touch_room.bag_category_scroll.find_children("*", "Button", true, false)
+	var bag_category_chips: Array[Node] = touch_room.bag_overlay.category_scroll.find_children("*", "Button", true, false)
 	var bag_category_chip: Button = bag_category_chips[0] as Button if not bag_category_chips.is_empty() else null
-	var bag_category_bar: HScrollBar = touch_room.bag_category_scroll.get_h_scroll_bar()
-	var bag_catalog_bar: VScrollBar = touch_room.bag_catalog_scroll.get_v_scroll_bar()
-	_check(is_instance_valid(bag_category_chip) and bag_category_chip.mouse_filter == Control.MOUSE_FILTER_PASS and touch_room.bag_grid.mouse_filter == Control.MOUSE_FILTER_PASS, "room bag category chips and catalog items pass drag input through to their native ScrollContainers")
+	var bag_category_bar: HScrollBar = touch_room.bag_overlay.category_scroll.get_h_scroll_bar()
+	var bag_catalog_bar: VScrollBar = touch_room.bag_overlay.catalog_scroll.get_v_scroll_bar()
+	_check(is_instance_valid(bag_category_chip) and bag_category_chip.mouse_filter == Control.MOUSE_FILTER_PASS and touch_room.bag_overlay.grid.mouse_filter == Control.MOUSE_FILTER_PASS, "room bag category chips and catalog items pass drag input through to their native ScrollContainers")
 	_check(is_instance_valid(bag_category_bar) and bag_category_bar.max_value > bag_category_bar.page and is_instance_valid(bag_catalog_bar) and bag_catalog_bar.max_value > bag_catalog_bar.page, "room bag exposes real native horizontal category and vertical catalog scroll ranges")
 	var bag_category_press := InputEventScreenTouch.new()
 	bag_category_press.index = 12
 	bag_category_press.pressed = true
-	touch_room.call("_on_bag_category_scroll_gui_input", bag_category_press)
+	touch_room.bag_overlay.call("_on_bag_category_scroll_gui_input", bag_category_press)
 	var bag_category_drag := InputEventScreenDrag.new()
 	bag_category_drag.index = 12
 	bag_category_drag.relative = Vector2(-96, 2)
-	touch_room.call("_on_bag_category_scroll_gui_input", bag_category_drag)
-	_check(touch_room.bag_category_tap_guard.is_dragging() and touch_room.bag_category_tap_guard.touch_index == 12 and touch_room.bag_category_tap_guard.dominant_axis == "horizontal", "room bag category guard locks to the chip touch index and dominant axis without global input interception")
-	var bag_category_offset_before: int = touch_room.bag_category_scroll.scroll_horizontal
-	touch_room.call("_on_bag_category_scroll_gui_input", bag_category_drag)
-	_check(touch_room.bag_category_scroll.scroll_horizontal == bag_category_offset_before, "room bag category gesture observer never mutates the native horizontal offset")
-	touch_room.bag_category_scroll.set_deferred("scroll_horizontal", mini(80, int(bag_category_bar.max_value - bag_category_bar.page)))
+	touch_room.bag_overlay.call("_on_bag_category_scroll_gui_input", bag_category_drag)
+	_check(touch_room.bag_overlay.category_tap_guard.is_dragging() and touch_room.bag_overlay.category_tap_guard.touch_index == 12 and touch_room.bag_overlay.category_tap_guard.dominant_axis == "horizontal", "room bag category guard locks to the chip touch index and dominant axis without global input interception")
+	var bag_category_offset_before: int = touch_room.bag_overlay.category_scroll.scroll_horizontal
+	touch_room.bag_overlay.call("_on_bag_category_scroll_gui_input", bag_category_drag)
+	_check(touch_room.bag_overlay.category_scroll.scroll_horizontal == bag_category_offset_before, "room bag category gesture observer never mutates the native horizontal offset")
+	touch_room.bag_overlay.category_scroll.set_deferred("scroll_horizontal", mini(80, int(bag_category_bar.max_value - bag_category_bar.page)))
 	await get_tree().process_frame
-	_check(touch_room.bag_category_scroll.scroll_horizontal > 0, "room bag native category ScrollContainer advances after the local drag boundary yields a frame")
+	_check(touch_room.bag_overlay.category_scroll.scroll_horizontal > 0, "room bag native category ScrollContainer advances after the local drag boundary yields a frame")
 	var bag_category_release := InputEventScreenTouch.new()
 	bag_category_release.index = 12
 	bag_category_release.pressed = false
-	touch_room.call("_on_bag_category_scroll_gui_input", bag_category_release)
-	_check(touch_room.bag_category_tap_guard.touch_index == -1 and touch_room.bag_category_tap_guard.is_action_suppressed(), "room bag category release clears guard touch state and suppresses its immediate action")
-	touch_room.call("_set_bag_category", "beds")
-	_check(touch_room.bag_category == "all", "room bag category chip actions are suppressed immediately after a horizontal swipe")
+	touch_room.bag_overlay.call("_on_bag_category_scroll_gui_input", bag_category_release)
+	_check(touch_room.bag_overlay.category_tap_guard.touch_index == -1 and touch_room.bag_overlay.category_tap_guard.is_action_suppressed(), "room bag category release clears guard touch state and suppresses its immediate action")
+	touch_room.bag_overlay.call("_set_bag_category", "beds")
+	_check(touch_room.bag_overlay.category == "all", "room bag category chip actions are suppressed immediately after a horizontal swipe")
 	var bag_catalog_press := InputEventScreenTouch.new()
 	bag_catalog_press.index = 13
 	bag_catalog_press.pressed = true
-	touch_room.call("_on_bag_catalog_scroll_gui_input", bag_catalog_press)
+	touch_room.bag_overlay.call("_on_bag_catalog_scroll_gui_input", bag_catalog_press)
 	var bag_catalog_drag := InputEventScreenDrag.new()
 	bag_catalog_drag.index = 13
 	bag_catalog_drag.relative = Vector2(2, -96)
-	touch_room.call("_on_bag_catalog_scroll_gui_input", bag_catalog_drag)
-	_check(touch_room.bag_catalog_tap_guard.is_dragging() and touch_room.bag_catalog_tap_guard.touch_index == 13 and touch_room.bag_catalog_tap_guard.dominant_axis == "vertical", "room bag catalog guard observes a vertical drag without mutating scroll during input")
-	var bag_catalog_offset_before: int = touch_room.bag_catalog_scroll.scroll_vertical
-	touch_room.call("_on_bag_catalog_scroll_gui_input", bag_catalog_drag)
-	_check(touch_room.bag_catalog_scroll.scroll_vertical == bag_catalog_offset_before, "room bag catalog gesture observer never writes the native vertical offset")
-	touch_room.bag_catalog_scroll.set_deferred("scroll_vertical", mini(120, int(bag_catalog_bar.max_value - bag_catalog_bar.page)))
+	touch_room.bag_overlay.call("_on_bag_catalog_scroll_gui_input", bag_catalog_drag)
+	_check(touch_room.bag_overlay.catalog_tap_guard.is_dragging() and touch_room.bag_overlay.catalog_tap_guard.touch_index == 13 and touch_room.bag_overlay.catalog_tap_guard.dominant_axis == "vertical", "room bag catalog guard observes a vertical drag without mutating scroll during input")
+	var bag_catalog_offset_before: int = touch_room.bag_overlay.catalog_scroll.scroll_vertical
+	touch_room.bag_overlay.call("_on_bag_catalog_scroll_gui_input", bag_catalog_drag)
+	_check(touch_room.bag_overlay.catalog_scroll.scroll_vertical == bag_catalog_offset_before, "room bag catalog gesture observer never writes the native vertical offset")
+	touch_room.bag_overlay.catalog_scroll.set_deferred("scroll_vertical", mini(120, int(bag_catalog_bar.max_value - bag_catalog_bar.page)))
 	await get_tree().process_frame
-	_check(touch_room.bag_catalog_scroll.scroll_vertical > 0, "room bag native catalog ScrollContainer advances after the local drag boundary yields a frame")
+	_check(touch_room.bag_overlay.catalog_scroll.scroll_vertical > 0, "room bag native catalog ScrollContainer advances after the local drag boundary yields a frame")
 	var bag_catalog_release := InputEventScreenTouch.new()
 	bag_catalog_release.index = 13
 	bag_catalog_release.pressed = false
-	touch_room.call("_on_bag_catalog_scroll_gui_input", bag_catalog_release)
-	_check(touch_room.bag_catalog_tap_guard.touch_index == -1 and touch_room.bag_catalog_tap_guard.is_action_suppressed(), "room bag catalog release clears guard touch state before ScrollContainer scroll-ended timing")
-	_check(not touch_room.has_method("_apply_bag_category_scroll_drag") and not touch_room.has_method("_apply_bag_catalog_scroll_drag") and not touch_room.has_method("_mark_root_input_handled"), "room bag no longer uses root viewport input handling or custom scroll mutation")
+	touch_room.bag_overlay.call("_on_bag_catalog_scroll_gui_input", bag_catalog_release)
+	_check(touch_room.bag_overlay.catalog_tap_guard.touch_index == -1 and touch_room.bag_overlay.catalog_tap_guard.is_action_suppressed(), "room bag catalog release clears guard touch state before ScrollContainer scroll-ended timing")
+	_check(not touch_room.bag_overlay.has_method("_apply_bag_category_scroll_drag") and not touch_room.bag_overlay.has_method("_apply_bag_catalog_scroll_drag") and not touch_room.has_method("_mark_root_input_handled"), "room bag no longer uses root viewport input handling or custom scroll mutation")
 	AppState.data["inventory"]["lamp"] = 1
-	touch_room.call("_place_from_bag", "lamp")
+	touch_room.bag_overlay.call("_select_item", "lamp")
 	_check(AppState.available_count("lamp") == 1 and touch_room.selected_id.is_empty(), "room bag item placement is suppressed immediately after a vertical swipe")
 	AppState.data["inventory"]["lamp"] = 0
 	touch_room.call("_close_bag")
