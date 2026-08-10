@@ -5,6 +5,7 @@ const RoundCatalog = preload("res://scripts/games/word_round_catalog.gd")
 const WordChoiceStrategy = preload("res://scripts/games/word_choice_strategy.gd")
 const WordSequenceStrategy = preload("res://scripts/games/word_sequence_strategy.gd")
 const WordTypedEntryStrategy = preload("res://scripts/games/word_typed_entry_strategy.gd")
+const WordFallingStrategy = preload("res://scripts/games/word_falling_strategy.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -35,6 +36,7 @@ var suppress_text_event := false
 var choice_strategy := WordChoiceStrategy.new()
 var sequence_strategy := WordSequenceStrategy.new()
 var typed_entry_strategy := WordTypedEntryStrategy.new()
+var falling_strategy := WordFallingStrategy.new()
 
 var title_label: Label
 var coin_label: Label
@@ -123,9 +125,9 @@ func _load_round() -> void:
 		return
 	if _load_typed_entry_round():
 		return
+	if _load_falling_round():
+		return
 	match game_id:
-		"unicorn_blast":
-			_load_unicorn_blast()
 		_:
 			_fail("This game is not configured.")
 
@@ -206,6 +208,20 @@ func _apply_typed_entry_transition(transition: Dictionary) -> void:
 		_show_text_input(str(transition.get("placeholder", "")))
 
 
+func _load_falling_round() -> bool:
+	var falling_round := falling_strategy.begin_round(_strategy_context())
+	if not bool(falling_round.get("handled", false)):
+		return false
+	phase = str(falling_round.get("phase", "blast"))
+	instruction_label.text = str(falling_round.get("instruction", ""))
+	prompt_label.text = str(falling_round.get("prompt", ""))
+	play_area.show()
+	_show_text_input(str(falling_round.get("placeholder", "")))
+	spawn_elapsed = 0.0
+	_spawn_blast_word()
+	return true
+
+
 func _load_sequence(_key: String, _field: String, _instruction: String, _mode: String) -> void:
 	_load_sequence_round()
 
@@ -247,13 +263,7 @@ func _load_chain_link() -> void:
 
 
 func _load_unicorn_blast() -> void:
-	phase = "blast"
-	instruction_label.text = "Type each falling word before it reaches the cannon"
-	prompt_label.text = "UNICORN CANNON"
-	play_area.show()
-	_show_text_input("Type a falling word…")
-	spawn_elapsed = 0.0
-	_spawn_blast_word()
+	_load_falling_round()
 
 
 func _render_missing_magic() -> void:
@@ -372,14 +382,12 @@ func _handle_letter_input(value: String) -> void:
 
 
 func _handle_blast_input(value: String) -> void:
-	var candidate := value.strip_edges().to_lower()
-	for index in blast_words.size():
-		if blast_words[index].get("text", "") == candidate:
-			_remove_blast_word(index)
-			_set_input_text("")
-			message_label.text = "BLAST!"
-			_successful_round(false)
-			return
+	var falling_result := falling_strategy.submit(_strategy_context(), value)
+	if falling_result.get("outcome") == "success":
+		_remove_blast_word(int(falling_result.get("match_index", -1)))
+		_set_input_text("")
+		message_label.text = "BLAST!"
+		_successful_round(false)
 
 
 func _successful_round(load_next := true) -> void:
@@ -453,8 +461,8 @@ func _show_hint() -> void:
 		return
 	hint_visible = true
 	coin_label.text = "★ %d" % AppState.coins()
-	if game_id == "unicorn_blast":
-		message_label.text = "Blast: %s" % _urgent_blast_word()
+	if falling_strategy.supports(game_id):
+		message_label.text = str(falling_strategy.hint(_strategy_context()).get("message", ""))
 	elif typed_entry_strategy.supports(game_id):
 		_apply_typed_entry_hint(typed_entry_strategy.hint(_strategy_context()))
 	elif sequence_strategy.supports(game_id):
@@ -492,14 +500,14 @@ func _hint_text() -> String:
 
 
 func _fail_reason() -> String:
+	if falling_strategy.supports(game_id):
+		return falling_strategy.failure_reason(_strategy_context())
 	if typed_entry_strategy.supports(game_id):
 		return typed_entry_strategy.failure_reason(_strategy_context())
 	if sequence_strategy.supports(game_id):
 		return sequence_strategy.failure_reason(_strategy_context())
 	if choice_strategy.supports(game_id):
 		return choice_strategy.failure_reason(_strategy_context())
-	match game_id:
-		"unicorn_blast": return "Words reached your cannon!"
 	return "Try this level again."
 
 
@@ -516,6 +524,9 @@ func _strategy_context() -> Dictionary:
 		"picked": picked,
 		"phase": phase,
 		"expected_word": expected_word,
+		"blast_source_exhausted": blast_source_exhausted,
+		"spawn_elapsed": spawn_elapsed,
+		"blast_models": blast_words.map(func(entry: Dictionary) -> Dictionary: return {"text": entry.get("text", ""), "x": entry.get("x", 0.0), "y": entry.get("y", 0.0)}),
 	}
 
 
@@ -540,45 +551,55 @@ func _apply_sequence_hint(_hint: Dictionary) -> void:
 
 
 func _update_blast(delta: float) -> void:
-	spawn_elapsed += delta
-	if not blast_source_exhausted and spawn_elapsed * 1000.0 >= Rules.blast_spawn_ms(level):
-		spawn_elapsed = 0.0
-		_spawn_blast_word()
-	var escaped: Array[int] = []
-	for index in blast_words.size():
-		var entry: Dictionary = blast_words[index]
-		entry["y"] = float(entry.get("y", 8.0)) + Rules.blast_speed(level) * delta * 60.0
-		_position_blast_word(entry)
-		if entry["y"] > 78.0:
-			escaped.append(index)
+	var falling_tick := falling_strategy.tick(_strategy_context(), delta)
+	spawn_elapsed = float(falling_tick.get("spawn_elapsed", spawn_elapsed))
+	var entries: Array = falling_tick.get("entries", [])
+	if bool(falling_tick.get("source_empty", false)):
+		if not blast_source_exhausted:
+			blast_source_exhausted = true
+			message_label.text = "This word cloud needs a refill. Try again soon."
+	if bool(falling_tick.get("spawned", false)) and entries.size() > blast_words.size():
+		_create_blast_word(entries[entries.size() - 1])
+	for index in mini(entries.size(), blast_words.size()):
+		blast_words[index]["text"] = entries[index].get("text", blast_words[index].get("text", ""))
+		blast_words[index]["x"] = entries[index].get("x", blast_words[index].get("x", 0.0))
+		blast_words[index]["y"] = entries[index].get("y", blast_words[index].get("y", 8.0))
+		_position_blast_word(blast_words[index])
+	var escaped: Array = falling_tick.get("escaped", [])
 	for position in range(escaped.size() - 1, -1, -1):
 		_remove_blast_word(escaped[position])
 		_lost_life()
 		if not active:
 			break
 	if hint_visible and active:
-		message_label.text = "Blast: %s" % _urgent_blast_word()
+		message_label.text = str(falling_strategy.hint(_strategy_context()).get("message", ""))
 
 
 func _spawn_blast_word() -> bool:
 	if not active:
 		return false
-	var words := Rules.words_for_level(level)
-	if words.is_empty():
+	var spawn_result := falling_strategy.spawn(_strategy_context())
+	if bool(spawn_result.get("source_empty", false)):
 		if not blast_source_exhausted:
 			blast_source_exhausted = true
 			message_label.text = "This word cloud needs a refill. Try again soon."
 		return false
-	var text := str(words[rng.randi_range(0, words.size() - 1)])
+	if not bool(spawn_result.get("spawned", false)):
+		return false
+	_create_blast_word(spawn_result.get("entry", {}))
+	return true
+
+
+func _create_blast_word(model: Dictionary) -> void:
+	var text := str(model.get("text", ""))
 	var button := Button.new()
 	button.text = text
 	button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	button.custom_minimum_size = Vector2(104, 42)
 	play_area.add_child(button)
-	var entry := {"text": text, "x": rng.randf_range(12.0, 76.0), "y": 8.0, "button": button}
+	var entry := {"text": text, "x": float(model.get("x", 12.0)), "y": float(model.get("y", 8.0)), "button": button}
 	blast_words.append(entry)
 	_position_blast_word(entry)
-	return true
 
 
 func _position_blast_word(entry: Dictionary) -> void:
@@ -606,13 +627,7 @@ func _clear_blast_words() -> void:
 
 
 func _urgent_blast_word() -> String:
-	var urgent := ""
-	var highest := -1.0
-	for entry in blast_words:
-		if float(entry.get("y", 0.0)) > highest:
-			highest = float(entry["y"])
-			urgent = str(entry["text"])
-	return urgent
+	return str(falling_strategy.hint(_strategy_context()).get("word", ""))
 
 
 func _hide_special_controls() -> void:

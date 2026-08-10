@@ -13,6 +13,7 @@ const WordGameModeStrategy = preload("res://scripts/games/word_game_mode_strateg
 const WordChoiceStrategy = preload("res://scripts/games/word_choice_strategy.gd")
 const WordSequenceStrategy = preload("res://scripts/games/word_sequence_strategy.gd")
 const WordTypedEntryStrategy = preload("res://scripts/games/word_typed_entry_strategy.gd")
+const WordFallingStrategy = preload("res://scripts/games/word_falling_strategy.gd")
 const WordRules = preload("res://scripts/games/word_game_rules.gd")
 
 class TutorialPauseProbe extends Control:
@@ -49,6 +50,7 @@ func _run() -> void:
 	_test_word_choice_strategy()
 	_test_word_sequence_strategy()
 	_test_word_typed_entry_strategy()
+	_test_word_falling_strategy()
 	var tutorial_presenter := GameExperienceTutorialPresenter.new()
 	var tutorial_source: String = FileAccess.get_file_as_string("res://scripts/ui/game_experience_tutorial_presenter.gd")
 	_check(tutorial_presenter is RefCounted and not tutorial_source.contains("\nvar ") and not tutorial_source.contains("AppState") and not tutorial_source.contains("GameExperience.") and not tutorial_source.contains("TutorialCatalog") and not tutorial_source.contains("attached_scene") and not tutorial_source.contains("CompanionAbilityService"), "tutorial presenter is a stateless RefCounted that does not own game, tutorial catalog, or gameplay state")
@@ -503,6 +505,41 @@ func _test_word_choice_strategy() -> void:
 	_check(not bool(strategy.begin_round({"game_id": "vowel_vines", "level": 1, "round_index": 0, "rng": empty_rng}).get("ok", true)), "Vowel Vines reports an invalid round when every vowel source is empty")
 	WordRules._cache = saved_cache
 	_check(strategy.failure_reason({"game_id": "caption_quest"}) == "Out of hearts—choose the best caption!" and strategy.failure_reason({"game_id": "chain_link"}) == "Pick a word beginning with the last letter!", "choice strategy preserves the exact failure copy")
+
+
+func _test_word_falling_strategy() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/games/word_falling_strategy.gd")
+	_check(not source.contains("AppState") and not source.contains("ArcadeGameController") and not source.contains("StorybookUI") and not source.contains("GameRegistry") and not source.contains("Companion") and not source.contains("Button"), "falling strategy stays model-only inside Rules/RNG boundaries")
+	var strategy := WordFallingStrategy.new()
+	_check(strategy.family() == "falling" and strategy.supports("unicorn_blast") and not strategy.supports("sight_spark") and strategy.begin_round({"game_id": "sight_spark"}) == {"handled": false}, "falling strategy exposes only Unicorn Blast with safe fallback")
+	var saved_cache := WordRules._cache.duplicate(true)
+	WordRules._cache = {"falling_words": {"easy": ["cloud"]}}
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 24016
+	var models := [{"text": "star", "x": 20.0, "y": 12.0}]
+	var models_before := models.duplicate(true)
+	var before_due := strategy.tick({"game_id": "unicorn_blast", "level": 1, "rng": rng, "spawn_elapsed": 2.669, "blast_models": models, "blast_source_exhausted": false}, 0.01)
+	_check(not bool(before_due.get("spawn_due", true)) and (before_due.get("entries", []) as Array).size() == 1 and models == models_before, "falling tick preserves source models and does not spawn before the exact interval boundary")
+	var due_rng := RandomNumberGenerator.new()
+	due_rng.seed = 24016
+	var due := strategy.tick({"game_id": "unicorn_blast", "level": 1, "rng": due_rng, "spawn_elapsed": 2.671, "blast_models": models, "blast_source_exhausted": false}, 0.01)
+	var due_entries: Array = due.get("entries", [])
+	var expected_step := WordRules.blast_speed(1) * 0.01 * 60.0
+	_check(bool(due.get("spawn_due", false)) and bool(due.get("spawned", false)) and is_zero_approx(float(due.get("spawn_elapsed", -1.0))) and due_entries.size() == 2 and due_entries.all(func(entry: Dictionary) -> bool: return not entry.has("button")) and is_equal_approx(float(due_entries[0].get("y", 0.0)), 12.0 + expected_step) and is_equal_approx(float(due_entries[1].get("y", 0.0)), 8.0 + expected_step) and models == models_before, "due spawn is appended before movement so sanitized old and new models advance in the same tick without input mutation")
+	var exhausted := strategy.tick({"game_id": "unicorn_blast", "level": 1, "rng": due_rng, "spawn_elapsed": 2.671, "blast_models": models, "blast_source_exhausted": true}, 0.01)
+	_check(not bool(exhausted.get("spawn_due", true)) and is_equal_approx(float(exhausted.get("spawn_elapsed", 0.0)), 2.681), "source exhaustion disables future spawns without resetting accumulated elapsed time")
+	WordRules._cache = {"falling_words": {"easy": []}}
+	var empty := strategy.tick({"game_id": "unicorn_blast", "level": 1, "rng": due_rng, "spawn_elapsed": 2.671, "blast_models": models, "blast_source_exhausted": false}, 0.01)
+	_check(bool(empty.get("spawn_due", false)) and bool(empty.get("source_empty", false)) and not bool(empty.get("spawned", true)) and is_zero_approx(float(empty.get("spawn_elapsed", -1.0))) and (empty.get("entries", []) as Array).size() == 1, "empty due source resets the interval, reports exhaustion, and still advances existing models")
+	WordRules._cache = saved_cache
+	var submit_models := [{"text": "star", "x": 20.0, "y": 30.0}, {"text": "moon", "x": 40.0, "y": 70.0}]
+	var submit_before := submit_models.duplicate(true)
+	var match_result := strategy.submit({"game_id": "unicorn_blast", "blast_models": submit_models}, "  MOON  ")
+	var ignored_result := strategy.submit({"game_id": "unicorn_blast", "blast_models": submit_models}, "sun")
+	var hint := strategy.hint({"game_id": "unicorn_blast", "blast_models": submit_models})
+	var escaped := strategy.tick({"game_id": "unicorn_blast", "level": 1, "spawn_elapsed": 0.0, "blast_models": [{"text": "late", "x": 1.0, "y": 78.0}], "blast_source_exhausted": true}, 0.01)
+	_check(match_result.get("outcome") == "success" and int(match_result.get("match_index", -1)) == 1 and ignored_result.get("outcome") == "ignored" and hint.get("message") == "Blast: moon" and escaped.get("escaped") == [0] and submit_models == submit_before, "falling submit normalizes input, hint selects max-y urgency, and escape uses the strict 78 boundary immutably")
+	_check(strategy.failure_reason({"game_id": "unicorn_blast"}) == "Words reached your cannon!", "falling strategy preserves exact failure copy")
 
 
 func _choice_correct_payload(game_id: String, current: Dictionary, options: Array):
