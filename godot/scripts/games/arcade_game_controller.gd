@@ -2,6 +2,7 @@ class_name ArcadeGameController
 extends Control
 
 const TutorialCatalog = preload("res://scripts/tutorial_catalog.gd")
+const LevelRunController = preload("res://scripts/games/level_run_controller.gd")
 
 ## Stable public boundary between a game scene and the shared arcade chrome.
 ## Existing games retain their fields and rules; this base converts them into a
@@ -12,6 +13,18 @@ signal run_activity_changed(active: bool)
 var _last_runtime_snapshot: Dictionary = {}
 var _last_active := false
 var _runtime_elapsed := 0.0
+var level_run := LevelRunController.new()
+
+
+func prepare_category_return() -> String:
+	var category := level_run.select_category()
+	AppState.set_shell_destination("category", category)
+	return category
+
+
+func return_to_category() -> void:
+	prepare_category_return()
+	get_tree().change_scene_to_file("res://scenes/main.tscn")
 
 
 func _process(delta: float) -> void:

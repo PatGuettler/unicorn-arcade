@@ -21,6 +21,7 @@ var target := 0
 var total := 0
 var started_ms := 0
 var active := false
+var failed := false
 var rng := RandomNumberGenerator.new()
 var target_label: Label
 var total_label: Label
@@ -44,11 +45,20 @@ func _ready() -> void:
 
 
 func _start_round() -> void:
+	_start_round_with_lifecycle(true)
+
+
+func _start_round_with_lifecycle(begin_run: bool) -> void:
+	if begin_run:
+		level_run.begin("cash_counter", level)
+	else:
+		level = level_run.level
 	var bounds := target_bounds(level)
 	target = rng.randi_range(bounds.x, bounds.y)
 	total = 0
-	started_ms = Time.get_ticks_msec()
-	active = true
+	started_ms = level_run.started_ms
+	active = level_run.active
+	failed = false
 	level_label.text = "LEVEL %d" % level
 	target_label.text = "TARGET  $%d" % target
 	total_label.text = "$0"
@@ -64,8 +74,8 @@ func _add_bill(value: int) -> void:
 	total += value
 	total_label.text = "$%d" % total
 	if total == target:
-		active = false
-		var reward := AppState.complete_level("cash_counter", level, Time.get_ticks_msec() - started_ms)
+		var reward := level_run.complete()
+		active = level_run.active
 		message_label.text = "Perfect! +%d coins" % reward
 		coin_label.text = "★ %d" % AppState.coins()
 		level += 1
@@ -73,7 +83,9 @@ func _add_bill(value: int) -> void:
 		retry_button.show()
 		_set_buttons_enabled(false)
 	elif total > target:
-		active = false
+		level_run.fail("Overshot target—try this level again.")
+		active = level_run.active
+		failed = level_run.outcome == LevelRunController.Outcome.FAILURE
 		message_label.text = "Overshot target—try this level again."
 		retry_button.text = "RETRY"
 		retry_button.show()
@@ -82,6 +94,23 @@ func _add_bill(value: int) -> void:
 
 func can_show_hint() -> bool:
 	return active
+
+
+func can_retry_failure() -> bool:
+	return level_run.can_retry()
+
+
+func retry_failure() -> void:
+	if level_run.can_retry():
+		level = level_run.retry()
+		_start_round_with_lifecycle(false)
+
+
+func _advance_round() -> void:
+	if level_run.outcome == LevelRunController.Outcome.RUNNING:
+		return
+	level = level_run.retry()
+	_start_round_with_lifecycle(false)
 
 
 func _show_hint() -> void:
@@ -97,8 +126,7 @@ func _show_hint() -> void:
 
 
 func _go_back() -> void:
-	AppState.set_shell_destination("category", "Number")
-	get_tree().change_scene_to_file("res://scenes/main.tscn")
+	return_to_category()
 
 
 func _build_ui() -> void:
@@ -118,10 +146,7 @@ func _build_ui() -> void:
 	layout.add_theme_constant_override("separation", 16)
 	margin.add_child(layout)
 	var header := HBoxContainer.new()
-	var back := Button.new()
-	StorybookUI.apply_game_action(back, 120)
-	back.text = "‹ BACK"
-	back.pressed.connect(_go_back)
+	var back := StorybookUI.category_back_button("‹ BACK", 120, _go_back)
 	header.add_child(back)
 	var title := Label.new()
 	title.text = "CASH COUNTER"
@@ -205,15 +230,9 @@ func _build_ui() -> void:
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	actions.add_theme_constant_override("separation", 12)
 	layout.add_child(actions)
-	hint_button = Button.new()
-	StorybookUI.apply_game_action(hint_button, 130)
-	hint_button.text = "HINT"
-	hint_button.pressed.connect(_show_hint)
+	hint_button = StorybookUI.hint_highlight_button("HINT", 130, _show_hint)
 	actions.add_child(hint_button)
-	retry_button = Button.new()
-	StorybookUI.apply_game_action(retry_button, 150)
-	retry_button.text = "RETRY"
-	retry_button.pressed.connect(_start_round)
+	retry_button = StorybookUI.progression_action_button("RETRY", 150, _advance_round)
 	actions.add_child(retry_button)
 
 

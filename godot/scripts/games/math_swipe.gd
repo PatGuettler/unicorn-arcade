@@ -24,11 +24,19 @@ func _ready() -> void:
 
 
 func _start_level(for_level: int) -> void:
+	_start_level_with_lifecycle(for_level, true)
+
+
+func _start_level_with_lifecycle(for_level: int, begin_run: bool) -> void:
 	level = for_level
+	if begin_run:
+		level_run.begin("math_swipe", level)
+	else:
+		level = level_run.level
 	target = Rules.math_swipe_target(level)
 	completed = 0
-	started_ms = Time.get_ticks_msec()
-	active = true
+	started_ms = level_run.started_ms
+	active = level_run.active
 	action_button.hide()
 	message_label.text = "Swipe in any direction, or tap, to choose."
 	_new_problem()
@@ -110,8 +118,8 @@ func _submit(card: Button) -> void:
 	if bool(card.get_meta("correct")):
 		completed += 1
 		if completed >= target:
-			active = false
-			var reward := AppState.complete_level("math_swipe", level, Time.get_ticks_msec() - started_ms)
+			var reward := level_run.complete()
+			active = level_run.active
 			message_label.text = "Level complete! +%d coins" % reward
 			action_button.text = "Next Level"
 			action_button.show()
@@ -120,7 +128,8 @@ func _submit(card: Button) -> void:
 			message_label.text = "Correct!"
 			_new_problem.call_deferred()
 	else:
-		active = false
+		level_run.fail("Wrong answer! Try this level again.")
+		active = level_run.active
 		message_label.text = "Wrong answer! Try this level again."
 		action_button.text = "Retry"
 		action_button.show()
@@ -128,12 +137,18 @@ func _submit(card: Button) -> void:
 
 
 func can_retry_failure() -> bool:
-	return not active and is_instance_valid(action_button) and action_button.text == "Retry"
+	return level_run.can_retry()
 
 
 func retry_failure() -> void:
 	if can_retry_failure():
-		_start_level(level)
+		_start_level_with_lifecycle(level_run.retry(), false)
+
+
+func _advance_level() -> void:
+	match level_run.outcome:
+		LevelRunController.Outcome.SUCCESS, LevelRunController.Outcome.FAILURE:
+			_start_level_with_lifecycle(level_run.retry(), false)
 
 
 func _show_hint() -> void:
@@ -225,22 +240,11 @@ func _build_ui() -> void:
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message_label.add_theme_font_size_override("font_size", 18)
 	root.add_child(message_label)
-	action_button = Button.new()
-	StorybookUI.apply_game_action(action_button, 160)
-	action_button.pressed.connect(func() -> void: _start_level(level + 1 if action_button.text == "Next Level" else level))
+	action_button = StorybookUI.progression_action_button("", 160, _advance_level)
 	root.add_child(action_button)
-	var hint := Button.new()
-	StorybookUI.apply_game_action(hint, 140)
-	hint.text = "Hint"
-	hint.pressed.connect(func() -> void: if AppState.spend_hint(level): _show_hint())
+	var hint := StorybookUI.hint_highlight_button("Hint", 140, func() -> void: if AppState.spend_hint(level): _show_hint())
 	root.add_child(hint)
-	var back := Button.new()
-	StorybookUI.apply_game_action(back, 170)
-	back.text = "Number Games"
-	back.pressed.connect(func() -> void:
-		AppState.set_shell_destination("category", "Number")
-		get_tree().change_scene_to_file("res://scenes/main.tscn")
-	)
+	var back := StorybookUI.category_back_button("Number Games", 170, return_to_category)
 	root.add_child(back)
 
 

@@ -53,11 +53,19 @@ func _ready() -> void:
 
 
 func _start_level() -> void:
+	_start_level_with_lifecycle(true)
+
+
+func _start_level_with_lifecycle(begin_run: bool) -> void:
+	if begin_run:
+		level_run.begin("rhyme_rally", level)
+	else:
+		level = level_run.level
 	round_index = 0
 	failed = false
-	active = true
+	active = level_run.active
 	target_rounds = target_for_level(level)
-	started_ms = Time.get_ticks_msec()
+	started_ms = level_run.started_ms
 	message_label.text = "Pick the word that rhymes. One wrong answer ends the level."
 	_show_round()
 
@@ -80,16 +88,17 @@ func _pick(answer: String) -> void:
 	if not active:
 		return
 	if answer != challenge["answer"]:
-		active = false
-		failed = true
+		level_run.fail("Pick the word that rhymes! Try this level again.")
+		active = level_run.active
+		failed = level_run.outcome == LevelRunController.Outcome.FAILURE
 		message_label.text = "Pick the word that rhymes! Try this level again."
 		_set_enabled(false)
 		return
 	round_index += 1
 	if round_index >= target_rounds:
-		active = false
+		var reward := level_run.complete()
+		active = level_run.active
 		_set_enabled(false)
-		var reward := AppState.complete_level("rhyme_rally", level, Time.get_ticks_msec() - started_ms)
 		message_label.text = "Rhyme Rally complete! +%d coins" % reward
 		level += 1
 	else:
@@ -97,12 +106,21 @@ func _pick(answer: String) -> void:
 
 
 func can_retry_failure() -> bool:
-	return failed
+	return level_run.can_retry()
 
 
 func retry_failure() -> void:
-	if failed:
-		_start_level()
+	if level_run.can_retry():
+		level = level_run.retry()
+		_start_level_with_lifecycle(false)
+
+
+func _advance_level() -> void:
+	if level_run.outcome == LevelRunController.Outcome.RUNNING:
+		_start_level_with_lifecycle(true)
+		return
+	level = level_run.retry()
+	_start_level_with_lifecycle(false)
 
 
 func _show_hint() -> void:
@@ -181,23 +199,11 @@ func _build_ui() -> void:
 	var actions := HBoxContainer.new()
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER
 	layout.add_child(actions)
-	var retry := Button.new()
-	StorybookUI.apply_game_action(retry, 170)
-	retry.text = "Retry / Next"
-	retry.pressed.connect(_start_level)
+	var retry := StorybookUI.progression_action_button("Retry / Next", 170, _advance_level)
 	actions.add_child(retry)
-	var hint := Button.new()
-	StorybookUI.apply_game_action(hint, 120)
-	hint.text = "Hint"
-	hint.pressed.connect(_request_hint)
+	var hint := StorybookUI.hint_highlight_button("Hint", 120, _request_hint)
 	actions.add_child(hint)
-	var back := Button.new()
-	StorybookUI.apply_game_action(back, 160)
-	back.text = "Word Games"
-	back.pressed.connect(func() -> void:
-		AppState.set_shell_destination("category", "Word")
-		get_tree().change_scene_to_file("res://scenes/main.tscn")
-	)
+	var back := StorybookUI.category_back_button("Word Games", 160, return_to_category)
 	actions.add_child(back)
 
 
