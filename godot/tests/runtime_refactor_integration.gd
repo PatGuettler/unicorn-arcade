@@ -19,25 +19,12 @@ func _has_visible_pixels(texture: Texture2D) -> bool:
 	return image != null and not image.is_empty() and image.get_used_rect().has_area()
 
 
-func _fixture_room_button(texture: Texture2D) -> Button:
-	var button := Button.new()
-	button.size = Vector2(112, 112)
-	button.rotation_degrees = 0.0
-	var cached := TextureRect.new()
-	cached.name = "CachedDecorPreview"
-	cached.texture = texture
-	cached.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	cached.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	button.add_child(cached)
-	return button
+func _room_item(items: Array, instance_id: String) -> Dictionary:
+	for item in items:
+		if str(item.get("instance_id", "")) == instance_id:
+			return item
+	return {}
 
-
-func _live_decor_count(buttons: Array) -> int:
-	var count := 0
-	for button in buttons:
-		if is_instance_valid(button) and is_instance_valid((button as Button).get_node_or_null("RoomItemPreview3D")):
-			count += 1
-	return count
 
 func _run() -> void:
 	var received: Array = []
@@ -88,64 +75,98 @@ func _run() -> void:
 	_check(preview.texture == textures[0] and is_zero_approx(preview.rotation_degrees) and is_zero_approx(preview_parent.rotation_degrees), "room editor keeps both the fallback Fluffy Rug texture and its button upright")
 	preview_parent.free()
 	room_editor.free()
-	var teardown_editor := RoomEditor.new()
-	teardown_editor.selected_id = "forced_empty_capture"
-	teardown_editor.local_items = [{"instance_id": "forced_empty_capture", "item_id": "rug", "rotation": 45.0}]
-	var teardown_button := Button.new()
-	var retained_cached := TextureRect.new()
-	retained_cached.name = "CachedDecorPreview"
-	retained_cached.texture = placeholder
-	retained_cached.hide()
-	teardown_button.add_child(retained_cached)
-	var empty_live_preview := RoomItemPreview3D.new()
-	empty_live_preview.name = "RoomItemPreview3D"
-	teardown_button.add_child(empty_live_preview)
-	teardown_editor.item_buttons = {"forced_empty_capture": teardown_button}
-	teardown_editor.call("_retire_live_decor_preview", "forced_empty_capture")
-	_check(retained_cached.visible and retained_cached.texture == placeholder and empty_live_preview.is_queued_for_deletion(), "empty live-readback teardown restores the retained cached snapshot before freeing the live preview")
-	teardown_button.free()
-	teardown_editor.free()
 	var lifecycle_host := Control.new()
 	add_child(lifecycle_host)
 	var lifecycle_editor := RoomEditor.new()
-	var first_item := {"instance_id": "live_rug_a", "item_id": "rug", "rotation": 0.0, "scale": 1.0}
-	var second_item := {"instance_id": "live_rug_b", "item_id": "rug", "rotation": 0.0, "scale": 1.0}
-	var first_button := _fixture_room_button(placeholder)
-	var second_button := _fixture_room_button(placeholder)
-	second_button.position.x = 120.0
-	lifecycle_host.add_child(first_button)
-	lifecycle_host.add_child(second_button)
-	lifecycle_editor.local_items = [first_item, second_item]
-	lifecycle_editor.item_buttons = {"live_rug_a": first_button, "live_rug_b": second_button}
-	lifecycle_editor.selected_id = "live_rug_a"
-	lifecycle_editor.call("_activate_selected_live_decor")
+	lifecycle_editor.room_canvas = lifecycle_host
+	var first_item := {"instance_id": "live_rug_a", "item_id": "rug", "rotation": 0.0, "scale": 1.0, "z_index": 1}
+	var second_item := {"instance_id": "live_rug_b", "item_id": "rug", "rotation": 45.0, "scale": 1.1, "z_index": 2}
+	# The hidden companion home anchor sits behind placed decor in saved data, but
+	# it must never affect visible decor ordering controls.
+	var hidden_companion_anchor := {"instance_id": "room_companion_sparkle", "item_id": "companion_sparkle", "rotation": 0.0, "scale": 1.0, "z_index": 0}
+	lifecycle_editor.local_items = [hidden_companion_anchor, first_item, second_item]
+	lifecycle_editor.call("_create_item_button", first_item)
+	lifecycle_editor.call("_create_item_button", second_item)
 	for _frame in 4:
 		await get_tree().process_frame
+	var first_button := lifecycle_editor.item_buttons.get("live_rug_a") as Button
+	var second_button := lifecycle_editor.item_buttons.get("live_rug_b") as Button
 	var first_cached := first_button.get_node_or_null("CachedDecorPreview") as TextureRect
 	var first_live := first_button.get_node_or_null("RoomItemPreview3D") as RoomItemPreview3D
 	var first_root := first_live.display_rotation_root if is_instance_valid(first_live) else null
-	_check(is_instance_valid(first_live) and _live_decor_count([first_button, second_button]) == 1 and not first_cached.visible and is_instance_valid(first_root) and is_zero_approx(first_root.rotation_degrees.x) and is_zero_approx(first_root.rotation_degrees.z), "selecting decor mounts one live RoomItemPreview3D and hides its cached snapshot")
-	first_item["rotation"] = 45.0
-	lifecycle_editor.call("_activate_selected_live_decor")
-	_check(is_equal_approx(first_root.rotation_degrees.y, 45.0) and is_zero_approx(first_root.rotation_degrees.x) and is_zero_approx(first_root.rotation_degrees.z) and is_zero_approx(first_button.rotation_degrees), "selected live decor updates only DisplayRotationRoot Y when its saved yaw rotates")
-	lifecycle_editor.call("_retire_live_decor_preview", "live_rug_a")
-	await get_tree().process_frame
-	_check(not is_instance_valid(first_button.get_node_or_null("RoomItemPreview3D")) and first_cached.visible and first_cached.texture != null, "retiring selected decor frees its live viewport and restores a visible frozen snapshot")
-	lifecycle_editor.selected_id = "live_rug_b"
-	lifecycle_editor.call("_activate_selected_live_decor")
-	await get_tree().process_frame
 	var second_live := second_button.get_node_or_null("RoomItemPreview3D") as RoomItemPreview3D
-	_check(is_instance_valid(second_live) and _live_decor_count([first_button, second_button]) == 1, "switching selection still leaves exactly one live decor viewport")
-	lifecycle_editor.call("_retire_live_decor_preview", "live_rug_b")
-	await get_tree().process_frame
+	var first_viewport := first_live.get_node_or_null("SubViewport") as SubViewport if is_instance_valid(first_live) else null
+	_check(is_instance_valid(first_live) and is_instance_valid(second_live) and first_cached == null and first_live.animate_character == false and is_instance_valid(first_viewport) and first_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE, "visible room decor uses static live 3D previews without CachedDecorPreview snapshots")
+	first_live.set_display_yaw(45.0)
+	_check(is_equal_approx(first_root.rotation_degrees.y, 45.0) and is_zero_approx(first_root.rotation_degrees.x) and is_zero_approx(first_root.rotation_degrees.z) and first_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE and is_zero_approx(first_button.rotation_degrees), "static room decor redraws once after a yaw update while its button remains upright")
+	var original_live := first_live
+	first_button.custom_minimum_size = Vector2(140, 140)
+	first_button.size = first_button.custom_minimum_size
+	_check(first_button.get_node_or_null("RoomItemPreview3D") == original_live and is_zero_approx(first_live.anchor_left) and is_zero_approx(first_live.anchor_top) and is_equal_approx(first_live.anchor_right, 1.0) and is_equal_approx(first_live.anchor_bottom, 1.0), "room scale changes keep the same full-rect live preview node")
 	lifecycle_editor.selected_id = "live_rug_a"
-	lifecycle_editor.call("_activate_selected_live_decor")
+	lifecycle_editor.call("_show_selection_toolbar")
+	var backmost_toolbar := lifecycle_editor.selection_toolbar as HBoxContainer
+	var backmost_back := backmost_toolbar.get_child(4) as Button
+	var backmost_front := backmost_toolbar.get_child(5) as Button
+	lifecycle_editor.selected_id = "live_rug_b"
+	lifecycle_editor.call("_show_selection_toolbar")
+	var frontmost_toolbar := lifecycle_editor.selection_toolbar as HBoxContainer
+	var frontmost_back := frontmost_toolbar.get_child(4) as Button
+	var frontmost_front := frontmost_toolbar.get_child(5) as Button
+	_check(backmost_back.disabled and not backmost_front.disabled and not frontmost_back.disabled and frontmost_front.disabled, "layer controls stop at the visible decor boundaries and ignore the hidden companion anchor")
+	# Exercise the actual action path against a controlled room state, then put
+	# AppState back exactly as it was so this regression never changes a profile.
+	var saved_rooms: Dictionary = AppState.data.get("rooms", {}).duplicate(true)
+	var saved_save_envelope: Dictionary = SaveService._envelope.duplicate(true)
+	var saved_active_key: String = SaveService._active_key
+	var saved_test_in_memory: bool = SaveService._test_in_memory
+	var test_profile_key := "runtime_refactor"
+	SaveService._test_in_memory = true
+	SaveService._envelope = SaveService.default_state()
+	SaveService._envelope["last_user"] = test_profile_key
+	SaveService._envelope["users"][test_profile_key] = {"display_name": test_profile_key, "profile": AppState.data.duplicate(true)}
+	SaveService._active_key = test_profile_key
+	var action_rooms := saved_rooms.duplicate(true)
+	action_rooms[lifecycle_editor.companion_id] = [hidden_companion_anchor.duplicate(true), first_item.duplicate(true), second_item.duplicate(true)]
+	AppState.data["rooms"] = action_rooms
+	lifecycle_editor.local_items = AppState.room_items(lifecycle_editor.companion_id)
+	lifecycle_editor.selected_id = "live_rug_a"
+	lifecycle_editor.call("_refresh_room_items")
+	for step in 8:
+		lifecycle_editor.call("_selection_action", "LARGER")
 	await get_tree().process_frame
-	var restored_live := first_button.get_node_or_null("RoomItemPreview3D") as RoomItemPreview3D
-	var restored_root := restored_live.display_rotation_root if is_instance_valid(restored_live) else null
-	_check(is_instance_valid(restored_root) and is_equal_approx(restored_root.rotation_degrees.y, 45.0) and _live_decor_count([first_button, second_button]) == 1, "reselecting decor restores its saved live 3D yaw without adding another viewport")
-	lifecycle_editor.call("_retire_live_decor_preview", "live_rug_a")
+	var enlarged_local := _room_item(lifecycle_editor.local_items, "live_rug_a")
+	var enlarged_saved := _room_item(AppState.room_items(lifecycle_editor.companion_id), "live_rug_a")
+	var base_size: Vector2 = lifecycle_editor.call("_item_base_size", "rug")
+	var larger_toolbar := lifecycle_editor.selection_toolbar as HBoxContainer
+	var larger_button := larger_toolbar.get_child(3) as Button
+	_check(is_equal_approx(float(enlarged_local.get("scale", 0.0)), 1.8) and is_equal_approx(float(enlarged_saved.get("scale", 0.0)), 1.8) and first_button.get_node_or_null("RoomItemPreview3D") == original_live and first_button.size.is_equal_approx(base_size * 1.8) and first_live.size.is_equal_approx(first_button.size) and larger_button.disabled, "LARGER updates AppState and the existing full-rect live preview while disabling at the maximum scale")
+	for step in 13:
+		lifecycle_editor.call("_selection_action", "SMALLER")
 	await get_tree().process_frame
+	var reduced_local := _room_item(lifecycle_editor.local_items, "live_rug_a")
+	var reduced_saved := _room_item(AppState.room_items(lifecycle_editor.companion_id), "live_rug_a")
+	var smaller_toolbar := lifecycle_editor.selection_toolbar as HBoxContainer
+	var smaller_button := smaller_toolbar.get_child(2) as Button
+	_check(is_equal_approx(float(reduced_local.get("scale", 0.0)), 0.5) and is_equal_approx(float(reduced_saved.get("scale", 0.0)), 0.5) and first_button.get_node_or_null("RoomItemPreview3D") == original_live and first_button.size.is_equal_approx(base_size * 0.5) and first_live.size.is_equal_approx(first_button.size) and smaller_button.disabled, "SMALLER updates AppState and the existing full-rect live preview while disabling at the minimum scale")
+	for step in 5:
+		lifecycle_editor.call("_selection_action", "LARGER")
+	lifecycle_editor.call("_selection_action", "FRONT")
+	var front_local := _room_item(lifecycle_editor.local_items, "live_rug_a")
+	var front_neighbor := _room_item(lifecycle_editor.local_items, "live_rug_b")
+	var front_saved := _room_item(AppState.room_items(lifecycle_editor.companion_id), "live_rug_a")
+	var front_toolbar := lifecycle_editor.selection_toolbar as HBoxContainer
+	_check(int(front_local.get("z_index", 0)) == 2 and int(front_neighbor.get("z_index", 0)) == 1 and int(front_saved.get("z_index", 0)) == 2 and first_button.z_index == 2 and second_button.z_index == 1 and first_button.get_node_or_null("RoomItemPreview3D") == original_live and (front_toolbar.get_child(5) as Button).disabled, "FRONT swaps only visible decor z-order through AppState and refreshes the front boundary")
+	lifecycle_editor.call("_selection_action", "BACK")
+	var restored_local := _room_item(lifecycle_editor.local_items, "live_rug_a")
+	var restored_neighbor := _room_item(lifecycle_editor.local_items, "live_rug_b")
+	var restored_saved := _room_item(AppState.room_items(lifecycle_editor.companion_id), "live_rug_a")
+	var restored_toolbar := lifecycle_editor.selection_toolbar as HBoxContainer
+	_check(int(restored_local.get("z_index", 0)) == 1 and int(restored_neighbor.get("z_index", 0)) == 2 and int(restored_saved.get("z_index", 0)) == 1 and first_button.z_index == 1 and second_button.z_index == 2 and first_button.get_node_or_null("RoomItemPreview3D") == original_live and (restored_toolbar.get_child(4) as Button).disabled, "BACK restores visible decor z-order through AppState and refreshes the back boundary")
+	AppState.data["rooms"] = saved_rooms
+	SaveService._envelope = saved_save_envelope
+	SaveService._active_key = saved_active_key
+	SaveService._test_in_memory = saved_test_in_memory
 	lifecycle_host.queue_free()
 	lifecycle_editor.free()
 	if failures.is_empty():

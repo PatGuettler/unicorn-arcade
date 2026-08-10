@@ -56,6 +56,7 @@ func _exit_tree() -> void:
 
 func _build_viewport() -> void:
 	var viewport := SubViewport.new()
+	viewport.name = "SubViewport"
 	viewport.size = Vector2i(448, 320) if uses_character_model else Vector2i(192, 192)
 	viewport.own_world_3d = true
 	viewport.transparent_bg = true
@@ -82,6 +83,10 @@ func set_display_yaw(degrees: float) -> void:
 	display_yaw_degrees = fposmod(degrees, 360.0)
 	if is_instance_valid(display_rotation_root):
 		display_rotation_root.rotation_degrees.y = display_yaw_degrees
+	if not animate_character:
+		var viewport := get_node_or_null("SubViewport") as SubViewport
+		if is_instance_valid(viewport):
+			viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
 func set_motion_state(walking: bool) -> void:
