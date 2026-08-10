@@ -49,6 +49,7 @@ func runtime_snapshot() -> Dictionary:
 		"objective_detail": str(objective.get("detail", "Complete the enchanted challenge.")),
 		"hint_available": can_show_hint(),
 		"retry_available": retry,
+		"outcome": level_run.outcome,
 		"outcome_message": runtime_outcome_message(),
 	}
 
@@ -80,6 +81,29 @@ func request_retry() -> bool:
 	return true
 
 
+func progression_action() -> Button:
+	for button in find_children("*", "Button", true, false):
+		if button.has_meta("storybook_action") and str(button.get_meta("storybook_action")) == "progression":
+			return button as Button
+	return null
+
+
+func conceal_progression_action() -> void:
+	var action := progression_action()
+	if is_instance_valid(action):
+		action.hide()
+
+
+func trigger_progression_action() -> bool:
+	if level_run.outcome != LevelRunController.Outcome.SUCCESS and level_run.outcome != LevelRunController.Outcome.FAILURE:
+		return false
+	var action := progression_action()
+	if not is_instance_valid(action):
+		return false
+	action.pressed.emit()
+	return true
+
+
 func request_companion_action(_companion_id: String) -> bool:
 	return false
 
@@ -101,10 +125,11 @@ func _show_hint() -> void:
 
 
 func runtime_outcome_message() -> String:
-	if _has_runtime_property("message_label"):
-		var label = get("message_label")
-		if label is Label:
-			return str((label as Label).text)
+	for property in ["message_label", "status_label"]:
+		if _has_runtime_property(property):
+			var label = get(property)
+			if label is Label:
+				return str((label as Label).text)
 	return "Your next adventure is ready."
 
 

@@ -1,6 +1,7 @@
 extends Node
 
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
+const LevelRunController = preload("res://scripts/games/level_run_controller.gd")
 const TutorialCatalog = preload("res://scripts/tutorial_catalog.gd")
 const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
 const ProgressRingScene = preload("res://scripts/ui/progress_ring.gd")
@@ -202,7 +203,7 @@ func _poll_legacy_run_activity(scene: Node) -> void:
 func _handle_run_activity_transition(active: bool) -> void:
 	if was_active and not active:
 		var snapshot := attached_controller.runtime_snapshot() if is_instance_valid(attached_controller) else {}
-		var retry_available := bool(snapshot.get("retry_available", false)) if is_instance_valid(attached_controller) else _is_retry_failure()
+		var retry_available := int(snapshot.get("outcome", LevelRunController.Outcome.IDLE)) == LevelRunController.Outcome.FAILURE if is_instance_valid(attached_controller) else _is_retry_failure()
 		var outcome_message := str(snapshot.get("outcome_message", "")) if is_instance_valid(attached_controller) else _outcome_message()
 		if retry_available and CompanionAbilityService.consume_checkpoint_retry():
 			_show_sparkle_retry_notice.call_deferred(outcome_message)
@@ -573,6 +574,8 @@ func _can_apply_mystic() -> bool:
 
 
 func _is_retry_failure() -> bool:
+	if is_instance_valid(attached_controller):
+		return int(attached_controller.runtime_snapshot().get("outcome", LevelRunController.Outcome.IDLE)) == LevelRunController.Outcome.FAILURE
 	if not is_instance_valid(attached_scene):
 		return false
 	if attached_scene.has_method("can_retry_failure"):
@@ -590,6 +593,8 @@ func _is_retry_failure() -> bool:
 
 
 func _outcome_action_button() -> Button:
+	if is_instance_valid(attached_controller):
+		return null
 	if not is_instance_valid(attached_scene):
 		return null
 	for property in ["action_button", "retry_button"]:
@@ -605,6 +610,8 @@ func _outcome_action_button() -> Button:
 
 
 func _outcome_message() -> String:
+	if is_instance_valid(attached_controller):
+		return str(attached_controller.runtime_snapshot().get("outcome_message", "Your next adventure is ready."))
 	for property in ["message_label", "status_label"]:
 		if _has_property(attached_scene, property):
 			var label = attached_scene.get(property)
@@ -616,9 +623,13 @@ func _outcome_message() -> String:
 func _show_game_outcome() -> void:
 	if not is_instance_valid(attached_scene) or is_instance_valid(outcome_overlay) or is_instance_valid(sparkle_retry_overlay) or _scene_has_dialog("GameOutcomeOverlay") or _scene_has_dialog("SecondSparkleRetryOverlay"):
 		return
-	var legacy := _outcome_action_button()
-	var retry := _is_retry_failure()
-	if is_instance_valid(legacy):
+	var controller := attached_controller if is_instance_valid(attached_controller) else null
+	var snapshot := controller.runtime_snapshot() if is_instance_valid(controller) else {}
+	var legacy := _outcome_action_button() if not is_instance_valid(controller) else null
+	var retry := int(snapshot.get("outcome", LevelRunController.Outcome.IDLE)) == LevelRunController.Outcome.FAILURE if is_instance_valid(controller) else _is_retry_failure()
+	if is_instance_valid(controller):
+		controller.conceal_progression_action()
+	elif is_instance_valid(legacy):
 		legacy.hide()
 	var overlay := _modal_backdrop("GameOutcomeOverlay")
 	overlay.z_index = 1500
@@ -641,7 +652,7 @@ func _show_game_outcome() -> void:
 	stack.add_child(title)
 	var message := Label.new()
 	message.name = "GameOutcomeMessage"
-	message.text = _outcome_message()
+	message.text = str(snapshot.get("outcome_message", "")) if is_instance_valid(controller) else _outcome_message()
 	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message.add_theme_font_size_override("font_size", 21)
@@ -652,7 +663,9 @@ func _show_game_outcome() -> void:
 	primary.text = "TRY AGAIN" if retry else "KEEP GOING"
 	StorybookUI.apply_game_action(primary, 260)
 	primary.pressed.connect(func() -> void:
-		if is_instance_valid(legacy):
+		if is_instance_valid(controller):
+			controller.trigger_progression_action()
+		elif is_instance_valid(legacy):
 			legacy.pressed.emit()
 		if is_instance_valid(overlay):
 			overlay.queue_free()
@@ -677,8 +690,11 @@ func _show_game_outcome() -> void:
 func _show_sparkle_retry_notice(failure_reason: String) -> void:
 	if not is_instance_valid(attached_scene) or is_instance_valid(sparkle_retry_overlay) or is_instance_valid(outcome_overlay) or _scene_has_dialog("SecondSparkleRetryOverlay"):
 		return
-	var legacy := _outcome_action_button()
-	if is_instance_valid(legacy):
+	var controller := attached_controller if is_instance_valid(attached_controller) else null
+	var legacy := _outcome_action_button() if not is_instance_valid(controller) else null
+	if is_instance_valid(controller):
+		controller.conceal_progression_action()
+	elif is_instance_valid(legacy):
 		legacy.hide()
 	var overlay := _modal_backdrop("SecondSparkleRetryOverlay")
 	overlay.z_index = 1550
@@ -735,7 +751,9 @@ func _show_sparkle_retry_notice(failure_reason: String) -> void:
 func _restart_after_sparkle() -> void:
 	if not is_instance_valid(attached_scene):
 		return
-	if attached_scene.has_method("retry_failure"):
+	if is_instance_valid(attached_controller):
+		attached_controller.request_retry()
+	elif attached_scene.has_method("retry_failure"):
 		attached_scene.call("retry_failure")
 	else:
 		match attached_game_id:
@@ -767,7 +785,8 @@ func _highlight_jump_stone(index: int) -> void:
 func _request_leave(home: bool) -> void:
 	if not is_instance_valid(attached_scene):
 		return
-	if _has_property(attached_scene, "active") and bool(attached_scene.get("active")):
+	var active := bool(attached_controller.runtime_snapshot().get("active", false)) if is_instance_valid(attached_controller) else (_has_property(attached_scene, "active") and bool(attached_scene.get("active")))
+	if active:
 		_show_leave_run_modal(home)
 	else:
 		_leave_game(home)
