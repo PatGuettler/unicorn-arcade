@@ -4,6 +4,7 @@ const Rules = preload("res://scripts/games/word_game_rules.gd")
 const RoundCatalog = preload("res://scripts/games/word_round_catalog.gd")
 const WordChoiceStrategy = preload("res://scripts/games/word_choice_strategy.gd")
 const WordSequenceStrategy = preload("res://scripts/games/word_sequence_strategy.gd")
+const WordTypedEntryStrategy = preload("res://scripts/games/word_typed_entry_strategy.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
@@ -33,6 +34,7 @@ var spawn_elapsed := 0.0
 var suppress_text_event := false
 var choice_strategy := WordChoiceStrategy.new()
 var sequence_strategy := WordSequenceStrategy.new()
+var typed_entry_strategy := WordTypedEntryStrategy.new()
 
 var title_label: Label
 var coin_label: Label
@@ -119,11 +121,9 @@ func _load_round() -> void:
 		return
 	if _load_sequence_round():
 		return
+	if _load_typed_entry_round():
+		return
 	match game_id:
-		"sight_spark":
-			_load_sight_spark()
-		"letter_lift":
-			_load_letter_lift()
 		"unicorn_blast":
 			_load_unicorn_blast()
 		_:
@@ -169,31 +169,57 @@ func _apply_sequence_round(sequence_round: Dictionary) -> void:
 	_render_sequence()
 
 
+func _load_typed_entry_round() -> bool:
+	var typed_round := typed_entry_strategy.begin_round(_strategy_context())
+	if not bool(typed_round.get("handled", false)):
+		return false
+	if not bool(typed_round.get("ok", false)):
+		_fail("This word round needs a refresh. Try again soon.")
+		return true
+	_apply_typed_entry_round(typed_round)
+	return true
+
+
+func _apply_typed_entry_round(typed_round: Dictionary) -> void:
+	expected_word = str(typed_round.get("expected_word", ""))
+	picked.clear()
+	phase = str(typed_round.get("phase", "choice"))
+	instruction_label.text = str(typed_round.get("instruction", ""))
+	prompt_label.text = str(typed_round.get("prompt", ""))
+	if bool(typed_round.get("input_visible", false)):
+		if phase == "letter":
+			_render_letter_lift()
+		_show_text_input(str(typed_round.get("placeholder", "")))
+	else:
+		input_line.hide()
+		flash_timer.wait_time = float(typed_round.get("flash_ms", 0)) / 1000.0
+		flash_timer.start()
+
+
+func _apply_typed_entry_transition(transition: Dictionary) -> void:
+	if not bool(transition.get("handled", false)):
+		return
+	phase = str(transition.get("phase", phase))
+	instruction_label.text = str(transition.get("instruction", instruction_label.text))
+	prompt_label.text = str(transition.get("prompt", prompt_label.text))
+	if bool(transition.get("input_visible", false)):
+		_show_text_input(str(transition.get("placeholder", "")))
+
+
 func _load_sequence(_key: String, _field: String, _instruction: String, _mode: String) -> void:
 	_load_sequence_round()
 
 
 func _load_sight_spark() -> void:
-	var words := Rules.words_for_level(level)
-	expected_word = RoundCatalog.word_for_round(words, level, round_index)
-	if expected_word.is_empty():
-		_fail("This word round needs a refresh. Try again soon.")
-		return
-	phase = "flash"
-	instruction_label.text = "Remember this word"
-	prompt_label.text = expected_word
-	input_line.hide()
-	flash_timer.wait_time = Rules.sight_flash_ms(level) / 1000.0
-	flash_timer.start()
+	_load_typed_entry_round()
 
 
 func _finish_sight_flash() -> void:
 	if not active or game_id != "sight_spark":
 		return
-	phase = "type"
-	instruction_label.text = "Type the word from memory"
-	prompt_label.text = expected_word if hint_visible else "?"
-	_show_text_input("What did you see?")
+	var typed_context := _strategy_context()
+	typed_context["flash_expired"] = true
+	_apply_typed_entry_transition(typed_entry_strategy.tick(typed_context, 0.0))
 
 
 func _load_vowel_vines() -> void:
@@ -201,16 +227,7 @@ func _load_vowel_vines() -> void:
 
 
 func _load_letter_lift() -> void:
-	var words := Rules.words_for_level(level)
-	expected_word = RoundCatalog.word_for_round(words, level, round_index)
-	if expected_word.is_empty():
-		_fail("This word round needs a refresh. Try again soon.")
-		return
-	phase = "letter"
-	picked.clear()
-	instruction_label.text = "Type each letter in order"
-	_render_letter_lift()
-	_show_text_input("Type letters…")
+	_load_typed_entry_round()
 
 
 func _load_scramble() -> void:
@@ -319,12 +336,14 @@ func _choose_sequence(payload: Dictionary) -> void:
 
 
 func _on_text_submitted(value: String) -> void:
-	if not active or game_id != "sight_spark" or phase != "type":
+	if not active or game_id != "sight_spark":
 		return
-	if value.strip_edges().to_lower() == expected_word:
-		_successful_round()
-	else:
-		_fail(_fail_reason())
+	var typed_result := typed_entry_strategy.submit(_strategy_context(), value)
+	match str(typed_result.get("outcome", "ignored")):
+		"success":
+			_successful_round()
+		"failure":
+			_fail(_fail_reason())
 
 
 func _on_text_changed(value: String) -> void:
@@ -337,20 +356,19 @@ func _on_text_changed(value: String) -> void:
 
 
 func _handle_letter_input(value: String) -> void:
-	var typed := "".join(picked)
-	if value.length() <= typed.length():
-		_set_input_text(typed)
-		return
-	var character := value.substr(typed.length(), 1).to_lower()
-	if character == expected_word.substr(picked.size(), 1):
-		picked.append(character)
-		hint_visible = false
-		_set_input_text("".join(picked))
-		_render_letter_lift()
-		if picked.size() >= expected_word.length():
-			_successful_round()
-	else:
-		_fail(_fail_reason())
+	var typed_result := typed_entry_strategy.submit(_strategy_context(), value)
+	if typed_result.has("picked"):
+		picked = typed_result.get("picked", [])
+	if typed_result.has("input"):
+		_set_input_text(str(typed_result.get("input", "")))
+	match str(typed_result.get("outcome", "ignored")):
+		"failure":
+			_fail(_fail_reason())
+		"continue", "success":
+			hint_visible = false
+			_render_letter_lift()
+			if typed_result.get("outcome") == "success":
+				_successful_round()
 
 
 func _handle_blast_input(value: String) -> void:
@@ -437,12 +455,10 @@ func _show_hint() -> void:
 	coin_label.text = "★ %d" % AppState.coins()
 	if game_id == "unicorn_blast":
 		message_label.text = "Blast: %s" % _urgent_blast_word()
-	elif game_id == "letter_lift":
-		_render_letter_lift()
+	elif typed_entry_strategy.supports(game_id):
+		_apply_typed_entry_hint(typed_entry_strategy.hint(_strategy_context()))
 	elif sequence_strategy.supports(game_id):
 		_apply_sequence_hint(sequence_strategy.hint(_strategy_context()))
-	elif game_id == "sight_spark" and phase == "type":
-		prompt_label.text = expected_word
 	elif choice_strategy.supports(game_id):
 		_apply_choice_hint(choice_strategy.hint(_strategy_context()))
 	else:
@@ -459,6 +475,12 @@ func _request_hint() -> void:
 
 
 func _hint_text() -> String:
+	if typed_entry_strategy.supports(game_id):
+		var typed_hint := typed_entry_strategy.hint(_strategy_context())
+		if typed_hint.has("message"):
+			return str(typed_hint["message"])
+		if typed_hint.has("next"):
+			return "Next letter: %s" % str(typed_hint["next"]).to_upper()
 	if sequence_strategy.supports(game_id):
 		return "Next: %s" % str(sequence_strategy.hint(_strategy_context()).get("next", ""))
 	if choice_strategy.supports(game_id):
@@ -470,13 +492,13 @@ func _hint_text() -> String:
 
 
 func _fail_reason() -> String:
+	if typed_entry_strategy.supports(game_id):
+		return typed_entry_strategy.failure_reason(_strategy_context())
 	if sequence_strategy.supports(game_id):
 		return sequence_strategy.failure_reason(_strategy_context())
 	if choice_strategy.supports(game_id):
 		return choice_strategy.failure_reason(_strategy_context())
 	match game_id:
-		"sight_spark": return "Spell the spark word from memory!"
-		"letter_lift": return "Type each letter in order!"
 		"unicorn_blast": return "Words reached your cannon!"
 	return "Try this level again."
 
@@ -493,10 +515,20 @@ func _strategy_context() -> Dictionary:
 		"pool": pool,
 		"picked": picked,
 		"phase": phase,
+		"expected_word": expected_word,
 	}
 
 
 func _apply_choice_hint(hint: Dictionary) -> void:
+	if hint.has("prompt"):
+		prompt_label.text = str(hint["prompt"])
+	if hint.has("message"):
+		message_label.text = str(hint["message"])
+
+
+func _apply_typed_entry_hint(hint: Dictionary) -> void:
+	if phase == "letter":
+		_render_letter_lift()
 	if hint.has("prompt"):
 		prompt_label.text = str(hint["prompt"])
 	if hint.has("message"):

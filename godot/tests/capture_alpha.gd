@@ -148,6 +148,15 @@ func _capture() -> void:
 		var word_rng := captured.get("rng") as RandomNumberGenerator
 		word_rng.seed = 1337
 		captured.call("_start_level")
+		if game_id == "sight_spark":
+			var sight_flash := captured.get("flash_timer") as Timer
+			if is_instance_valid(sight_flash):
+				sight_flash.stop()
+		captured.set("active", false)
+		captured.set("started_ms", Time.get_ticks_msec())
+		var word_timer := captured.get("timer_label") as Label
+		if is_instance_valid(word_timer):
+			word_timer.text = "0.0s"
 	elif mode == "game_chrome_fixture":
 		_build_game_chrome_fixture(captured as Control, game_id)
 	elif mode == "game_tutorial_fixture":
@@ -194,11 +203,6 @@ func _capture() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await get_tree().process_frame
-	if mode == "word_choice_fixture":
-		captured.set("started_ms", Time.get_ticks_msec())
-		var word_timer := captured.get("timer_label") as Label
-		if is_instance_valid(word_timer):
-			word_timer.text = "0.0s"
 	DirAccess.make_dir_recursive_absolute(output.get_base_dir())
 	var error := get_viewport().get_texture().get_image().save_png(output)
 	if error == OK:
