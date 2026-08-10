@@ -6,12 +6,14 @@ const TutorialCatalog = preload("res://scripts/tutorial_catalog.gd")
 const ProgressRingScene = preload("res://scripts/ui/progress_ring.gd")
 const GameExperienceChromePresenter = preload("res://scripts/ui/game_experience_chrome_presenter.gd")
 const GameExperienceTutorialPresenter = preload("res://scripts/ui/game_experience_tutorial_presenter.gd")
+const GameExperienceOutcomePresenter = preload("res://scripts/ui/game_experience_outcome_presenter.gd")
 
 var attached_scene: Node
 var attached_controller: ArcadeGameController
 var attached_game_id := ""
 var chrome_presenter := GameExperienceChromePresenter.new()
 var tutorial_presenter := GameExperienceTutorialPresenter.new()
+var outcome_presenter := GameExperienceOutcomePresenter.new()
 var objective_primary: Label
 var objective_detail: Label
 var coin_button: Button
@@ -471,37 +473,10 @@ func _show_game_outcome() -> void:
 		controller.conceal_progression_action()
 	elif is_instance_valid(legacy):
 		legacy.hide()
-	var overlay := _modal_backdrop("GameOutcomeOverlay")
-	overlay.z_index = 1500
-	attached_scene.add_child(overlay)
+	var presentation := outcome_presenter.build_game_outcome(attached_scene as Control, retry, str(snapshot.get("outcome_message", "")) if is_instance_valid(controller) else _outcome_message())
+	var overlay := presentation["overlay"] as Control
 	outcome_overlay = overlay
-	var card := _modal_card(overlay, 0.08, 0.92, 0.23, 0.77)
-	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("3b1638") if retry else Color("123c4b"), Color("ff6f9b") if retry else Color("62e6b5"), 28))
-	var stack := VBoxContainer.new()
-	stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	stack.add_theme_constant_override("separation", 16)
-	card.add_child(stack)
-	var icon := Label.new()
-	icon.text = "💔" if retry else "✨🦄✨"
-	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.add_theme_font_size_override("font_size", 46)
-	stack.add_child(icon)
-	var title := _modal_title("TRY AGAIN" if retry else "LEVEL COMPLETE!")
-	title.add_theme_color_override("font_color", Color("ffb2cf") if retry else Color("bffff1"))
-	title.add_theme_font_size_override("font_size", 34)
-	stack.add_child(title)
-	var message := Label.new()
-	message.name = "GameOutcomeMessage"
-	message.text = str(snapshot.get("outcome_message", "")) if is_instance_valid(controller) else _outcome_message()
-	message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message.add_theme_font_size_override("font_size", 21)
-	message.add_theme_color_override("font_color", Color("fff3d6"))
-	stack.add_child(message)
-	var primary := Button.new()
-	primary.name = "GameOutcomePrimaryAction"
-	primary.text = "TRY AGAIN" if retry else "KEEP GOING"
-	StorybookUI.apply_game_action(primary, 260)
+	var primary := presentation["primary"] as Button
 	primary.pressed.connect(func() -> void:
 		if is_instance_valid(controller):
 			controller.trigger_progression_action()
@@ -510,17 +485,12 @@ func _show_game_outcome() -> void:
 		if is_instance_valid(overlay):
 			overlay.queue_free()
 	)
-	stack.add_child(primary)
-	var category := Button.new()
-	category.name = "GameOutcomeReturnToCategory"
-	category.text = "RETURN TO CATEGORY"
-	StorybookUI.apply_game_action(category, 260)
+	var category := presentation["category"] as Button
 	category.pressed.connect(func() -> void:
 		if is_instance_valid(overlay):
 			overlay.queue_free()
 		_leave_game(false)
 	)
-	stack.add_child(category)
 	overlay.tree_exited.connect(func() -> void:
 		if outcome_overlay == overlay:
 			outcome_overlay = null
@@ -536,52 +506,15 @@ func _show_sparkle_retry_notice(failure_reason: String) -> void:
 		controller.conceal_progression_action()
 	elif is_instance_valid(legacy):
 		legacy.hide()
-	var overlay := _modal_backdrop("SecondSparkleRetryOverlay")
-	overlay.z_index = 1550
-	attached_scene.add_child(overlay)
+	var presentation := outcome_presenter.build_sparkle_retry(attached_scene as Control, failure_reason)
+	var overlay := presentation["overlay"] as Control
 	sparkle_retry_overlay = overlay
-	var card := _modal_card(overlay, 0.08, 0.92, 0.22, 0.78)
-	card.name = "SecondSparkleRetryCard"
-	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("32194a"), Color("f4d37f"), 28))
-	var stack := VBoxContainer.new()
-	stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	stack.add_theme_constant_override("separation", 14)
-	card.add_child(stack)
-	var icon := Label.new()
-	icon.text = "✨  🦄  ✨"
-	icon.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	icon.add_theme_font_size_override("font_size", 44)
-	stack.add_child(icon)
-	var title := _modal_title("SECOND SPARKLE!")
-	title.add_theme_color_override("font_color", Color("ffe7a6"))
-	title.add_theme_font_size_override("font_size", 32)
-	stack.add_child(title)
-	var reason := Label.new()
-	reason.name = "SecondSparkleFailureReason"
-	reason.text = failure_reason if not failure_reason.strip_edges().is_empty() else "This try came to an end."
-	reason.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	reason.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	reason.add_theme_font_size_override("font_size", 20)
-	reason.add_theme_color_override("font_color", Color("ffd1e5"))
-	stack.add_child(reason)
-	var explanation := Label.new()
-	explanation.name = "SecondSparkleExplanation"
-	explanation.text = "Sparkle saved one FREE RETRY for you. Tap CONTINUE to restart this same level. This one-time retry is now used."
-	explanation.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	explanation.add_theme_font_size_override("font_size", 21)
-	explanation.add_theme_color_override("font_color", Color("fff3d6"))
-	stack.add_child(explanation)
-	var continue_button := Button.new()
-	continue_button.name = "SecondSparkleContinue"
-	continue_button.text = "CONTINUE"
-	StorybookUI.apply_game_action(continue_button, 260)
+	var continue_button := presentation["continue_button"] as Button
 	continue_button.pressed.connect(func() -> void:
 		if is_instance_valid(overlay):
 			overlay.queue_free()
 		_restart_after_sparkle()
 	)
-	stack.add_child(continue_button)
 	overlay.tree_exited.connect(func() -> void:
 		if sparkle_retry_overlay == overlay:
 			sparkle_retry_overlay = null

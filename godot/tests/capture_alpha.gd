@@ -92,6 +92,10 @@ func _capture() -> void:
 		captured = Control.new()
 		captured.name = "GameTutorialFixture"
 		(captured as Control).set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	elif mode in ["game_outcome_fixture", "game_sparkle_retry_fixture"]:
+		captured = Control.new()
+		captured.name = "GameOutcomeFixture"
+		(captured as Control).set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	elif mode == "procedural_preview":
 		# A catalog-miss forces RoomItemPreview3D through the procedural fallback.
 		captured = RoomItemPreview3D.new()
@@ -140,6 +144,10 @@ func _capture() -> void:
 		_build_game_chrome_fixture(captured as Control, game_id)
 	elif mode == "game_tutorial_fixture":
 		_build_game_tutorial_fixture(captured as Control, game_id)
+	elif mode == "game_outcome_fixture":
+		_build_game_outcome_fixture(captured as Control)
+	elif mode == "game_sparkle_retry_fixture":
+		_build_game_sparkle_retry_fixture(captured as Control)
 	elif captured.has_signal("page_build_complete"):
 		await captured.page_build_complete
 	if mode == "companion_preview_static":
@@ -274,3 +282,23 @@ func _build_game_tutorial_fixture(fixture: Control, game_id: String) -> void:
 	GameExperience.attached_scene = fixture
 	GameExperience.attached_game_id = game_id
 	GameExperience._maybe_show_tutorial(true)
+
+
+func _build_game_outcome_fixture(fixture: Control) -> void:
+	GameExperience._apply_storybook_atmosphere(fixture)
+	GameExperience.attached_scene = fixture
+	GameExperience.attached_controller = null
+	GameExperience.attached_game_id = "coin_count"
+	GameExperience.outcome_overlay = null
+	GameExperience.sparkle_retry_overlay = null
+	GameExperience._show_game_outcome()
+
+
+func _build_game_sparkle_retry_fixture(fixture: Control) -> void:
+	GameExperience._apply_storybook_atmosphere(fixture)
+	GameExperience.attached_scene = fixture
+	GameExperience.attached_controller = null
+	GameExperience.attached_game_id = "coin_count"
+	GameExperience.outcome_overlay = null
+	GameExperience.sparkle_retry_overlay = null
+	GameExperience._show_sparkle_retry_notice("A comet reached the meadow.")
