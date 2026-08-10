@@ -3,14 +3,13 @@ extends Node
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const LevelRunController = preload("res://scripts/games/level_run_controller.gd")
 const TutorialCatalog = preload("res://scripts/tutorial_catalog.gd")
-const CompanionAssets = preload("res://scripts/meta/companion_asset_catalog.gd")
 const ProgressRingScene = preload("res://scripts/ui/progress_ring.gd")
-const PENNY_TEXTURE_PATH := "res://assets/games/currency/penny.png"
-const MEADOW_BACKGROUND_PATH := "res://assets/meta/environments/magical_meadow_v1.png"
+const GameExperienceChromePresenter = preload("res://scripts/ui/game_experience_chrome_presenter.gd")
 
 var attached_scene: Node
 var attached_controller: ArcadeGameController
 var attached_game_id := ""
+var chrome_presenter := GameExperienceChromePresenter.new()
 var objective_primary: Label
 var objective_detail: Label
 var coin_button: Button
@@ -220,187 +219,42 @@ func _fallback_game_id(path: String) -> String:
 
 
 func _find_primary_layout(node: Node) -> VBoxContainer:
-	for child in node.get_children():
-		if child is VBoxContainer:
-			return child
-		var found := _find_primary_layout(child)
-		if found != null:
-			return found
-	return null
+	return chrome_presenter.find_primary_layout(node)
 
 
 func _apply_storybook_atmosphere(scene: Node) -> void:
-	if not is_instance_valid(scene) or scene.has_node("StorybookAtmosphere"):
-		return
-	var atmosphere := Control.new()
-	atmosphere.name = "StorybookAtmosphere"
-	atmosphere.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	atmosphere.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	atmosphere.z_index = -20
-	var wash := ColorRect.new()
-	wash.color = Color("120d2e")
-	wash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	wash.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	atmosphere.add_child(wash)
-	var meadow := TextureRect.new()
-	meadow.texture = load(MEADOW_BACKGROUND_PATH) as Texture2D
-	meadow.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	meadow.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
-	meadow.modulate = Color(1, 1, 1, 0.34)
-	meadow.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	meadow.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	atmosphere.add_child(meadow)
-	var veil := ColorRect.new()
-	veil.color = Color(0.08, 0.05, 0.22, 0.42)
-	veil.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	veil.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	atmosphere.add_child(veil)
-	scene.add_child(atmosphere)
-	scene.move_child(atmosphere, 0)
-	for child in scene.get_children():
-		if child is ColorRect and child != wash and child != veil:
-			var rect := child as ColorRect
-			if is_equal_approx(rect.anchor_right, 1.0) and is_equal_approx(rect.anchor_bottom, 1.0):
-				rect.color = Color(rect.color, 0.12)
-				break
+	chrome_presenter.apply_storybook_atmosphere(scene)
 
 
 func _hide_legacy_chrome(layout: VBoxContainer, title: String) -> void:
-	for child in layout.get_children().slice(0, mini(4, layout.get_child_count())):
-		if child is HBoxContainer and _contains_navigation(child):
-			child.hide()
-		elif child is Label:
-			var copy := str((child as Label).text).strip_edges().to_upper()
-			if copy == title.to_upper() or copy.begins_with("★") or copy.contains("UNICORN JUMP") or copy.contains("MATHTRIS") or copy.contains("COIN COUNT") or copy.contains("CASH COUNTER") or copy.contains("SLIDING WINDOW") or copy.contains("MATH SWIPE") or copy.contains("GALAXY UNICORN") or copy.contains("RHYME RALLY") or copy.contains("RACE THE UNICORN"):
-				child.hide()
+	chrome_presenter.hide_legacy_chrome(layout, title)
 
 
 func _contains_navigation(node: Node) -> bool:
-	for child in node.get_children():
-		if child is Button:
-			var text := str((child as Button).text).to_upper()
-			if "BACK" in text or "GAMES" in text or text == "ARCADE":
-				return true
-		elif child is Label and str((child as Label).text).begins_with("★"):
-			return true
-		if _contains_navigation(child):
-			return true
-	return false
+	return chrome_presenter.contains_navigation(node)
 
 
 func _build_header(title: String) -> PanelContainer:
-	var panel := PanelContainer.new()
-	panel.name = "StandardGameHeader"
-	panel.custom_minimum_size.y = 62
-	panel.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254d"), StorybookUI.GOLD, 18))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	panel.add_child(row)
-	var back := _header_button("‹", "Back to game category")
-	back.name = "GameHeaderBack"
-	back.pressed.connect(_request_leave.bind(false))
-	row.add_child(back)
-	var home := _header_button("", "Home")
-	home.name = "GameHeaderHome"
-	StorybookUI.apply_home_button(home)
-	home.pressed.connect(_request_leave.bind(true))
-	row.add_child(home)
-	var title_label := Label.new()
-	title_label.text = title.to_upper()
-	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_label.add_theme_font_size_override("font_size", 20)
-	title_label.add_theme_color_override("font_color", StorybookUI.CREAM)
-	title_label.add_theme_color_override("font_outline_color", StorybookUI.PLUM)
-	title_label.add_theme_constant_override("outline_size", 3)
-	row.add_child(title_label)
-	var profile := _header_button("👤", "Open profile without leaving this game")
-	profile.name = "GameHeaderProfile"
-	profile.pressed.connect(_show_profile_overlay)
-	row.add_child(profile)
-	coin_button = _header_button("", "Current coin balance")
-	coin_button.name = "GameHeaderCoins"
-	coin_button.custom_minimum_size = Vector2(96, 48)
-	coin_button.disabled = true
-	coin_button.icon = load(PENNY_TEXTURE_PATH) as Texture2D
-	coin_button.expand_icon = true
-	coin_button.add_theme_constant_override("icon_max_width", 28)
-	coin_button.add_theme_color_override("font_disabled_color", StorybookUI.GOLD_BRIGHT)
-	row.add_child(coin_button)
-	_update_coin_button(AppState.coins())
-	return panel
+	var chrome := chrome_presenter.build_header(title, AppState.coins(), _request_leave.bind(false), _request_leave.bind(true), _show_profile_overlay)
+	coin_button = chrome["coin_button"] as Button
+	return chrome["panel"] as PanelContainer
 
 
 func _header_button(text: String, tooltip: String) -> Button:
-	var button := Button.new()
-	button.text = text
-	button.tooltip_text = tooltip
-	button.custom_minimum_size = Vector2(48, 48)
-	button.add_theme_font_size_override("font_size", 18)
-	StorybookUI.apply_button(button, Color("22345f"), false, 14)
-	button.set_meta("standard_game_chrome", true)
-	return button
+	return chrome_presenter.header_button(text, tooltip)
 
 
 func _companion_thumbnail(companion_id: String, minimum_size: Vector2) -> TextureRect:
-	var portrait := TextureRect.new()
-	portrait.name = "EquippedCompanionMascot"
-	portrait.texture = load(CompanionAssets.thumbnail_path(companion_id)) as Texture2D
-	portrait.custom_minimum_size = minimum_size
-	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return portrait
+	return chrome_presenter.companion_thumbnail(companion_id, minimum_size)
 
 
 func _build_objective_plaque() -> PanelContainer:
-	var plaque := PanelContainer.new()
-	plaque.name = "GameObjectivePlaque"
-	plaque.custom_minimum_size.y = 92
-	plaque.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), Color("e1ae4f"), 18))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	plaque.add_child(row)
-	var mascot := _companion_thumbnail(AppState.equipped_companion(), Vector2(96, 74))
-	mascot.name = "EquippedCompanionMascot"
-	row.add_child(mascot)
-	var copy := VBoxContainer.new()
-	copy.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	copy.custom_minimum_size.x = 0
-	copy.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_child(copy)
-	objective_primary = Label.new()
-	objective_primary.name = "ObjectivePrimary"
-	objective_primary.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	objective_primary.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	objective_primary.add_theme_font_size_override("font_size", 28)
-	objective_primary.add_theme_color_override("font_color", StorybookUI.INK)
-	copy.add_child(objective_primary)
-	objective_detail = Label.new()
-	objective_detail.name = "ObjectiveDetail"
-	objective_detail.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	objective_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	objective_detail.add_theme_font_size_override("font_size", 16)
-	objective_detail.add_theme_color_override("font_color", Color("59375c"))
-	copy.add_child(objective_detail)
-	ability_button = Button.new()
-	ability_button.name = "CompanionAbility"
-	ability_button.custom_minimum_size = Vector2(102, 54)
-	ability_button.add_theme_font_size_override("font_size", 14)
-	ability_button.pressed.connect(_ability_pressed)
-	StorybookUI.apply_button(ability_button, Color("c45186"), false, 14)
-	ability_button.set_meta("standard_game_chrome", true)
-	row.add_child(ability_button)
-	hint_button = _header_button("HINT", "Show one ordinary hint (free on level 1; 5 coins later)")
-	hint_button.name = "OrdinaryHint"
-	hint_button.pressed.connect(_ordinary_hint_pressed)
-	row.add_child(hint_button)
-	var help := _header_button("?", "Replay the tutorial")
-	help.name = "ObjectiveTutorialHelp"
-	help.pressed.connect(_maybe_show_tutorial.bind(true))
-	row.add_child(help)
-	return plaque
+	var chrome := chrome_presenter.build_objective_plaque(AppState.equipped_companion(), _ability_pressed, _ordinary_hint_pressed, _maybe_show_tutorial.bind(true))
+	objective_primary = chrome["objective_primary"] as Label
+	objective_detail = chrome["objective_detail"] as Label
+	ability_button = chrome["ability_button"] as Button
+	hint_button = chrome["hint_button"] as Button
+	return chrome["panel"] as PanelContainer
 
 
 func _update_runtime_ui() -> void:
@@ -458,21 +312,15 @@ func _has_property(object: Object, property: String) -> bool:
 
 
 func _format_cents(cents: int) -> String:
-	return "$%d.%02d" % [cents / 100, cents % 100]
+	return chrome_presenter.format_cents(cents)
 
 
 func _update_coin_button(coins: int) -> void:
-	if is_instance_valid(coin_button):
-		coin_button.text = " %d" % coins
+	chrome_presenter.update_coin_button(coin_button, coins)
 
 
 func _update_ability_button() -> void:
-	if not is_instance_valid(ability_button):
-		return
-	var definition := CompanionAbilityService.definition()
-	ability_button.text = "%s\n%s" % [str(definition.get("name", "Companion")), "READY" if CompanionAbilityService.is_available() else "USED"]
-	ability_button.tooltip_text = str(definition.get("description", ""))
-	ability_button.disabled = not CompanionAbilityService.is_available() and bool(definition.get("active", false))
+	chrome_presenter.update_ability_button(ability_button, CompanionAbilityService.definition(), CompanionAbilityService.is_available())
 
 
 func _ability_pressed() -> void:
@@ -506,21 +354,11 @@ func _ordinary_hint_pressed() -> void:
 
 
 func _hide_embedded_hint_controls(node: Node) -> void:
-	for child in node.get_children():
-		if child is Button and not child.has_meta("standard_game_chrome"):
-			var label := str((child as Button).text).to_upper()
-			if label.contains("HINT"):
-				child.hide()
-		_hide_embedded_hint_controls(child)
+	chrome_presenter.hide_embedded_hint_controls(node)
 
 
 func _configure_comet_chrome(scene: Node) -> void:
-	if attached_game_id != "comet_math_rescue":
-		return
-	for node_name in ["CometEquationBanner", "CometRescueMeter"]:
-		var duplicate_label := scene.get_node_or_null(node_name)
-		if duplicate_label is CanvasItem:
-			(duplicate_label as CanvasItem).hide()
+	chrome_presenter.configure_comet_chrome(scene, attached_game_id)
 
 
 func _show_assist(mystic: bool) -> void:
@@ -1058,40 +896,12 @@ func _modal_title(text: String) -> Label:
 
 
 func _restyle_controls(node: Node) -> void:
-	if node is Button:
-		var button := node as Button
-		if not button.has_meta("standard_game_chrome") and not button.has_meta("currency_art") and not button.has_meta("mathtris_tile") and not button.has_meta("sliding_window_node"):
-			StorybookUI.apply_game_action(button, maxf(96.0, button.custom_minimum_size.x))
-			button.custom_minimum_size.y = maxf(56.0, button.custom_minimum_size.y)
-			var copy := button.text.to_upper()
-			if copy == "ARCADE" or "BACK" in copy or ("GAMES" in copy and ("NUMBER" in copy or "WORD" in copy or "MYSTERY" in copy or "ARCADE" in copy)):
-				button.hide()
-	elif node is Label:
-		var label := node as Label
-		var copy := label.text.strip_edges().to_upper()
-		if copy.begins_with("★") and not label.has_meta("keep_visible"):
-			label.hide()
-	for child in node.get_children():
-		_restyle_controls(child)
+	chrome_presenter.restyle_controls(node)
 
 
 func _polish_game_labels(node: Node) -> void:
-	if node is Label and not (node as Label).has_meta("standard_game_chrome"):
-		var label := node as Label
-		if label.visible and label.get_theme_font_size("font_size") >= 18:
-			if not label.has_theme_color_override("font_outline_color"):
-				label.add_theme_color_override("font_outline_color", Color("120d32"))
-				label.add_theme_constant_override("outline_size", maxi(2, label.get_theme_constant("outline_size")))
-	for child in node.get_children():
-		_polish_game_labels(child)
+	chrome_presenter.polish_game_labels(node)
 
 
 func _hide_game_scrollbars(node: Node) -> void:
-	if node is ScrollContainer:
-		var scroll := node as ScrollContainer
-		if scroll.horizontal_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
-			scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-		if scroll.vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
-			scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_SHOW_NEVER
-	for child in node.get_children():
-		_hide_game_scrollbars(child)
+	chrome_presenter.hide_game_scrollbars(node)

@@ -6,6 +6,7 @@ const RoomItemPreview3D = preload("res://scripts/meta/room_item_preview_3d.gd")
 const RoomPreviewViewport = preload("res://scripts/meta/room_preview_viewport.gd")
 const RoomAuthoredFurnitureLoader = preload("res://scripts/meta/room_authored_furniture_loader.gd")
 const RoomProceduralFurnitureBuilder = preload("res://scripts/meta/room_procedural_furniture_builder.gd")
+const GameExperienceChromePresenter = preload("res://scripts/ui/game_experience_chrome_presenter.gd")
 
 var failures: Array[String] = []
 
@@ -31,6 +32,55 @@ func _room_item(items: Array, instance_id: String) -> Dictionary:
 
 
 func _run() -> void:
+	var chrome_presenter := GameExperienceChromePresenter.new()
+	var presenter_source: String = FileAccess.get_file_as_string("res://scripts/ui/game_experience_chrome_presenter.gd")
+	_check(chrome_presenter is RefCounted and not presenter_source.contains("\nvar ") and not presenter_source.contains("AppState") and not presenter_source.contains("CompanionAbilityService"), "chrome presenter is a stateless RefCounted that receives presentation inputs instead of owning game state")
+	var chrome_host := Control.new()
+	add_child(chrome_host)
+	chrome_presenter.apply_storybook_atmosphere(chrome_host)
+	chrome_presenter.apply_storybook_atmosphere(chrome_host)
+	_check(chrome_host.find_children("StorybookAtmosphere", "Control", true, false).size() == 1, "chrome presenter adds its storybook atmosphere idempotently")
+	var presenter_header := chrome_presenter.build_header("Coin Count", 75, func() -> void: pass, func() -> void: pass, func() -> void: pass)
+	var presenter_header_panel := presenter_header.get("panel") as PanelContainer
+	var presenter_coin_button := presenter_header.get("coin_button") as Button
+	_check(is_instance_valid(presenter_header_panel) and presenter_header_panel.name == "StandardGameHeader" and is_instance_valid(presenter_coin_button) and presenter_coin_button.name == "GameHeaderCoins" and presenter_coin_button.get_parent().get_parent() == presenter_header_panel and presenter_coin_button.text == " 75", "chrome presenter returns the exact header panel and coin button contract")
+	var presenter_objective := chrome_presenter.build_objective_plaque("sparkle", func() -> void: pass, func() -> void: pass, func() -> void: pass)
+	var presenter_objective_panel := presenter_objective.get("panel") as PanelContainer
+	var presenter_primary := presenter_objective.get("objective_primary") as Label
+	var presenter_detail := presenter_objective.get("objective_detail") as Label
+	var presenter_ability := presenter_objective.get("ability_button") as Button
+	var presenter_hint := presenter_objective.get("hint_button") as Button
+	_check(is_instance_valid(presenter_objective_panel) and presenter_objective_panel.name == "GameObjectivePlaque" and is_instance_valid(presenter_primary) and presenter_primary.name == "ObjectivePrimary" and is_instance_valid(presenter_detail) and presenter_detail.name == "ObjectiveDetail" and is_instance_valid(presenter_ability) and presenter_ability.name == "CompanionAbility" and is_instance_valid(presenter_hint) and presenter_hint.name == "OrdinaryHint", "chrome presenter returns the exact objective labels and action button contract")
+	var comet_scene := Control.new()
+	var comet_equation := Label.new()
+	comet_equation.name = "CometEquationBanner"
+	comet_scene.add_child(comet_equation)
+	var comet_meter := Label.new()
+	comet_meter.name = "CometRescueMeter"
+	comet_scene.add_child(comet_meter)
+	chrome_presenter.configure_comet_chrome(comet_scene, "comet_math_rescue")
+	_check(not comet_equation.visible and not comet_meter.visible, "chrome presenter hides duplicate Comet chrome only for the Comet game")
+	var saved_attached_game_id := GameExperience.attached_game_id
+	var saved_objective_primary := GameExperience.objective_primary
+	var saved_objective_detail := GameExperience.objective_detail
+	var saved_coin_button := GameExperience.coin_button
+	var saved_ability_button := GameExperience.ability_button
+	var saved_hint_button := GameExperience.hint_button
+	var wrapper_header := GameExperience._build_header("Coin Count")
+	var wrapper_objective := GameExperience._build_objective_plaque()
+	chrome_host.add_child(wrapper_header)
+	chrome_host.add_child(wrapper_objective)
+	GameExperience.attached_game_id = "comet_math_rescue"
+	GameExperience._configure_comet_chrome(comet_scene)
+	_check(GameExperience.coin_button == wrapper_header.find_child("GameHeaderCoins", true, false) and GameExperience.objective_primary == wrapper_objective.find_child("ObjectivePrimary", true, false) and GameExperience.objective_detail == wrapper_objective.find_child("ObjectiveDetail", true, false) and GameExperience.ability_button == wrapper_objective.find_child("CompanionAbility", true, false) and GameExperience.hint_button == wrapper_objective.find_child("OrdinaryHint", true, false) and not comet_equation.visible and not comet_meter.visible, "GameExperience compatibility wrappers preserve public chrome fields and delegate Comet hiding")
+	GameExperience.attached_game_id = saved_attached_game_id
+	GameExperience.objective_primary = saved_objective_primary
+	GameExperience.objective_detail = saved_objective_detail
+	GameExperience.coin_button = saved_coin_button
+	GameExperience.ability_button = saved_ability_button
+	GameExperience.hint_button = saved_hint_button
+	chrome_host.free()
+	comet_scene.free()
 	var procedural_rug_parent := Node3D.new()
 	RoomProceduralFurnitureBuilder.new().build(procedural_rug_parent, "missing_procedural_rug", "rugs")
 	var rug_mesh_count := 0
