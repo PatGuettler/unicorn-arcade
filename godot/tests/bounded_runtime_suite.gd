@@ -257,7 +257,6 @@ func _meta_suite() -> void:
 	var old_actor: Node = room.roaming_actor
 	var old_canvas: Control = room.room_canvas
 	AppState.data["inventory"]["lamp"] = 1
-	room.suppress_bag_actions_until_ms = 0
 	room.call("_place_from_bag", "lamp")
 	var placed_id: String = room.selected_id
 	await get_tree().process_frame
