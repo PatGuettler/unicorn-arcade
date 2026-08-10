@@ -113,7 +113,7 @@ func _process(delta: float) -> void:
 	bolt_ms = maxf(0.0, bolt_ms - ms)
 	_update_comet_positions()
 	if wave_elapsed_ms >= decision_ms:
-		_resolve_wave()
+		_resolve_timeout()
 	queue_redraw()
 
 
@@ -206,11 +206,16 @@ func _resolve_wave(force_correct := false) -> bool:
 	else:
 		lives -= 1
 		status_label.text = "Not this comet. Shield lost — %d shield hearts left." % lives
+	_finish_wave()
+	return correct
+
+
+func _finish_wave(timed_out := false) -> void:
 	if lives <= 0:
 		active = false
 		action_button.text = "Retry"
 		action_button.show()
-		status_label.text = "Three comets slipped through. Retry this rescue mission."
+		status_label.text = "Time ran out. Three comets slipped through. Retry this rescue mission." if timed_out else "Three comets slipped through. Retry this rescue mission."
 	elif rescues >= target_rescues:
 		active = false
 		var reward := AppState.complete_level("comet_math_rescue", level, Time.get_ticks_msec() - started_ms)
@@ -221,7 +226,23 @@ func _resolve_wave(force_correct := false) -> bool:
 		feedback_ms = 650.0 if not AppState.setting("reduced_motion", false) else 1.0
 	_update_hud()
 	queue_redraw()
-	return correct
+
+
+func _resolve_timeout() -> bool:
+	if not active or wave_resolved or current_problem.is_empty():
+		return false
+	wave_resolved = true
+	fire_button.disabled = true
+	fire_button.hide()
+	for button in lane_buttons:
+		button.disabled = true
+	# A timeout is a miss, not an implicit shot at the highlighted lane.
+	bolt_lane = -1
+	bolt_ms = 0.0
+	lives -= 1
+	status_label.text = "Time ran out. That comet slipped past."
+	_finish_wave(true)
+	return false
 
 
 func _mystic_rescue() -> bool:

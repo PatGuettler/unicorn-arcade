@@ -119,7 +119,7 @@ func _choose_node(index: int) -> void:
 			_bounce_stone(node_buttons[index])
 			return
 		active = false
-		status_label.text = "Wrong landing. Follow the jump value to stone %d." % expected
+		status_label.text = "Wrong landing. Follow the jump value to stone %d." % (expected + 1)
 		action_button.text = "Retry"
 		action_button.show()
 		_set_nodes_enabled(false)

@@ -26,6 +26,7 @@ var swipe_start := Vector2.ZERO
 var swipe_consumed := false
 var equation_charge := 0
 var slow_until_ms := 0
+var _test_force_seed_failure := false
 
 
 func _ready() -> void:
@@ -131,8 +132,22 @@ func _seed_bottom_pile() -> void:
 		for row in range(ROWS - fill_rows, ROWS):
 			for col in COLS:
 				board[row][col] = allowed[rng.randi_range(0, allowed.size() - 1)]
-		if _find_matches().is_empty():
+		if not _test_force_seed_failure and _find_matches().is_empty():
 			return
+	_seed_match_free_fallback(fill_rows)
+
+
+func _seed_match_free_fallback(fill_rows: int) -> void:
+	board = _make_board()
+	var safe_token := "1"
+	for token in Rules.mathtris_allowed(level):
+		if str(token).is_valid_int():
+			safe_token = str(token)
+			break
+	# A pile containing one numeric token cannot form a five-tile equation.
+	for row in range(ROWS - fill_rows, ROWS):
+		for col in COLS:
+			board[row][col] = safe_token
 
 
 func _spawn_wave() -> void:

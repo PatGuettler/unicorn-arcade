@@ -10,6 +10,7 @@ var target := 0
 var total := 0
 var started_ms := 0
 var failed := false
+var active := false
 var target_label: Label
 var total_label: Label
 var message_label: Label
@@ -41,6 +42,7 @@ func _start_round() -> void:
 		target = rng.randi_range(100, 499)
 	total = 0
 	failed = false
+	active = true
 	started_ms = Time.get_ticks_msec()
 	target_label.text = "Make %s" % _money(target)
 	total_label.text = _money(total)
@@ -51,14 +53,18 @@ func _start_round() -> void:
 
 
 func _add_coin(value: int) -> void:
+	if not active:
+		return
 	total += value
 	total_label.text = _money(total)
 	if total == target:
+		active = false
+		_set_buttons_enabled(false)
 		var reward := AppState.complete_level("coin_count", level, Time.get_ticks_msec() - started_ms)
 		message_label.text = "Perfect! +%d coins" % reward
 		level += 1
-		_set_buttons_enabled(false)
 	elif total > target:
+		active = false
 		failed = true
 		message_label.text = "Too much—try this level again."
 		_set_buttons_enabled(false)
@@ -74,7 +80,7 @@ func retry_failure() -> void:
 
 
 func _show_hint() -> void:
-	if total >= target:
+	if not active or total >= target:
 		return
 	var remaining := target - total
 	var best := 1
@@ -86,7 +92,14 @@ func _show_hint() -> void:
 	message_label.text = "%s is the biggest coin that still fits." % _money(best)
 
 func can_show_hint() -> bool:
-	return not failed and total < target
+	return active and not failed and total < target
+
+
+func _request_hint() -> void:
+	if not can_show_hint():
+		return
+	if AppState.spend_hint(level):
+		_show_hint()
 
 
 func _build_ui() -> void:
@@ -154,7 +167,7 @@ func _build_ui() -> void:
 	var hint := Button.new()
 	StorybookUI.apply_game_action(hint, 120)
 	hint.text = "Hint"
-	hint.pressed.connect(func() -> void: if AppState.spend_hint(level): _show_hint())
+	hint.pressed.connect(_request_hint)
 	actions.add_child(hint)
 	var back := Button.new()
 	back.text = "Number Games"

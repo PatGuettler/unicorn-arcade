@@ -27,6 +27,7 @@ var expected_word := ""
 var phase := "choice"
 var rng := RandomNumberGenerator.new()
 var blast_words: Array = []
+var blast_source_exhausted := false
 var spawn_elapsed := 0.0
 var suppress_text_event := false
 
@@ -82,6 +83,7 @@ func _start_level() -> void:
 	lives = 3 if game_id in ["caption_quest", "odd_one_out", "unicorn_blast"] else 0
 	started_ms = Time.get_ticks_msec()
 	active = true
+	blast_source_exhausted = false
 	hint_visible = level == 1
 	phase = "choice"
 	level_label.text = "LEVEL %d" % level
@@ -150,6 +152,8 @@ func _load_round() -> void:
 			_load_unicorn_blast()
 		_:
 			_fail("This game is not configured.")
+	if active and game_id in ["missing_magic", "prefix_potion", "caption_quest", "opposite_orbit", "scramble_spell", "odd_one_out", "size_line_up", "chain_link"] and current.is_empty():
+		_fail("This word round needs a refresh. Try again soon.")
 
 
 func _load_sequence(key: String, field: String, instruction: String, mode: String) -> void:
@@ -157,6 +161,9 @@ func _load_sequence(key: String, field: String, instruction: String, mode: Strin
 	var round := RoundCatalog.sequence_round(current, field)
 	sequence = round["sequence"]
 	pool = round["pool"]
+	if sequence.is_empty():
+		_fail("This word round needs a refresh. Try again soon.")
+		return
 	phase = mode
 	instruction_label.text = instruction
 	_render_sequence()
@@ -165,6 +172,9 @@ func _load_sequence(key: String, field: String, instruction: String, mode: Strin
 func _load_sight_spark() -> void:
 	var words := Rules.words_for_level(level)
 	expected_word = RoundCatalog.word_for_round(words, level, round_index)
+	if expected_word.is_empty():
+		_fail("This word round needs a refresh. Try again soon.")
+		return
 	phase = "flash"
 	instruction_label.text = "Remember this word"
 	prompt_label.text = expected_word
@@ -184,6 +194,9 @@ func _finish_sight_flash() -> void:
 
 func _load_vowel_vines() -> void:
 	var prepared := RoundCatalog.vowel_round(Rules.data(), VOWELS, level, round_index, rng)
+	if prepared.is_empty() or (prepared.get("choices", []) as Array).is_empty():
+		_fail("This vowel round needs a refresh. Try again soon.")
+		return
 	var vowel: String = prepared["vowel"]
 	current = {"vowel": vowel}
 	instruction_label.text = "Choose a word beginning with"
@@ -194,6 +207,9 @@ func _load_vowel_vines() -> void:
 func _load_letter_lift() -> void:
 	var words := Rules.words_for_level(level)
 	expected_word = RoundCatalog.word_for_round(words, level, round_index)
+	if expected_word.is_empty():
+		_fail("This word round needs a refresh. Try again soon.")
+		return
 	phase = "letter"
 	picked.clear()
 	instruction_label.text = "Type each letter in order"
@@ -451,6 +467,15 @@ func _show_hint() -> void:
 		message_label.text = _hint_text()
 
 
+func _request_hint() -> void:
+	if not active or hint_visible:
+		return
+	if level > 1 and not AppState.spend_hint(level):
+		message_label.text = "You need 5 coins for a hint. Keep playing to earn more!"
+		return
+	_show_hint()
+
+
 func _hint_text() -> String:
 	match game_id:
 		"vowel_vines": return "Pick the word starting with %s." % str(current.get("vowel", "")).to_upper()
@@ -481,7 +506,7 @@ func _fail_reason() -> String:
 
 func _update_blast(delta: float) -> void:
 	spawn_elapsed += delta
-	if spawn_elapsed * 1000.0 >= Rules.blast_spawn_ms(level):
+	if not blast_source_exhausted and spawn_elapsed * 1000.0 >= Rules.blast_spawn_ms(level):
 		spawn_elapsed = 0.0
 		_spawn_blast_word()
 	var escaped: Array[int] = []
@@ -500,10 +525,15 @@ func _update_blast(delta: float) -> void:
 		message_label.text = "Blast: %s" % _urgent_blast_word()
 
 
-func _spawn_blast_word() -> void:
+func _spawn_blast_word() -> bool:
 	if not active:
-		return
+		return false
 	var words := Rules.words_for_level(level)
+	if words.is_empty():
+		if not blast_source_exhausted:
+			blast_source_exhausted = true
+			message_label.text = "This word cloud needs a refill. Try again soon."
+		return false
 	var text := str(words[rng.randi_range(0, words.size() - 1)])
 	var button := Button.new()
 	button.text = text
@@ -513,6 +543,7 @@ func _spawn_blast_word() -> void:
 	var entry := {"text": text, "x": rng.randf_range(12.0, 76.0), "y": 8.0, "button": button}
 	blast_words.append(entry)
 	_position_blast_word(entry)
+	return true
 
 
 func _position_blast_word(entry: Dictionary) -> void:
@@ -706,7 +737,7 @@ func _build_ui() -> void:
 	layout.add_child(actions)
 	hint_button = Button.new()
 	StorybookUI.apply_game_action(hint_button, 140)
-	hint_button.pressed.connect(_show_hint)
+	hint_button.pressed.connect(_request_hint)
 	actions.add_child(hint_button)
 	retry_button = Button.new()
 	StorybookUI.apply_game_action(retry_button, 160)

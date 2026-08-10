@@ -13,7 +13,23 @@ var applied := {}
 
 func _ready() -> void:
 	get_tree().node_added.connect(_node_added)
+	get_tree().scene_changed.connect(_on_scene_changed)
 	call_deferred("_apply_current_scene")
+
+
+func _on_scene_changed() -> void:
+	_prune_applied()
+	call_deferred("_apply_current_scene")
+
+
+func _prune_applied() -> void:
+	var current := AdBarService.content_scene()
+	if not is_instance_valid(current):
+		current = get_tree().current_scene
+	for instance_id in applied.keys():
+		var node := instance_from_id(instance_id)
+		if not is_instance_valid(node) or (is_instance_valid(current) and node != current and not current.is_ancestor_of(node)):
+			applied.erase(instance_id)
 
 
 func _node_added(node: Node) -> void:
