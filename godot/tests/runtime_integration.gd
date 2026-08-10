@@ -213,7 +213,7 @@ func _run() -> void:
 	galaxy.call("_input", galaxy_drag)
 	_check(is_equal_approx(galaxy.player_x, 0.8), "Galaxy Unicorn responds to Android screen dragging")
 	var paused_spawn_timer: float = galaxy.spawn_timer
-	var paused_enemy_count := galaxy.enemies.size()
+	var paused_enemy_count: int = galaxy.enemies.size()
 	galaxy.call("set_gameplay_paused", true)
 	galaxy.call("_process", 1.0)
 	_check(is_equal_approx(galaxy.spawn_timer, paused_spawn_timer) and galaxy.enemies.size() == paused_enemy_count, "Galaxy tutorial pause freezes spawning and simulation")
@@ -231,7 +231,7 @@ func _run() -> void:
 	_check(comet.active and comet.lane_buttons.size() == 3 and comet.target_rescues > 0, "Comet Math Rescue launches a three-lane Rescue mission")
 	_check(_ui_is_accessible(comet), "Comet Math Rescue meets readable text, contrast, and touch-target minimums")
 	_check(is_instance_valid(comet.fire_button) and comet.fire_button.visible, "Comet Math Rescue presents a dedicated FIRE RAINBOW action")
-	var side_lane := (comet.correct_lane + 1) % 3
+	var side_lane: int = (comet.correct_lane + 1) % 3
 	comet.call("_select_lane", side_lane)
 	var fire_touch := InputEventScreenTouch.new()
 	fire_touch.pressed = true
@@ -321,8 +321,7 @@ func _run() -> void:
 		room.call("_process", 0.1)
 		_check(roaming_actor.scale.x < 0.0 and roaming_actor.pivot_offset.is_equal_approx(roaming_actor.size * 0.5), "room companion mirrors leftward travel around its centered pivot")
 	_check(room.call("_item_base_size", "companion_sparkle") == Vector2(252, 180), "room companions use an expanded transparent canvas for horn and hoof clearance")
-	var companion_button: Button = room.item_buttons.get("room_companion_sparkle")
-	var companion_preview = companion_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(companion_button) else null
+	var companion_preview = room.roaming_actor
 	_check(is_instance_valid(companion_preview) and companion_preview.uses_character_model and companion_preview.source_model_id == "sparkle" and companion_preview.mesh_count >= 1, "rooms automatically present the updated companion-specific GLB")
 	var live_unicorn_model = companion_preview.find_child("LiveUnicornModel", true, false) if is_instance_valid(companion_preview) else null
 	_check(is_instance_valid(live_unicorn_model) and is_equal_approx(live_unicorn_model.scale.x, 3.84), "room unicorn presentation applies the requested three-times display scale")
@@ -375,14 +374,38 @@ func _run() -> void:
 	_check(moved_lamp.size() == 1 and is_equal_approx(float(moved_lamp[0]["x"]), 80.0) and is_equal_approx(float(moved_lamp[0]["y"]), 64.0), "room decor follows and commits an Android drag outside its button")
 	touch_room.call("_selection_action", "ROTATE")
 	var lamp_display_root := lamp_preview.find_child("DisplayRotationRoot", true, false) as Node3D
-	_check(is_zero_approx(lamp_button.rotation_degrees) and is_instance_valid(lamp_display_root) and is_equal_approx(lamp_display_root.rotation_degrees.y, 45.0), "room rotate turns the 3D model around world up without tilting its upright interaction target")
+	_check(is_zero_approx(lamp_button.rotation_degrees) and is_instance_valid(lamp_display_root) and is_zero_approx(lamp_display_root.rotation_degrees.x) and is_equal_approx(lamp_display_root.rotation_degrees.y, 45.0) and is_zero_approx(lamp_display_root.rotation_degrees.z), "room rotate updates the selected live 3D model around world up without tilting its upright interaction target")
+	for _frame in 3:
+		await get_tree().process_frame
 	var blank_room_press := InputEventScreenTouch.new()
 	blank_room_press.pressed = true
 	touch_room.call("_room_canvas_input", blank_room_press)
+	await get_tree().process_frame
 	var unselected_normal := lamp_button.get_theme_stylebox("normal") as StyleBoxFlat
 	var unselected_hover := lamp_button.get_theme_stylebox("hover") as StyleBoxFlat
-	_check(touch_room.selected_id.is_empty() and not is_instance_valid(touch_room.selection_toolbar), "tapping empty room space deselects the model and closes its manipulation controls")
+	var lamp_cached := lamp_button.get_node_or_null("CachedDecorPreview") as TextureRect
+	_check(touch_room.selected_id.is_empty() and not is_instance_valid(touch_room.selection_toolbar) and not is_instance_valid(lamp_button.get_node_or_null("RoomItemPreview3D")) and is_instance_valid(lamp_cached) and lamp_cached.visible and lamp_cached.texture != null, "tapping empty room space freezes the selected model into a visible cached snapshot and closes its controls")
 	_check(is_instance_valid(unselected_normal) and is_zero_approx(unselected_normal.bg_color.a) and unselected_normal.border_width_left == 0 and is_instance_valid(unselected_hover) and is_zero_approx(unselected_hover.bg_color.a) and unselected_hover.border_width_left == 0, "unselected room items have no transparent or hover interaction boxes")
+	AppState.data["inventory"]["rug"] = 1
+	var rug_placement := {"instance_id": "test_rug", "item_id": "rug", "x": 28.0, "y": 62.0, "rotation": 0, "scale": 1.0, "z_index": 2}
+	_check(AppState.place_room_item("rainbow", rug_placement), "runtime room fixture can place a second decor item for selection switching")
+	touch_room.call("_build_editor")
+	await get_tree().process_frame
+	lamp_button = touch_room.item_buttons.get("test_lamp")
+	var rug_button: Button = touch_room.item_buttons.get("test_rug")
+	touch_room.call("_begin_item_drag", "test_lamp")
+	var reselected_lamp = lamp_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(lamp_button) else null
+	touch_room.call("_begin_item_drag", "test_rug")
+	await get_tree().process_frame
+	var selected_rug = rug_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(rug_button) else null
+	_check(is_instance_valid(reselected_lamp) and not is_instance_valid(lamp_button.get_node_or_null("RoomItemPreview3D")) and is_instance_valid(selected_rug) and is_zero_approx(lamp_button.rotation_degrees) and is_zero_approx(rug_button.rotation_degrees), "switching decor selection frees the previous live preview and never leaves more than one upright decor viewport")
+	touch_room.call("_clear_selection")
+	await get_tree().process_frame
+	touch_room.call("_begin_item_drag", "test_lamp")
+	var restored_lamp = lamp_button.get_node_or_null("RoomItemPreview3D") if is_instance_valid(lamp_button) else null
+	var restored_root := restored_lamp.find_child("DisplayRotationRoot", true, false) as Node3D if is_instance_valid(restored_lamp) else null
+	_check(is_instance_valid(restored_lamp) and is_instance_valid(restored_root) and is_equal_approx(restored_root.rotation_degrees.y, 45.0), "reselecting decor restores its saved live 3D yaw")
+	touch_room.call("_clear_selection")
 	touch_room.call("_show_bag")
 	await get_tree().process_frame
 	var empty_bag_message := touch_room.bag_grid.find_child("EmptyBagMessage", true, false) as Label
@@ -391,7 +414,7 @@ func _run() -> void:
 	_check(_ui_is_accessible(touch_room.bag_overlay), "Furniture Bag meets readable text, contrast, and touch-target minimums")
 	touch_room.bag_grid.custom_minimum_size.y = touch_room.bag_catalog_scroll.size.y + 400.0
 	await get_tree().process_frame
-	var bag_category_chips := touch_room.bag_category_scroll.find_children("*", "Button", true, false)
+	var bag_category_chips: Array[Node] = touch_room.bag_category_scroll.find_children("*", "Button", true, false)
 	var bag_category_chip: Button = bag_category_chips[0] as Button if not bag_category_chips.is_empty() else null
 	var bag_category_bar: HScrollBar = touch_room.bag_category_scroll.get_h_scroll_bar()
 	var bag_catalog_bar: VScrollBar = touch_room.bag_catalog_scroll.get_v_scroll_bar()
@@ -483,7 +506,7 @@ func _exercise_first_move(game_id: String, game: Node) -> void:
 		_check(game.picked.size() == 1, "%s accepts the first ordered item" % game_id)
 		return
 	if game_id == "letter_lift":
-		var first_target := game.expected_word
+		var first_target: String = game.expected_word
 		game.call("_handle_letter_input", first_target.left(1))
 		_check(game.picked.size() == 1 and game.secondary_label.text == "TARGET: %s" % first_target.to_upper(), "Letter Lift accepts the next exact letter while retaining its complete target")
 		for letter_index in range(1, first_target.length()):

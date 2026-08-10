@@ -174,6 +174,7 @@ func _reset_bag_scroll_gesture() -> void:
 
 
 func _clear_ui() -> void:
+	_retire_selected_live_decor()
 	# A rebuild queues the old canvas for deletion, so its actor remains valid
 	# through this frame. Retire the reference and motion state explicitly or the
 	# new canvas will reflow that stale actor instead of creating its own.
@@ -245,6 +246,8 @@ func _build_editor() -> void:
 	room_canvas.add_child(room_bg)
 	for item in local_items:
 		_create_item_button(item)
+	if not selected_id.is_empty():
+		_activate_selected_live_decor()
 	room_canvas.resized.connect(_on_room_canvas_resized)
 	room_stage.resized.connect(_fit_room_canvas.bind(room_stage, room_texture.get_size()))
 	_fit_room_canvas.call_deferred(room_stage, room_texture.get_size())
@@ -404,8 +407,11 @@ func _item_input(event: InputEvent, instance_id: String, button: Button) -> void
 
 
 func _begin_item_drag(instance_id: String) -> void:
+	if selected_id != instance_id:
+		_retire_selected_live_decor()
 	selected_id = instance_id
 	dragging_id = instance_id
+	_activate_selected_live_decor()
 	_mark_selected()
 
 
@@ -419,6 +425,7 @@ func _room_canvas_input(event: InputEvent) -> void:
 
 
 func _clear_selection() -> void:
+	_retire_selected_live_decor()
 	selected_id = ""
 	dragging_id = ""
 	if is_instance_valid(selection_toolbar):
@@ -430,6 +437,73 @@ func _clear_selection() -> void:
 		_apply_item_button_style(item_buttons[instance_id], str(definition.get("category", "cozy")), false)
 	if is_instance_valid(status_label):
 		status_label.text = "%d decorations placed. Tap an item for controls." % local_items.size()
+
+
+func _selected_live_decor_preview(instance_id: String = selected_id) -> RoomItemPreview3D:
+	var button := item_buttons.get(instance_id) as Button
+	return button.get_node_or_null("RoomItemPreview3D") as RoomItemPreview3D if is_instance_valid(button) else null
+
+
+func _is_companion_anchor(item: Dictionary) -> bool:
+	return str(item.get("item_id", "")).begins_with("companion_")
+
+
+func _activate_selected_live_decor() -> void:
+	if selected_id.is_empty():
+		return
+	var item := _local_item(selected_id)
+	if item.is_empty() or _is_companion_anchor(item):
+		return
+	var button := item_buttons.get(selected_id) as Button
+	if not is_instance_valid(button):
+		return
+	var yaw := float(item.get("rotation", 0.0))
+	var live := _selected_live_decor_preview(selected_id)
+	if is_instance_valid(live):
+		live.set_display_yaw(yaw)
+		return
+	var cached := button.get_node_or_null("CachedDecorPreview") as TextureRect
+	if is_instance_valid(cached):
+		cached.hide()
+	var definition := _item_definition(str(item.get("item_id", ""))).merged({"id": str(item.get("item_id", "")), "animate": false, "presentation": "room_selected"}, true)
+	live = RoomItemPreviewScene.new()
+	live.name = "RoomItemPreview3D"
+	live.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	live.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	button.add_child(live)
+	live.setup(definition)
+	live.set_display_yaw(yaw)
+
+
+func _retire_selected_live_decor() -> void:
+	if selected_id.is_empty():
+		return
+	_retire_live_decor_preview(selected_id)
+
+
+func _retire_live_decor_preview(instance_id: String) -> void:
+	var item := _local_item(instance_id)
+	if item.is_empty() or _is_companion_anchor(item):
+		return
+	var button := item_buttons.get(instance_id) as Button
+	if not is_instance_valid(button):
+		return
+	var live := _selected_live_decor_preview(instance_id)
+	if not is_instance_valid(live):
+		return
+	var definition := _item_definition(str(item.get("item_id", ""))).merged({"id": str(item.get("item_id", ""))}, true)
+	var viewport := live.get_node_or_null("SubViewport") as SubViewport
+	var frozen: Texture2D = null
+	if is_instance_valid(viewport):
+		frozen = DecorPreviewCache.cache_visible_image(definition, float(item.get("rotation", 0.0)), viewport.get_texture().get_image())
+	var cached := button.get_node_or_null("CachedDecorPreview") as TextureRect
+	if is_instance_valid(cached):
+		if frozen != null:
+			cached.texture = frozen
+		# A transparent or unavailable readback must never leave the selected item
+		# invisible: retain its prior snapshot and restore the cached rect either way.
+		cached.show()
+	live.queue_free()
 
 
 func close_top_overlay() -> bool:
@@ -531,7 +605,11 @@ func _selection_action(action: String) -> void:
 	if item.is_empty():
 		return
 	match action:
-		"ROTATE": item["rotation"] = (int(item.get("rotation", 0)) + 45) % 360
+		"ROTATE":
+			item["rotation"] = (int(item.get("rotation", 0)) + 45) % 360
+			var live := _selected_live_decor_preview()
+			if is_instance_valid(live):
+				live.set_display_yaw(float(item["rotation"]))
 		"SMALLER": item["scale"] = clampf(float(item.get("scale", 1.0)) - 0.1, 0.5, 1.8)
 		"LARGER": item["scale"] = clampf(float(item.get("scale", 1.0)) + 0.1, 0.5, 1.8)
 		"BACK", "FRONT":
@@ -539,6 +617,7 @@ func _selection_action(action: String) -> void:
 			_refresh_room_items()
 			return
 		"REMOVE":
+			_retire_selected_live_decor()
 			AppState.remove_room_item(companion_id, selected_id)
 			selected_id = ""
 			_build_editor()
@@ -558,7 +637,8 @@ func _refresh_room_items() -> void:
 		button.custom_minimum_size = _item_base_size(str(item.get("item_id", ""))) * float(item.get("scale", 1.0))
 		button.size = button.custom_minimum_size
 		button.rotation_degrees = 0.0
-		var definition := _item_definition(str(item.get("item_id", "")))
+		var item_id := str(item.get("item_id", ""))
+		var definition := _item_definition(item_id).merged({"id": item_id}, true)
 		_refresh_cached_decor_preview(button, definition, float(item.get("rotation", 0)))
 		button.z_index = int(item.get("z_index", 0))
 	_position_items()

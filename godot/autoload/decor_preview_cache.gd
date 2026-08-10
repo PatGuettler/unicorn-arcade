@@ -8,6 +8,7 @@ signal preview_ready(key: String, texture: Texture2D)
 
 var _textures: Dictionary = {}
 var _thumbnail_fallbacks: Dictionary = {}
+var _generations: Dictionary = {}
 var _queue: Array[Dictionary] = []
 var _waiters: Dictionary = {}
 var _rendering := false
@@ -27,7 +28,7 @@ func request(definition: Dictionary, yaw_degrees: float, callback: Callable) -> 
 		return
 	if _rendering and not _queue.is_empty() and str(_queue.front().get("key", "")) == key:
 		return
-	_queue.append({"key": key, "definition": definition.duplicate(true), "yaw": yaw_degrees})
+	_queue.append({"key": key, "definition": definition.duplicate(true), "yaw": yaw_degrees, "generation": int(_generations.get(key, 0))})
 	if not _rendering:
 		call_deferred("_render_next")
 
@@ -38,6 +39,18 @@ func cache_key(definition: Dictionary, yaw_degrees: float) -> String:
 
 func cached_texture(definition: Dictionary, yaw_degrees: float) -> Texture2D:
 	return _textures.get(cache_key(definition, yaw_degrees)) as Texture2D
+
+
+func cache_visible_image(definition: Dictionary, yaw_degrees: float, image: Image) -> Texture2D:
+	if not _has_visible_pixels(image):
+		return null
+	var texture := ImageTexture.create_from_image(image)
+	var key := cache_key(definition, yaw_degrees)
+	_generations[key] = int(_generations.get(key, 0)) + 1
+	_textures[key] = texture
+	_thumbnail_fallbacks[key] = false
+	preview_ready.emit(key, texture)
+	return texture
 
 
 func is_thumbnail_fallback(definition: Dictionary, yaw_degrees: float) -> bool:
@@ -108,15 +121,18 @@ func _render_next() -> void:
 		# Keep its thumbnail visible rather than caching a blank texture.
 		texture = _thumbnail_fallback(request_data.definition)
 		used_thumbnail_fallback = true
-	if texture != null:
+	var completed_texture := texture
+	if texture != null and int(request_data.get("generation", 0)) == int(_generations.get(request_data.key, 0)):
 		_textures[request_data.key] = texture
 		_thumbnail_fallbacks[request_data.key] = used_thumbnail_fallback
 		preview_ready.emit(request_data.key, texture)
+	elif _textures.has(request_data.key):
+		completed_texture = _textures[request_data.key] as Texture2D
 	var callbacks: Array = _waiters.get(request_data.key, [])
 	_waiters.erase(request_data.key)
 	for callback in callbacks:
 		if callback is Callable and (callback as Callable).is_valid():
-			(callback as Callable).call_deferred(texture)
+			(callback as Callable).call_deferred(completed_texture)
 	preview.queue_free()
 	_active_key = ""
 	call_deferred("_render_next")
