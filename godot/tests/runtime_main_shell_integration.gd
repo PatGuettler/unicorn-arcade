@@ -1,6 +1,7 @@
 extends Node
 
 const MAIN_SCENE = preload("res://scenes/main.tscn")
+const LoginView = preload("res://scripts/ui/login_view.gd")
 
 var failures: Array[String] = []
 var check_count := 0
@@ -119,13 +120,26 @@ func _run() -> void:
 	await _release_shell(shell)
 	AppState.data["player"]["name"] = ""
 	var login_shell := MAIN_SCENE.instantiate()
+	var login_page_build_signals: Array[bool] = []
+	login_shell.page_build_complete.connect(func() -> void: login_page_build_signals.append(true))
 	add_child(login_shell)
 	await login_shell.page_build_complete
 	await get_tree().process_frame
+	var login_view := login_shell.find_child("LoginView", true, false) as LoginView
 	var login_prompt := login_shell.find_child("PlayerNamePrompt", true, false) as Label
 	var login_input := login_shell.find_child("PlayerNameInput", true, false) as LineEdit
-	_check(is_instance_valid(login_prompt) and is_instance_valid(login_input) and not login_input.has_focus(), "first launch clearly asks for a name without opening the Android keyboard")
+	var login_enter := login_shell.find_child("LoginEnterButton", true, false) as Button
+	_check(is_instance_valid(login_view) and is_instance_valid(login_view.get_parent()) and login_view.get_parent() == login_shell.page and is_instance_valid(login_prompt) and is_instance_valid(login_input) and not login_input.has_focus(), "LoginView owns the unfocused first-launch name form")
 	_check(is_instance_valid(login_prompt) and is_instance_valid(login_input) and login_prompt.get_index() < login_input.get_index(), "the player-name instruction remains directly above its text field")
+	_check(is_instance_valid(login_enter) and login_enter.disabled and login_page_build_signals.size() == 1, "login enter waits for nonblank input and builds exactly once")
+	if is_instance_valid(login_input) and is_instance_valid(login_enter):
+		login_input.text = "New Login Tester"
+		login_input.emit_signal("text_changed", login_input.text)
+		_check(not login_enter.disabled, "nonblank login input enables enter")
+		login_enter.emit_signal("pressed")
+		await login_shell.page_build_complete
+		await get_tree().process_frame
+	_check(AppState.player_name() == "New Login Tester" and AppState.shell_view == "home" and AdBarService.should_show_for_player_logged_in(AppState.player_name()), "new-name login reaches home with logged-in ad eligibility")
 	await _release_shell(login_shell)
 	AppState.data = pre_test_data
 	AppState.selected_game_id = original_game
