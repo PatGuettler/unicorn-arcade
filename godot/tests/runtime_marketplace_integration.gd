@@ -1,6 +1,7 @@
 extends Node
 
 const MARKET_SCENE = preload("res://scenes/meta/marketplace.tscn")
+const MarketplaceCatalogController = preload("res://scripts/meta/marketplace_catalog_controller.gd")
 
 var failures: Array[String] = []
 var check_count := 0
@@ -28,6 +29,23 @@ func _run() -> void:
 	host.set_anchors_and_offsets_preset(Control.PRESET_TOP_LEFT)
 	host.size = Vector2(534, 1000)
 	await get_tree().process_frame
+	_check(market.catalog_controller is MarketplaceCatalogController and market.catalog_controller is RefCounted, "Marketplace owns catalog state in a non-Control controller")
+	market.tab = "decor"
+	market.category = "beds"
+	market.query = "race"
+	market._decor_page = 3
+	_check(market.catalog_controller.tab == "decor" and market.catalog_controller.category == "beds" and market.catalog_controller.query == "race" and market.catalog_controller.decor_page == 3 and market._decor_filtered == market.catalog_controller.decor_filtered and market.category_tap_guard == market.catalog_controller.category_tap_guard and market.catalog_tap_guard == market.catalog_controller.catalog_tap_guard, "Marketplace test-facing catalog state forwards to its controller")
+	market.call("_show_companions")
+	var controller := market.catalog_controller as MarketplaceCatalogController
+	controller.open_decor_tab()
+	controller.decor_page = 999
+	controller.refresh_decor_filter()
+	_check(controller.decor_filtered.size() > 0 and controller.decor_page == controller.decor_page_count() - 1 and controller.decor_page_count() >= 1, "Controller owns Decor filtering and clamps page transitions")
+	controller.apply_decor_search("race")
+	_check(controller.query == "race" and controller.decor_page == 0 and controller.decor_filtered.all(func(item: Dictionary) -> bool: return "race" in (str(item["name"]) + " " + str(item["desc"])).to_lower()), "Controller search resets paging and filters catalog entries")
+	controller.set_decor_category("all")
+	controller.apply_decor_search("")
+	market.call("_show_companions")
 	_check(market.catalog_ready and market.tab == "companions", "Marketplace reports a synchronous ready state without a deferred catalog build")
 	_check(not market._search.visible and not market._search_button.visible and not market.category_scroll.visible, "Companion catalog hides every Decor filter control")
 	_check(market.find_children("*", "GridContainer", true, false).is_empty() and market.find_children("*", "VBoxContainer", true, false).is_empty() and market.find_children("*", "HBoxContainer", true, false).is_empty(), "Marketplace uses only explicit fixed controls, never dynamic layout containers")
@@ -81,7 +99,7 @@ func _run() -> void:
 	_check("rainbow" not in AppState.owned_companions() and AppState.coins() == companion_coins_before, "Immediate companion action after catalog swipe is suppressed")
 	market.catalog_tap_guard.clear_suppression()
 	market.call("_companion_action", 1)
-	_check("rainbow" in AppState.owned_companions(), "Later companion tap remains available after catalog swipe suppression")
+	_check("rainbow" in AppState.owned_companions() and market.message_label.text == "Rainbow adopted!", "Later companion tap remains available after catalog swipe suppression with the original message")
 
 	market.call("_open_decor_tab")
 	await get_tree().process_frame
@@ -193,9 +211,9 @@ func _run() -> void:
 	var item_id := str(first_slot["item"]["id"])
 	var coins_before := AppState.coins()
 	market.call("_buy_decor", 0)
-	_check(int(AppState.data["inventory"].get(item_id, 0)) == 1 and AppState.coins() < coins_before, "Buy uses AppState persistence and refreshes the visible fixed card")
+	_check(int(AppState.data["inventory"].get(item_id, 0)) == 1 and AppState.coins() < coins_before and market.message_label.text == "Purchased.", "Buy uses AppState persistence exactly once and keeps its original message")
 	market.call("_sell_decor", 0)
-	_check(int(AppState.data["inventory"].get(item_id, 0)) == 0 and AppState.coins() > coins_before - int(first_slot["item"]["price"]), "Sell uses the unused-item AppState API and updates the same slot")
+	_check(int(AppState.data["inventory"].get(item_id, 0)) == 0 and AppState.coins() > coins_before - int(first_slot["item"]["price"]) and market.message_label.text == "Sold one unused item.", "Sell uses the unused-item AppState API exactly once and keeps its original message")
 	_check(_descendant_count(market) == child_count, "Filter, page, buy, and sell never create or destroy catalog controls")
 	_check(not market.has_method("_drain_content") and not market.has_method("_append_decor_batch") and not market.has_method("_maybe_load_more"), "Marketplace removes deferred, lazy, and scroll-driven rebuild paths")
 	market.prepare_for_scene_change()
