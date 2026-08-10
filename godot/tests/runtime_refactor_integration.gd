@@ -17,6 +17,9 @@ const WordFallingStrategy = preload("res://scripts/games/word_falling_strategy.g
 const WordRules = preload("res://scripts/games/word_game_rules.gd")
 const RhymeScene = preload("res://scenes/games/rhyme_rally.tscn")
 const GalaxyScene = preload("res://scenes/games/galaxy_unicorn.tscn")
+const EquationGenerator = preload("res://scripts/games/equation_generator.gd")
+const MathSwipe = preload("res://scripts/games/math_swipe.gd")
+const CometMathRescue = preload("res://scripts/games/comet_math_rescue.gd")
 
 class TutorialPauseProbe extends Control:
 	var level := 1
@@ -54,6 +57,7 @@ func _run() -> void:
 	_test_word_typed_entry_strategy()
 	_test_word_falling_strategy()
 	await _test_owned_rng_contracts()
+	_test_equation_generator()
 	var tutorial_presenter := GameExperienceTutorialPresenter.new()
 	var tutorial_source: String = FileAccess.get_file_as_string("res://scripts/ui/game_experience_tutorial_presenter.gd")
 	_check(tutorial_presenter is RefCounted and not tutorial_source.contains("\nvar ") and not tutorial_source.contains("AppState") and not tutorial_source.contains("GameExperience.") and not tutorial_source.contains("TutorialCatalog") and not tutorial_source.contains("attached_scene") and not tutorial_source.contains("CompanionAbilityService"), "tutorial presenter is a stateless RefCounted that does not own game, tutorial catalog, or gameplay state")
@@ -625,6 +629,170 @@ func _test_owned_rng_contracts() -> void:
 	remove_child(galaxy_b)
 	galaxy_a.free()
 	galaxy_b.free()
+
+
+func _test_equation_generator() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/games/equation_generator.gd")
+	var math_source := FileAccess.get_file_as_string("res://scripts/games/math_swipe.gd")
+	var comet_source := FileAccess.get_file_as_string("res://scripts/games/comet_math_rescue.gd")
+	_check(not source.contains("AppState") and not source.contains("ArcadeGameController") and not source.contains("StorybookUI") and not source.contains("GameplayRules") and not source.contains("display") and not source.contains("correct_index") and not source.contains("answers"), "equation generator is a stateless arithmetic-only boundary without UI, lifecycle, or caller presentation fields")
+	_check(math_source.contains("EquationGenerator.math_swipe_core(for_level, rng)") and math_source.contains("var missing := rng.randi_range(0, 2)") and math_source.contains("var wrong: int = correct"), "Math Swipe delegates only its arithmetic core and retains missing-slot and wrong-answer generation")
+	_check(comet_source.contains("EquationGenerator.comet_math_rescue_core(for_level, generator)") and comet_source.contains("var answers: Array[int] = [answer]") and comet_source.contains("var swap_index := generator.randi_range(0, index)"), "Comet delegates only its arithmetic core and retains distractors, seeded shuffle, and lane selection")
+
+	var math_swipe = MathSwipe.new()
+	var callers_match_legacy := true
+	for level in [1, 4, 7, 10, 15]:
+		for seed in [1, 2, 3, 11, 29, 47, 83, 1337, 90210, 25026]:
+			var expected_rng := RandomNumberGenerator.new()
+			var actual_rng := RandomNumberGenerator.new()
+			expected_rng.seed = seed
+			actual_rng.seed = seed
+			if math_swipe.generate_problem(level, actual_rng) != _legacy_math_swipe_problem(level, expected_rng):
+				callers_match_legacy = false
+			var expected_comet_rng := RandomNumberGenerator.new()
+			var actual_comet_rng := RandomNumberGenerator.new()
+			expected_comet_rng.seed = seed
+			actual_comet_rng.seed = seed
+			if CometMathRescue.generate_problem(level, actual_comet_rng) != _legacy_comet_problem(level, expected_comet_rng):
+				callers_match_legacy = false
+	_check(callers_match_legacy, "Math Swipe and Comet seeded public problem dictionaries exactly match their committed legacy generators across representative levels and seeds")
+	math_swipe.free()
+
+	var core_arithmetic_valid := true
+	var exact_divisions := 0
+	for level in [1, 4, 7, 10, 15]:
+		for seed in range(1, 81):
+			var math_rng := RandomNumberGenerator.new()
+			math_rng.seed = seed
+			var math_core := EquationGenerator.math_swipe_core(level, math_rng)
+			if not _core_equation_is_valid(math_core):
+				core_arithmetic_valid = false
+			var comet_rng := RandomNumberGenerator.new()
+			comet_rng.seed = seed
+			var comet_core := EquationGenerator.comet_math_rescue_core(level, comet_rng)
+			if not _core_equation_is_valid(comet_core):
+				core_arithmetic_valid = false
+			if comet_core.get("operation") == "/":
+				exact_divisions += 1
+				if int(comet_core.get("right", 0)) == 0 or int(comet_core.get("left", 0)) % int(comet_core.get("right", 1)) != 0:
+					core_arithmetic_valid = false
+	_check(core_arithmetic_valid and exact_divisions > 0, "equation cores return only valid arithmetic and Comet division remains exact across seeded mixed-operation coverage")
+
+
+func _core_equation_is_valid(core: Dictionary) -> bool:
+	if core.size() != 4 or not core.has_all(["left", "right", "operation", "answer"]):
+		return false
+	var left := int(core["left"])
+	var right := int(core["right"])
+	var answer := int(core["answer"])
+	match str(core["operation"]):
+		"+": return answer == left + right
+		"-": return answer == left - right
+		"x", "×": return answer == left * right
+		"/": return right != 0 and left % right == 0 and answer == left / right
+	return false
+
+
+func _legacy_math_swipe_problem(for_level: int, rng: RandomNumberGenerator) -> Dictionary:
+	var operation := "+"
+	var num1 := 0
+	var num2 := 0
+	var answer := 0
+	if for_level <= 3:
+		num1 = rng.randi_range(1, 8)
+		num2 = rng.randi_range(1, 8)
+		answer = num1 + num2
+	elif for_level <= 6:
+		operation = "-"
+		answer = rng.randi_range(1, 8)
+		num2 = rng.randi_range(1, answer)
+		num1 = answer + num2
+	elif for_level <= 10:
+		operation = "+" if rng.randf() > 0.5 else "-"
+		if operation == "+":
+			num1 = rng.randi_range(5, 19)
+			num2 = rng.randi_range(5, 19)
+			answer = num1 + num2
+		else:
+			answer = rng.randi_range(5, 19)
+			num2 = rng.randi_range(1, answer)
+			num1 = answer + num2
+	else:
+		var choice := rng.randf()
+		if choice < 0.4:
+			operation = "×"
+			num1 = rng.randi_range(2, 11)
+			num2 = rng.randi_range(2, 11)
+			answer = num1 * num2
+		elif choice < 0.7:
+			num1 = rng.randi_range(10, 29)
+			num2 = rng.randi_range(10, 29)
+			answer = num1 + num2
+		else:
+			operation = "-"
+			answer = rng.randi_range(10, 29)
+			num2 = rng.randi_range(1, answer)
+			num1 = answer + num2
+	var missing := rng.randi_range(0, 2)
+	var correct: int = [num1, num2, answer][missing]
+	var display := "? %s %d = %d" % [operation, num2, answer]
+	if missing == 1:
+		display = "%d %s ? = %d" % [num1, operation, answer]
+	elif missing == 2:
+		display = "%d %s %d = ?" % [num1, operation, num2]
+	var wrong: int = correct
+	while wrong == correct or wrong < 0:
+		var offset := rng.randi_range(-3, 3)
+		wrong = correct + (1 if offset == 0 else offset)
+	return {"display": display, "correct": correct, "wrong": wrong, "operation": operation}
+
+
+func _legacy_comet_problem(for_level: int, generator: RandomNumberGenerator) -> Dictionary:
+	var operation := "+"
+	if for_level >= 10:
+		operation = ["+", "-", "x", "/"][generator.randi_range(0, 3)]
+	elif for_level >= 7:
+		operation = "x"
+	elif for_level >= 4:
+		operation = "-"
+	var left := 0
+	var right := 0
+	var answer := 0
+	match operation:
+		"+":
+			left = generator.randi_range(1, 4 + mini(8, for_level))
+			right = generator.randi_range(1, 4 + mini(8, for_level))
+			answer = left + right
+		"-":
+			right = generator.randi_range(1, 3 + mini(7, for_level))
+			left = right + generator.randi_range(0, 4 + mini(8, for_level))
+			answer = left - right
+		"x":
+			left = generator.randi_range(2, 3 + mini(6, for_level / 2))
+			right = generator.randi_range(2, 3 + mini(5, for_level / 2))
+			answer = left * right
+		"/":
+			right = generator.randi_range(2, 3 + mini(6, for_level / 2))
+			answer = generator.randi_range(2, 3 + mini(7, for_level / 2))
+			left = right * answer
+	var answers: Array[int] = [answer]
+	var step := maxi(1, mini(8, 1 + for_level / 3))
+	for offset in [-2, -1, 1, 2, 3]:
+		var distractor := maxi(0, answer + offset * step)
+		if distractor != answer and not distractor in answers:
+			answers.append(distractor)
+		if answers.size() == 3:
+			break
+	while answers.size() < 3:
+		var fallback := answer + answers.size() * step + 1
+		if not fallback in answers:
+			answers.append(fallback)
+	for index in range(answers.size() - 1, 0, -1):
+		var swap_index := generator.randi_range(0, index)
+		var swap := answers[index]
+		answers[index] = answers[swap_index]
+		answers[swap_index] = swap
+	return {"left": left, "right": right, "operation": operation, "answer": answer, "answers": answers, "correct_index": answers.find(answer)}
 
 
 func _choice_correct_payload(game_id: String, current: Dictionary, options: Array):

@@ -3,6 +3,7 @@ extends ArcadeGameController
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const RoomItemPreviewScene = preload("res://scripts/meta/room_item_preview_3d.gd")
+const EquationGenerator = preload("res://scripts/games/equation_generator.gd")
 
 const LANES := 3
 const START_Y := 220.0
@@ -43,33 +44,11 @@ func _ready() -> void:
 
 
 static func generate_problem(for_level: int, generator: RandomNumberGenerator) -> Dictionary:
-	var operation := "+"
-	if for_level >= 10:
-		operation = ["+", "-", "x", "/"][generator.randi_range(0, 3)]
-	elif for_level >= 7:
-		operation = "x"
-	elif for_level >= 4:
-		operation = "-"
-	var left := 0
-	var right := 0
-	var answer := 0
-	match operation:
-		"+":
-			left = generator.randi_range(1, 4 + mini(8, for_level))
-			right = generator.randi_range(1, 4 + mini(8, for_level))
-			answer = left + right
-		"-":
-			right = generator.randi_range(1, 3 + mini(7, for_level))
-			left = right + generator.randi_range(0, 4 + mini(8, for_level))
-			answer = left - right
-		"x":
-			left = generator.randi_range(2, 3 + mini(6, for_level / 2))
-			right = generator.randi_range(2, 3 + mini(5, for_level / 2))
-			answer = left * right
-		"/":
-			right = generator.randi_range(2, 3 + mini(6, for_level / 2))
-			answer = generator.randi_range(2, 3 + mini(7, for_level / 2))
-			left = right * answer
+	var core := EquationGenerator.comet_math_rescue_core(for_level, generator)
+	var operation := str(core["operation"])
+	var left := int(core["left"])
+	var right := int(core["right"])
+	var answer := int(core["answer"])
 	var answers: Array[int] = [answer]
 	var step := maxi(1, mini(8, 1 + for_level / 3))
 	for offset in [-2, -1, 1, 2, 3]:
