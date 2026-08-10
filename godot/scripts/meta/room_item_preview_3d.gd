@@ -16,6 +16,7 @@ const BACKGROUND_FRAME_LIFT := Vector3(0.0, 0.92, 0.0)
 const SIDE_CAMERA_POSITION := Vector3(-8.40, 3.18, 0.90)
 const SIDE_CAMERA_TARGET := Vector3(0.0, 1.72, -0.15)
 const UnicornIdleAnimatorScene = preload("res://scripts/meta/unicorn_idle_animator.gd")
+const RoomPreviewViewportScene = preload("res://scripts/meta/room_preview_viewport.gd")
 
 static var _store_model_catalog: Dictionary = {}
 static var _store_scene_cache: Dictionary = {}
@@ -30,6 +31,7 @@ var presentation_context := "room"
 var uses_authored_furniture_model := false
 var source_furniture_model_id := ""
 var display_rotation_root: Node3D
+var preview_viewport
 var display_yaw_degrees := 0.0
 var _companion_request_generation := 0
 var _idle_animator: UnicornIdleAnimator
@@ -47,46 +49,28 @@ func setup(definition: Dictionary) -> void:
 
 
 func _exit_tree() -> void:
-	# Stop the render target before SceneTree releases the owning control. This
-	# keeps a tab replacement from racing an in-flight SubViewport submission.
-	for viewport_node in find_children("*", "SubViewport", true, false):
-		var viewport := viewport_node as SubViewport
-		viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	if preview_viewport != null:
+		preview_viewport.shutdown()
 
 
 func _build_viewport() -> void:
-	var viewport := SubViewport.new()
-	viewport.name = "SubViewport"
-	viewport.size = Vector2i(448, 320) if uses_character_model else Vector2i(192, 192)
-	viewport.own_world_3d = true
-	viewport.transparent_bg = true
-	# Marketplace portraits are intentionally static. Keeping six hidden 3D
-	# render targets hot while swapping to the decor catalog needlessly keeps
-	# renderer resources alive for the next frame.
-	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS if animate_character else SubViewport.UPDATE_ONCE
-	add_child(viewport)
-	var stage := Node3D.new()
-	stage.name = "PreviewStage"
-	viewport.add_child(stage)
-	display_rotation_root = Node3D.new()
-	display_rotation_root.name = "DisplayRotationRoot"
-	display_rotation_root.rotation_degrees.y = display_yaw_degrees
-	stage.add_child(display_rotation_root)
+	preview_viewport = RoomPreviewViewportScene.new()
+	var viewport_size := Vector2i(448, 320) if uses_character_model else Vector2i(192, 192)
+	var update_mode := SubViewport.UPDATE_ALWAYS if animate_character else SubViewport.UPDATE_ONCE
+	preview_viewport.mount(self, viewport_size, update_mode, display_yaw_degrees)
+	var stage: Node3D = preview_viewport.stage
+	display_rotation_root = preview_viewport.display_rotation_root
 	if uses_character_model:
 		_build_companion(stage)
 	else:
 		_build_furniture(stage)
-	_build_lighting(stage)
+	preview_viewport.add_lighting()
 
 
 func set_display_yaw(degrees: float) -> void:
 	display_yaw_degrees = fposmod(degrees, 360.0)
-	if is_instance_valid(display_rotation_root):
-		display_rotation_root.rotation_degrees.y = display_yaw_degrees
-	if not animate_character:
-		var viewport := get_node_or_null("SubViewport") as SubViewport
-		if is_instance_valid(viewport):
-			viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+	if preview_viewport != null:
+		preview_viewport.set_yaw(display_yaw_degrees, not animate_character)
 
 
 func set_motion_state(walking: bool) -> void:
@@ -130,17 +114,15 @@ func _build_companion(stage: Node3D) -> void:
 			_instantiate_companion(packed_scene, companion_id, travel_root)
 		)
 	_add_companion_shadow(travel_root)
-	var camera := Camera3D.new()
-	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+	var camera_size := STATIC_CAMERA_SIZE
 	if not animate_character:
-		camera.size = GAME_HUD_CAMERA_SIZE if presentation_context == "game_hud" else STATIC_CAMERA_SIZE
+		camera_size = GAME_HUD_CAMERA_SIZE if presentation_context == "game_hud" else STATIC_CAMERA_SIZE
 	elif presentation_context == "hero":
-		camera.size = HERO_CAMERA_SIZE
+		camera_size = HERO_CAMERA_SIZE
 	elif presentation_context == "meadow_background":
-		camera.size = BACKGROUND_CAMERA_SIZE
+		camera_size = BACKGROUND_CAMERA_SIZE
 	else:
-		camera.size = ANIMATED_CAMERA_SIZE
-	stage.add_child(camera)
+		camera_size = ANIMATED_CAMERA_SIZE
 	var frame_lift := STATIC_FRAME_LIFT
 	if animate_character:
 		if presentation_context == "hero":
@@ -149,8 +131,7 @@ func _build_companion(stage: Node3D) -> void:
 			frame_lift = BACKGROUND_FRAME_LIFT
 		else:
 			frame_lift = ANIMATION_FRAME_LIFT
-	camera.look_at_from_position(SIDE_CAMERA_POSITION + frame_lift, SIDE_CAMERA_TARGET + frame_lift, Vector3.UP)
-	camera.current = true
+	preview_viewport.add_camera(camera_size, SIDE_CAMERA_POSITION + frame_lift, SIDE_CAMERA_TARGET + frame_lift)
 
 
 func _instantiate_companion(packed_scene: PackedScene, companion_id: String, travel_root: Node3D) -> void:
@@ -328,29 +309,6 @@ static func _load_store_scene(scene_path: String) -> PackedScene:
 	if packed_scene != null:
 		_store_scene_cache[scene_path] = packed_scene
 	return packed_scene
-
-
-func _build_lighting(stage: Node3D) -> void:
-	var key := DirectionalLight3D.new()
-	key.rotation_degrees = Vector3(-48, 38, -22)
-	key.light_color = Color("ffe9d2")
-	key.light_energy = 0.68
-	key.shadow_enabled = true
-	stage.add_child(key)
-	var fill := DirectionalLight3D.new()
-	fill.rotation_degrees = Vector3(30, 140, 12)
-	fill.light_color = Color("b8a5ff")
-	fill.light_energy = 0.24
-	stage.add_child(fill)
-	var environment_node := WorldEnvironment.new()
-	var environment := Environment.new()
-	environment.background_mode = Environment.BG_COLOR
-	environment.background_color = Color(0, 0, 0, 0)
-	environment.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	environment.ambient_light_color = Color("d8d1ed")
-	environment.ambient_light_energy = 0.38
-	environment_node.environment = environment
-	stage.add_child(environment_node)
 
 
 func _build_lava_lamp(parent: Node3D, palette: Dictionary) -> void:
