@@ -35,6 +35,7 @@ var target_rounds := 0
 var challenge: Dictionary = {}
 var started_ms := 0
 var failed := false
+var active := false
 var prompt_label: Label
 var progress_label: Label
 var message_label: Label
@@ -54,6 +55,7 @@ func _ready() -> void:
 func _start_level() -> void:
 	round_index = 0
 	failed = false
+	active = true
 	target_rounds = target_for_level(level)
 	started_ms = Time.get_ticks_msec()
 	message_label.text = "Pick the word that rhymes. One wrong answer ends the level."
@@ -75,17 +77,21 @@ func _show_round() -> void:
 
 
 func _pick(answer: String) -> void:
+	if not active:
+		return
 	if answer != challenge["answer"]:
+		active = false
 		failed = true
 		message_label.text = "Pick the word that rhymes! Try this level again."
 		_set_enabled(false)
 		return
 	round_index += 1
 	if round_index >= target_rounds:
+		active = false
+		_set_enabled(false)
 		var reward := AppState.complete_level("rhyme_rally", level, Time.get_ticks_msec() - started_ms)
 		message_label.text = "Rhyme Rally complete! +%d coins" % reward
 		level += 1
-		_set_enabled(false)
 	else:
 		_show_round()
 
@@ -100,14 +106,21 @@ func retry_failure() -> void:
 
 
 func _show_hint() -> void:
-	if failed:
+	if not active or failed:
 		return
 	for button in option_buttons:
 		button.modulate = Color("ffe172") if button.text == str(challenge.get("answer", "")) else Color.WHITE
 	message_label.text = "The glowing word rhymes with %s." % str(challenge.get("prompt", ""))
 
 func can_show_hint() -> bool:
-	return not failed and not challenge.is_empty()
+	return active and not failed and not challenge.is_empty()
+
+
+func _request_hint() -> void:
+	if not can_show_hint():
+		return
+	if AppState.spend_hint(level):
+		_show_hint()
 
 
 func _build_ui() -> void:
@@ -176,7 +189,7 @@ func _build_ui() -> void:
 	var hint := Button.new()
 	StorybookUI.apply_game_action(hint, 120)
 	hint.text = "Hint"
-	hint.pressed.connect(func() -> void: if AppState.spend_hint(level): _show_hint())
+	hint.pressed.connect(_request_hint)
 	actions.add_child(hint)
 	var back := Button.new()
 	StorybookUI.apply_game_action(back, 160)

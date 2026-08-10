@@ -10,7 +10,7 @@ var applied_roots := {}
 
 func _ready() -> void:
 	get_tree().node_added.connect(_node_added)
-	get_tree().scene_changed.connect(_schedule_current_root)
+	get_tree().scene_changed.connect(_on_scene_changed)
 	var viewport := get_viewport()
 	if viewport != null:
 		viewport.size_changed.connect(_schedule_current_root)
@@ -18,6 +18,21 @@ func _ready() -> void:
 	if window != null:
 		window.focus_entered.connect(_schedule_current_root)
 	_schedule_current_root()
+
+
+func _on_scene_changed(_scene: Node) -> void:
+	_prune_applied_roots()
+	_schedule_current_root()
+
+
+func _prune_applied_roots() -> void:
+	var current := AdBarService.content_scene()
+	if not is_instance_valid(current):
+		current = get_tree().current_scene
+	for instance_id in applied_roots.keys():
+		var node := instance_from_id(instance_id)
+		if not is_instance_valid(node) or (is_instance_valid(current) and node != current and not current.is_ancestor_of(node)):
+			applied_roots.erase(instance_id)
 
 
 func _schedule_current_root() -> void:

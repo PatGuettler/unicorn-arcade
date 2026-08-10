@@ -63,6 +63,7 @@ fi
 for scene in \
 	runtime_main_shell_integration \
 	runtime_marketplace_integration \
+	runtime_gameplay_correctness_integration \
 	runtime_profile_integration \
 	runtime_persistence_integration \
 	runtime_refactor_integration; do
