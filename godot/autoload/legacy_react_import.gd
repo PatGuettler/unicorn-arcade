@@ -40,24 +40,33 @@ func _import_users(payload: Dictionary, source_hash: String) -> void:
 	if str(SaveService._envelope.get("legacy_import", {}).get("status", "")) == "success" and str(SaveService._envelope.get("legacy_import", {}).get("hash", "")) == source_hash:
 		return
 	var selected_name := ""
+	var imported_names: Array[String] = []
+	var source_names: Array[String] = []
 	for raw_name in payload["users"]:
+		source_names.append(str(raw_name))
+	source_names.sort()
+	for raw_name in source_names:
 		var user: Dictionary = payload["users"][raw_name]
 		var name := _import_name(str(user.get("name", raw_name)), source_hash)
 		var profile := _convert_user(user, name)
 		profile["legacy_react_source_hash"] = source_hash
-		var created := SaveService.create_profile(name)
-		if created.is_empty():
+		if not SaveService.import_profile(name, profile):
 			SaveService.mark_legacy_import("pending_write_failed", source_hash)
 			return
-		if not SaveService.save_state(profile):
-			SaveService.mark_legacy_import("pending_write_failed", source_hash)
-			return
+		imported_names.append(name)
 		if str(raw_name) == str(payload.get("lastUser", "")):
 			selected_name = name
-	if not selected_name.is_empty():
-		SaveService.select_profile(selected_name)
+	if selected_name.is_empty() and not imported_names.is_empty():
+		selected_name = imported_names[0]
+	if selected_name.is_empty() or not AppState.select_profile(selected_name):
+		SaveService.mark_legacy_import("pending_selection_failed", source_hash)
+		return
+	var selected_key := SaveService._canonical(selected_name)
+	if AppState.player_name() != selected_name or SaveService._active_key != selected_key or str(SaveService._envelope.get("last_user", "")) != selected_key:
+		SaveService.mark_legacy_import("pending_selection_mismatch", source_hash)
+		return
 	# Success is recorded only after the just-written envelope can be read again.
-	var reread := SaveService._read_json(SaveService.SAVE_PATH)
+	var reread := SaveService._envelope if SaveService._test_in_memory else SaveService._read_json(SaveService.SAVE_PATH)
 	if reread.get("users") is Dictionary:
 		SaveService.mark_legacy_import("success", source_hash)
 	else:
