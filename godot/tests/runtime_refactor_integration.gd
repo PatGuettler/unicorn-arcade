@@ -20,6 +20,7 @@ const GalaxyScene = preload("res://scenes/games/galaxy_unicorn.tscn")
 const EquationGenerator = preload("res://scripts/games/equation_generator.gd")
 const MathSwipe = preload("res://scripts/games/math_swipe.gd")
 const CometMathRescue = preload("res://scripts/games/comet_math_rescue.gd")
+const MoneyCounterBase = preload("res://scripts/games/money_counter_base.gd")
 
 class TutorialPauseProbe extends Control:
 	var level := 1
@@ -58,6 +59,7 @@ func _run() -> void:
 	_test_word_falling_strategy()
 	await _test_owned_rng_contracts()
 	_test_equation_generator()
+	_test_money_counter_base()
 	var tutorial_presenter := GameExperienceTutorialPresenter.new()
 	var tutorial_source: String = FileAccess.get_file_as_string("res://scripts/ui/game_experience_tutorial_presenter.gd")
 	_check(tutorial_presenter is RefCounted and not tutorial_source.contains("\nvar ") and not tutorial_source.contains("AppState") and not tutorial_source.contains("GameExperience.") and not tutorial_source.contains("TutorialCatalog") and not tutorial_source.contains("attached_scene") and not tutorial_source.contains("CompanionAbilityService"), "tutorial presenter is a stateless RefCounted that does not own game, tutorial catalog, or gameplay state")
@@ -793,6 +795,27 @@ func _legacy_comet_problem(for_level: int, generator: RandomNumberGenerator) -> 
 		answers[index] = answers[swap_index]
 		answers[swap_index] = swap
 	return {"left": left, "right": right, "operation": operation, "answer": answer, "answers": answers, "correct_index": answers.find(answer)}
+
+
+func _test_money_counter_base() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/games/money_counter_base.gd")
+	var coin_source := FileAccess.get_file_as_string("res://scripts/games/coin_count.gd")
+	var cash_source := FileAccess.get_file_as_string("res://scripts/games/cash_counter.gd")
+	_check(not source.contains("StorybookUI") and not source.contains("Label") and not source.contains("Button") and not source.contains("Texture") and not source.contains("COINS") and not source.contains("BILLS") and not source.contains("AppState"), "money counter base owns state and decisions without UI, art, copy, or profile dependencies")
+	_check(coin_source.begins_with("extends \"res://scripts/games/money_counter_base.gd\"") and cash_source.begins_with("extends \"res://scripts/games/money_counter_base.gd\"") and not coin_source.contains("\nvar level :=") and not cash_source.contains("\nvar level :="), "Coin Count and Cash Counter are presentation/configuration facades over the shared state fields")
+	_check(coin_source.contains("func _add_coin(value: int)") and coin_source.contains("func _start_round_with_lifecycle(begin_run: bool)") and cash_source.contains("func _add_bill(value: int)") and cash_source.contains("func _start_round_with_lifecycle(begin_run: bool)") and cash_source.contains("static func target_bounds(for_level: int)"), "money facades preserve their tested helper and target-bound entrypoints")
+	var ignored := MoneyCounterBase.money_transition(false, 10, 20, 5)
+	var progress := MoneyCounterBase.money_transition(true, 10, 20, 5)
+	var exact := MoneyCounterBase.money_transition(true, 10, 20, 10)
+	var overshoot := MoneyCounterBase.money_transition(true, 10, 20, 11)
+	_check(ignored == {"outcome": "ignored", "total": 10} and progress == {"outcome": "progress", "total": 15} and exact == {"outcome": "exact", "total": 20} and overshoot == {"outcome": "overshoot", "total": 21}, "money transition is inactive-idempotent and distinguishes progress, exact completion, and overshoot")
+	_check(MoneyCounterBase.best_fitting_denomination([25, 1, 10, 5], 12) == 10 and MoneyCounterBase.best_fitting_denomination([100, 20, 5, 50], 49) == 20 and MoneyCounterBase.best_fitting_denomination([5, 10], 3) == 0, "best-fitting denomination is order-independent and never exceeds the remaining amount")
+	var counter := MoneyCounterBase.new()
+	counter.configure_money_counter("coin_count", [1, 5, 10, 25])
+	counter.target = 36
+	counter.total = 12
+	_check(counter.money_game_id == "coin_count" and counter.money_denominations == [1, 5, 10, 25] and counter.call("_best_fitting_denomination") == 10, "configured base retains game identity and derives its hint from shared counter state")
+	counter.free()
 
 
 func _choice_correct_payload(game_id: String, current: Dictionary, options: Array):

@@ -301,11 +301,32 @@ func _validate_game_controller_contract() -> bool:
 		var path_end := scene_contents.find("\"", path_start)
 		if path_end < 0:
 			return false
-		var script_file := FileAccess.open(scene_contents.substr(path_start, path_end - path_start), FileAccess.READ)
-		if script_file == null:
-			return false
-		var valid := script_file.get_as_text().begins_with("extends ArcadeGameController")
-		script_file.close()
-		if not valid:
+		if not _script_extends_arcade_controller(scene_contents.substr(path_start, path_end - path_start)):
 			return false
 	return checked_scenes.size() == 10
+
+
+func _script_extends_arcade_controller(script_path: String, visited := {}) -> bool:
+	if visited.has(script_path):
+		return false
+	visited[script_path] = true
+	var script_file := FileAccess.open(script_path, FileAccess.READ)
+	if script_file == null:
+		return false
+	var source := script_file.get_as_text()
+	script_file.close()
+	var extends_line := ""
+	for raw_line in source.split("\n"):
+		var line := str(raw_line).strip_edges()
+		if line.begins_with("extends "):
+			extends_line = line
+			break
+	if extends_line == "extends ArcadeGameController":
+		return true
+	var quoted_prefix := "extends \""
+	if not extends_line.begins_with(quoted_prefix):
+		return false
+	var parent_end := extends_line.find("\"", quoted_prefix.length())
+	if parent_end < 0:
+		return false
+	return _script_extends_arcade_controller(extends_line.substr(quoted_prefix.length(), parent_end - quoted_prefix.length()), visited)

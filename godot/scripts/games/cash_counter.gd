@@ -1,4 +1,4 @@
-extends ArcadeGameController
+extends "res://scripts/games/money_counter_base.gd"
 
 const Rules = preload("res://scripts/games/word_game_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
@@ -16,12 +16,6 @@ const NAVY := Color("08112f")
 const CYAN := Color("58d6e8")
 const YELLOW := Color("ffd166")
 
-var level := 1
-var target := 0
-var total := 0
-var started_ms := 0
-var active := false
-var failed := false
 var rng := RandomNumberGenerator.new()
 var target_label: Label
 var total_label: Label
@@ -39,6 +33,7 @@ static func target_bounds(for_level: int) -> Vector2i:
 
 func _ready() -> void:
 	rng.randomize()
+	configure_money_counter("cash_counter", BILLS)
 	level = AppState.current_level("cash_counter")
 	_build_ui()
 	_start_round()
@@ -49,16 +44,9 @@ func _start_round() -> void:
 
 
 func _start_round_with_lifecycle(begin_run: bool) -> void:
-	if begin_run:
-		level_run.begin("cash_counter", level)
-	else:
-		level = level_run.level
+	_begin_money_round(begin_run)
 	var bounds := target_bounds(level)
 	target = rng.randi_range(bounds.x, bounds.y)
-	total = 0
-	started_ms = level_run.started_ms
-	active = level_run.active
-	failed = false
 	level_label.text = "LEVEL %d" % level
 	target_label.text = "TARGET  $%d" % target
 	total_label.text = "$0"
@@ -69,23 +57,18 @@ func _start_round_with_lifecycle(begin_run: bool) -> void:
 
 
 func _add_bill(value: int) -> void:
-	if not active:
+	var transition := _apply_money_value(value, "Overshot target—try this level again.")
+	if transition.get("outcome") == OUTCOME_IGNORED:
 		return
-	total += value
 	total_label.text = "$%d" % total
-	if total == target:
-		var reward := level_run.complete()
-		active = level_run.active
+	if transition.get("outcome") == OUTCOME_EXACT:
+		var reward := int(transition.get("reward", 0))
 		message_label.text = "Perfect! +%d coins" % reward
 		coin_label.text = "★ %d" % AppState.coins()
-		level += 1
 		retry_button.text = "NEXT LEVEL"
 		retry_button.show()
 		_set_buttons_enabled(false)
-	elif total > target:
-		level_run.fail("Overshot target—try this level again.")
-		active = level_run.active
-		failed = level_run.outcome == LevelRunController.Outcome.FAILURE
+	elif transition.get("outcome") == OUTCOME_OVERSHOOT:
 		message_label.text = "Overshot target—try this level again."
 		retry_button.text = "RETRY"
 		retry_button.show()
@@ -97,12 +80,11 @@ func can_show_hint() -> bool:
 
 
 func can_retry_failure() -> bool:
-	return level_run.can_retry()
+	return _can_retry_money_failure()
 
 
 func retry_failure() -> void:
-	if level_run.can_retry():
-		level = level_run.retry()
+	if _retry_money_failure():
 		_start_round_with_lifecycle(false)
 
 
@@ -116,11 +98,7 @@ func _advance_round() -> void:
 func _show_hint() -> void:
 	if not active:
 		return
-	var remaining := target - total
-	var best := 0
-	for bill in BILLS:
-		if bill <= remaining:
-			best = bill
+	var best := _best_fitting_denomination()
 	message_label.text = "Try a $%d bill next." % best
 	coin_label.text = "★ %d" % AppState.coins()
 
