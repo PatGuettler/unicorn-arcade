@@ -3,6 +3,7 @@ extends Node
 const RoomEditor = preload("res://scripts/meta/room_editor.gd")
 const RoomItemPreview3D = preload("res://scripts/meta/room_item_preview_3d.gd")
 const RoomPreviewViewport = preload("res://scripts/meta/room_preview_viewport.gd")
+const RoomAuthoredFurnitureLoader = preload("res://scripts/meta/room_authored_furniture_loader.gd")
 
 var failures: Array[String] = []
 
@@ -28,6 +29,11 @@ func _room_item(items: Array, instance_id: String) -> Dictionary:
 
 
 func _run() -> void:
+	var authored_parent := Node3D.new()
+	var authored_lamp := RoomAuthoredFurnitureLoader.build("lamp", authored_parent)
+	var authored_missing := RoomAuthoredFurnitureLoader.build("missing_loader_id", authored_parent)
+	_check(bool(authored_lamp.get("built", false)) and authored_lamp.get("source_model_id", "") == "store1:lamp" and authored_parent.get_node_or_null("AuthoredFurniture_lamp") != null and not bool(authored_missing.get("built", true)) and authored_parent.get_child_count() == 1, "authored furniture loader builds lamp and safely rejects missing ids")
+	authored_parent.free()
 	var received: Array = []
 	var path := "res://scenes/games/coin_count.tscn"
 	RuntimeAssetLoader.load_packed_scene(path, func(scene: PackedScene) -> void: received.append(scene))
@@ -116,9 +122,10 @@ func _run() -> void:
 	var first_cached := first_button.get_node_or_null("CachedDecorPreview") as TextureRect
 	var first_live := first_button.get_node_or_null("RoomItemPreview3D") as RoomItemPreview3D
 	var first_root := first_live.display_rotation_root if is_instance_valid(first_live) else null
+	var first_authored_rug := first_live.find_child("AuthoredFurniture_rug", true, false) if is_instance_valid(first_live) else null
 	var second_live := second_button.get_node_or_null("RoomItemPreview3D") as RoomItemPreview3D
 	var first_viewport := first_live.get_node_or_null("SubViewport") as SubViewport if is_instance_valid(first_live) else null
-	_check(is_instance_valid(first_live) and is_instance_valid(second_live) and first_cached == null and first_live.animate_character == false and is_instance_valid(first_viewport) and first_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE, "visible room decor uses static live 3D previews without CachedDecorPreview snapshots")
+	_check(is_instance_valid(first_live) and is_instance_valid(second_live) and first_cached == null and first_live.animate_character == false and first_live.uses_authored_furniture_model and first_live.source_furniture_model_id == "store1:rug" and is_instance_valid(first_authored_rug) and is_instance_valid(first_viewport) and first_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE, "visible room decor uses static authored 3D previews without CachedDecorPreview snapshots")
 	first_live.set_display_yaw(45.0)
 	_check(is_equal_approx(first_root.rotation_degrees.y, 45.0) and is_zero_approx(first_root.rotation_degrees.x) and is_zero_approx(first_root.rotation_degrees.z) and first_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE and is_zero_approx(first_button.rotation_degrees), "static room decor redraws once after a yaw update while its button remains upright")
 	var original_live := first_live
