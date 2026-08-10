@@ -175,7 +175,7 @@ func _test_stale_id_pruning(issues: Array[String]) -> void:
 	accessible_stale.queue_free()
 	safe_area_stale.queue_free()
 	await get_tree().process_frame
-	AccessibleUI.call("_on_scene_changed", get_tree().current_scene)
-	SafeArea.call("_on_scene_changed", get_tree().current_scene)
+	AccessibleUI.call("_on_scene_changed")
+	SafeArea.call("_on_scene_changed")
 	if AccessibleUI.applied.has(accessible_id) or SafeArea.applied_roots.has(safe_area_id):
 		issues.append("Accessibility and safe-area stale IDs are pruned")

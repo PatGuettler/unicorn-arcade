@@ -17,7 +17,7 @@ func _ready() -> void:
 	call_deferred("_apply_current_scene")
 
 
-func _on_scene_changed(_scene: Node) -> void:
+func _on_scene_changed() -> void:
 	_prune_applied()
 	call_deferred("_apply_current_scene")
 

@@ -20,7 +20,7 @@ func _ready() -> void:
 	_schedule_current_root()
 
 
-func _on_scene_changed(_scene: Node) -> void:
+func _on_scene_changed() -> void:
 	_prune_applied_roots()
 	_schedule_current_root()
 
