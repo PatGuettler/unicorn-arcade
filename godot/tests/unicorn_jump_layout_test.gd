@@ -28,6 +28,17 @@ func _run() -> void:
 	for index in range(mini(5, jump.node_buttons.size())):
 		first_five_centers_visible = first_five_centers_visible and view_rect.has_point(jump.node_buttons[index].get_global_rect().get_center())
 	_check(jump.world_viewport.zoom < 1.0 and first_five_centers_visible, "the initial camera frames the current stone and four forward stones while keeping pinch zoom available")
+	for _frame in 120:
+		if is_instance_valid(jump.companion_preview) and jump.companion_preview.mesh_count > 0:
+			break
+		await get_tree().process_frame
+	_check(is_instance_valid(jump.companion_preview) and jump.companion_preview.mesh_count > 0 and jump.companion_preview.find_child("LiveUnicornModel", true, false) != null, "the current stone displays the equipped unicorn after its async model load")
+	var first_preview = jump.companion_preview
+	jump.current_index = landing
+	jump.visited.append(landing)
+	jump._update_path()
+	await get_tree().process_frame
+	_check(is_instance_valid(jump.companion_preview) and jump.companion_preview != first_preview and jump.companion_preview.get_parent() == jump.node_buttons[landing] and jump.companion_preview.preview_viewport.viewport.render_target_update_mode != SubViewport.UPDATE_DISABLED, "moving to a new stone creates an active unicorn renderer instead of reparenting a shut-down viewport")
 
 	var experience = get_tree().root.get_node("GameExperience")
 	var previous_scene = experience.attached_scene

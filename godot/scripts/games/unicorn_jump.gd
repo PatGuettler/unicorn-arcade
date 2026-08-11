@@ -333,6 +333,12 @@ func _restore_path_after_dialog() -> void:
 
 
 func _attach_active_companion(button: TextureButton) -> void:
+	if is_instance_valid(companion_preview) and companion_preview.get_parent() != button:
+		# Removing a SubViewportContainer from the tree intentionally shuts its
+		# renderer down. Build a fresh preview for the new landing stone instead
+		# of reparenting the disabled one.
+		companion_preview.queue_free()
+		companion_preview = null
 	if not is_instance_valid(companion_preview):
 		companion_preview = RoomItemPreviewScene.new()
 		companion_preview.name = "ActiveCompanionOnStone"
@@ -343,9 +349,7 @@ func _attach_active_companion(button: TextureButton) -> void:
 			"animate": false,
 			"presentation": "marketplace",
 		})
-	elif companion_preview.get_parent() != null:
-		companion_preview.get_parent().remove_child(companion_preview)
-	button.add_child(companion_preview)
+		button.add_child(companion_preview)
 	companion_preview.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	companion_preview.position = Vector2(-2.0, -79.0)
 	companion_preview.size = Vector2(158.0, 120.0)

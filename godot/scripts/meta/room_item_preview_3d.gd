@@ -69,7 +69,12 @@ func _build_companion(stage: Node3D) -> void:
 	if companion_builder != null:
 		companion_builder.cancel()
 	companion_builder = RoomCompanionPreviewBuilder.new()
-	source_model_id = companion_builder.build(self, display_rotation_root, preview_viewport, item_id, animate_character, presentation_context, func(count: int) -> void: mesh_count = count)
+	source_model_id = companion_builder.build(self, display_rotation_root, preview_viewport, item_id, animate_character, presentation_context, func(count: int) -> void:
+		mesh_count = count
+		# Static companion models are loaded asynchronously. Their viewport may
+		# already have spent its one frame before the model joins the scene.
+		preview_viewport.request_redraw()
+	)
 
 
 func _build_furniture(stage: Node3D) -> void:

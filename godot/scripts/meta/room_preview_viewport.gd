@@ -62,6 +62,11 @@ func set_yaw(degrees: float, static_preview: bool) -> void:
 		viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
 
 
+func request_redraw() -> void:
+	if is_instance_valid(viewport):
+		viewport.render_target_update_mode = SubViewport.UPDATE_ONCE
+
+
 func shutdown() -> void:
 	if is_instance_valid(viewport):
 		viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
