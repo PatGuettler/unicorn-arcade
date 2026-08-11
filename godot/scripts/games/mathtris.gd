@@ -692,11 +692,11 @@ func _build_ui() -> void:
 	root.add_child(hud_label)
 	next_label = Label.new()
 	next_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	StorybookUI.apply_story_label(next_label, Color("fff3d6"), 17, true)
+	StorybookUI.apply_story_label(next_label, StorybookUI.CREAM, 17, true)
 	root.add_child(next_label)
 	var grid_frame := PanelContainer.new()
 	grid_frame.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	grid_frame.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("221b58"), Color("e1ae4f"), 16))
+	grid_frame.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("221b58"), StorybookUI.GOLD, 16))
 	root.add_child(grid_frame)
 	var grid := GridContainer.new()
 	grid.columns = COLS
@@ -729,7 +729,7 @@ func _build_ui() -> void:
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	message_label.custom_minimum_size.y = 52
 	message_label.add_theme_font_size_override("font_size", 18)
-	message_label.add_theme_color_override("font_color", Color("fff3d6"))
+	message_label.add_theme_color_override("font_color", StorybookUI.CREAM)
 	root.add_child(message_label)
 	action_button = StorybookUI.progression_action_button("PLAY AGAIN", 180, _advance_game)
 	root.add_child(action_button)

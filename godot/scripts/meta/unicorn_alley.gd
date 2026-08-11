@@ -6,7 +6,6 @@ const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
 
 const NAVY := Color("07142c")
 const PANEL := Color("14214a")
-const CYAN := Color("58d6e8")
 const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 const MUTED := Color("aab7e8")

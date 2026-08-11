@@ -29,7 +29,7 @@ func build_game_outcome(parent: Control, retry: bool, message: String) -> Dictio
 	outcome_message.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	outcome_message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	outcome_message.add_theme_font_size_override("font_size", 21)
-	outcome_message.add_theme_color_override("font_color", Color("fff3d6"))
+	outcome_message.add_theme_color_override("font_color", StorybookUI.CREAM)
 	stack.add_child(outcome_message)
 	var primary := Button.new()
 	primary.name = "GameOutcomePrimaryAction"
@@ -50,7 +50,7 @@ func build_sparkle_retry(parent: Control, failure_reason: String) -> Dictionary:
 	parent.add_child(overlay)
 	var card := _modal_card(overlay, 0.08, 0.92, 0.22, 0.78)
 	card.name = "SecondSparkleRetryCard"
-	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("32194a"), Color("f4d37f"), 28))
+	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("32194a"), StorybookUI.GOLD_BRIGHT, 28))
 	var stack := VBoxContainer.new()
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	stack.add_theme_constant_override("separation", 14)
@@ -78,7 +78,7 @@ func build_sparkle_retry(parent: Control, failure_reason: String) -> Dictionary:
 	explanation.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	explanation.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	explanation.add_theme_font_size_override("font_size", 21)
-	explanation.add_theme_color_override("font_color", Color("fff3d6"))
+	explanation.add_theme_color_override("font_color", StorybookUI.CREAM)
 	stack.add_child(explanation)
 	var continue_button := Button.new()
 	continue_button.name = "SecondSparkleContinue"
@@ -104,7 +104,7 @@ func _modal_card(parent: Control, left: float, right: float, top: float, bottom:
 	card.anchor_right = right
 	card.anchor_top = top
 	card.anchor_bottom = bottom
-	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), StorybookUI.GOLD, 24))
+	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(StorybookUI.CREAM, StorybookUI.GOLD, 24))
 	parent.add_child(card)
 	return card
 

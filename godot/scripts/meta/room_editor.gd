@@ -10,7 +10,6 @@ const FURNITURE_BAG_ICON := preload("res://assets/ui/furniture_bag_v1.svg")
 
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
-const CYAN := Color("58d6e8")
 const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 const MUTED := Color("aab7e8")
@@ -642,7 +641,7 @@ func _ensure_companion_present() -> void:
 
 
 func _item_style(category: String, selected: bool) -> StyleBoxFlat:
-	var colors := {"companions": PINK, "nature": Color("62e6a7"), "lighting": YELLOW, "luxury": Color("d5a4ff"), "pets": Color("ff9f7c"), "electronics": CYAN, "seasonal": Color("f59c5b"), "rugs": Color("c99cff"), "beds": Color("89a9ff"), "tables": Color("d49b6a"), "kitchen": Color("ffb66e"), "toys": Color("ff91bd"), "wall": Color("91c9ff"), "unicorn": Color("f68bd8"), "cozy": Color("9da9d9")}
+	var colors := {"companions": PINK, "nature": Color("62e6a7"), "lighting": YELLOW, "luxury": Color("d5a4ff"), "pets": Color("ff9f7c"), "electronics": StorybookUI.CYAN, "seasonal": Color("f59c5b"), "rugs": Color("c99cff"), "beds": Color("89a9ff"), "tables": Color("d49b6a"), "kitchen": Color("ffb66e"), "toys": Color("ff91bd"), "wall": Color("91c9ff"), "unicorn": Color("f68bd8"), "cozy": Color("9da9d9")}
 	var color: Color = colors.get(category, Color("9da9d9"))
 	var background := Color.TRANSPARENT if not selected else Color(color, 0.12)
 	var style := _rounded_style(background, Color.WHITE if selected else Color("00000000"), 4 if selected else 0, 16)

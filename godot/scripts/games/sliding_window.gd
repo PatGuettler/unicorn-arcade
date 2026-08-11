@@ -361,7 +361,7 @@ func _style_track_node(button: Button, in_window: bool, collected: bool) -> void
 		button.add_theme_constant_override("outline_size", 2)
 		button.add_theme_stylebox_override("normal", StorybookUI.button_style(Color("173f68"), Color("62e6b5"), 5, 18, 6))
 		button.add_theme_stylebox_override("hover", StorybookUI.button_style(Color("24527b"), Color("8bffcf"), 5, 18, 7))
-		button.add_theme_stylebox_override("pressed", StorybookUI.button_style(Color("102f55"), Color("f4d37f"), 5, 18, 3))
+		button.add_theme_stylebox_override("pressed", StorybookUI.button_style(Color("102f55"), StorybookUI.GOLD_BRIGHT, 5, 18, 3))
 		button.add_theme_stylebox_override("focus", StorybookUI.button_style(Color("24527b"), Color("8bffcf"), 5, 18, 7))
 	else:
 		button.add_theme_color_override("font_disabled_color", Color("a5aec8"))
@@ -468,7 +468,7 @@ func _build_ui() -> void:
 	root.add_child(title)
 	progress_label = Label.new()
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	StorybookUI.apply_story_label(progress_label, Color("fff3d6"), 18, true)
+	StorybookUI.apply_story_label(progress_label, StorybookUI.CREAM, 18, true)
 	root.add_child(progress_label)
 	var instruction_plaque := PanelContainer.new()
 	StorybookUI.apply_prompt_plaque(instruction_plaque, Color("ffe8fb"))
@@ -533,7 +533,7 @@ func _build_ui() -> void:
 	message_label = Label.new()
 	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	message_label.add_theme_color_override("font_color", Color("fff3d6"))
+	message_label.add_theme_color_override("font_color", StorybookUI.CREAM)
 	root.add_child(message_label)
 	var actions := HBoxContainer.new()
 	actions.alignment = BoxContainer.ALIGNMENT_CENTER

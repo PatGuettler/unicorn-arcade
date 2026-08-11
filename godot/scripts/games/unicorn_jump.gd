@@ -434,7 +434,7 @@ func _build_ui() -> void:
 	jump_label = Label.new()
 	jump_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	jump_label.add_theme_font_size_override("font_size", 24)
-	jump_label.add_theme_color_override("font_color", Color("fff3d6"))
+	jump_label.add_theme_color_override("font_color", StorybookUI.CREAM)
 	jump_label.add_theme_color_override("font_outline_color", Color("120d32"))
 	jump_label.add_theme_constant_override("outline_size", 4)
 	root.add_child(jump_label)

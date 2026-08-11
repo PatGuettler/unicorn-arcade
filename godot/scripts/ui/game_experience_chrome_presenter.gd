@@ -80,7 +80,7 @@ func build_header(title: String, coins: int, back_cb: Callable, home_cb: Callabl
 	var panel := PanelContainer.new()
 	panel.name = "StandardGameHeader"
 	panel.custom_minimum_size.y = 62
-	panel.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254d"), StorybookUI.GOLD, 18))
+	panel.add_theme_stylebox_override("panel", StorybookUI.plaque_style(StorybookUI.NAVY, StorybookUI.GOLD, 18))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 8)
 	panel.add_child(row)
@@ -146,7 +146,7 @@ func build_objective_plaque(companion_id: String, ability_cb: Callable, hint_cb:
 	var plaque := PanelContainer.new()
 	plaque.name = "GameObjectivePlaque"
 	plaque.custom_minimum_size.y = 92
-	plaque.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), Color("e1ae4f"), 18))
+	plaque.add_theme_stylebox_override("panel", StorybookUI.plaque_style(StorybookUI.CREAM, StorybookUI.GOLD, 18))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	plaque.add_child(row)

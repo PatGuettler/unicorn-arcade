@@ -12,7 +12,7 @@ static func build(title: String, back_text: String, back_action: Callable, home_
 	var panel := Panel.new()
 	panel.name = "SharedUnicornHeader"
 	panel.custom_minimum_size = Vector2(0, 64)
-	panel.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254d"), StorybookUI.GOLD, 16))
+	panel.add_theme_stylebox_override("panel", StorybookUI.plaque_style(StorybookUI.NAVY, StorybookUI.GOLD, 16))
 	var has_trailing_action := not trailing_text.is_empty() and trailing_action.is_valid()
 
 	var home_mode := back_text.to_upper() == "HOME"

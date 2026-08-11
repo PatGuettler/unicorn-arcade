@@ -349,7 +349,7 @@ func _draw_themed_enemy(enemy: Dictionary) -> void:
 			for width in [12.0, 7.0, 3.0]:
 				draw_line(center + Vector2(-radius * 1.65, -radius * 0.70), center - Vector2(radius * 0.30, radius * 0.16), Color(0.45, 0.86, 1.0, 0.20 + width * 0.045), width)
 			draw_circle(center, radius, Color("79dcf2"))
-			draw_arc(center, radius * 0.70, 0.0, TAU, 24, Color("fff3d6"), 3.0)
+			draw_arc(center, radius * 0.70, 0.0, TAU, 24, StorybookUI.CREAM, 3.0)
 		"cursed_moon":
 			draw_circle(center, radius, Color("e8e4ff"))
 			draw_circle(center + Vector2(radius * 0.43, -radius * 0.18), radius * 0.82, Color("58417c"))
@@ -422,7 +422,7 @@ func _build_ui() -> void:
 	bottom_safe_band.offset_top = -BOTTOM_SAFE_BAND_HEIGHT
 	bottom_safe_band.offset_bottom = -14.0
 	bottom_safe_band.z_index = 40
-	bottom_safe_band.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254d"), Color("6857b7"), 18))
+	bottom_safe_band.add_theme_stylebox_override("panel", StorybookUI.plaque_style(StorybookUI.NAVY, Color("6857b7"), 18))
 	add_child(bottom_safe_band)
 	var band_stack := VBoxContainer.new()
 	band_stack.alignment = BoxContainer.ALIGNMENT_CENTER

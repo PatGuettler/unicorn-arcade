@@ -117,10 +117,10 @@ func _build_ui() -> void:
 	var title := Label.new()
 	title.text = "COIN COUNT"
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	StorybookUI.apply_story_label(title, Color("58d6e8"), 38, true)
+	StorybookUI.apply_story_label(title, StorybookUI.CYAN, 38, true)
 	layout.add_child(title)
 	var target_plaque := PanelContainer.new()
-	StorybookUI.apply_prompt_plaque(target_plaque, Color("fff3d6"))
+	StorybookUI.apply_prompt_plaque(target_plaque, StorybookUI.CREAM)
 	layout.add_child(target_plaque)
 	var target_stack := VBoxContainer.new()
 	target_plaque.add_child(target_stack)
