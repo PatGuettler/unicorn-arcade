@@ -504,9 +504,5 @@ func _set_nodes_enabled(enabled: bool) -> void:
 		button.disabled = not enabled
 
 
-func _signed(value: int) -> String:
-	return "+%d" % value if value > 0 else str(value)
-
-
 func _jump_instruction(value: int) -> String:
 	return "JUMP FORWARD %d" % value if value >= 0 else "JUMP BACK %d" % absi(value)

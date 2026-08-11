@@ -38,8 +38,8 @@ status: pending
 content: Consolidate the three header implementations, coin displays, and four palette copies onto UnicornHeader/StorybookUI. Merge cash_counter with coin_count, extract MathProblemGenerator, point rhyme_rally at WordGameRules.selection_window, and switch global RNG calls to seeded RNG.
 status: pending
 - id: p3-perf-and-dead-code
-content: Apply the performance passes (mathtris stylebox reuse, galaxy per-frame allocations, per-frame string/layout work, always-on GameExperience._process, global node_added hooks) and delete the confirmed dead code including all of furniture_art.gd and the unconnected signals.
-status: pending
+content: Retain the evidence-backed PR30 performance passes and remove only the PR31 candidates proven dead by the project-aware audit; preserve emitted public signals and live presentation paths.
+status: completed
 isProject: false
 
 ---
@@ -49,6 +49,19 @@ even
 # Godot bug and refactor plan
 
 Audit of 72 GDScript files / ~16k lines in `godot/`. Findings are ordered so each phase is independently shippable and verifiable. Phase 0 must land before anything else, because the game does not currently run.
+
+## PR31 implementation status (2026-08-10)
+
+The dead-code portion of Phase 3.6 is complete using a fresh repository-wide source/scene/string-call audit. Only candidates with no live reference or behavior were removed:
+
+- **Confirmed and fixed:** deleted `furniture_art.gd` and its UID; removed `main._show_home_status`, Marketplace's never-emitted `scene_change_ready`, Unicorn Jump's `_signed`, Coin Count's unused `target_bounds`, Word Game's unused `PANEL`, and Galaxy's hidden `LegacyGalaxyHUD` field, builder, update helper, and calls.
+- **Confirmed distinction:** Cash Counter's `target_bounds` remains because `_start_round_with_lifecycle` calls it. The refactor integration assertion now checks both halves of this contract.
+- **Rejected removals:** retained the live Mathtris HUD; Main's declared/returned/emitted `scene_change_ready`; the `room_selected` capture presentation; AppState's emitted `state_changed`; emitted preview, loader, and companion-ability signals; and Word Game's constructed, configured, and mounted `title_label`. The earlier claim that `title_label` was absent/dead was stale.
+- **Deferred:** Android build/device-pipeline validation belongs to PR32 and remains pending. PR31 changes no Android plugin, export, or packaging behavior.
+
+`dead_code_audit_pr31.tscn` is a project-aware regression gate for every removed and retained candidate and is explicitly wired into `scripts/ci/godot-tests.sh`. The parser, audit, affected runtime suites, parity, and complete bounded manifest all pass through the project-local Godot 4.7.1 wrapper with no surviving task process.
+
+Rendered evidence used exact-HEAD source restoration for the baseline (`galaxy_unicorn.gd` `a12c7b6…`, `word_game.gd` `08c0b4b…`, `unicorn_jump.gd` `b5db41c…`). Opposite Orbit is byte-identical before/after at 450x1280 (`53228102…ECB6D`) and 720x1280 (`A75DDE0C…61BE2`). Galaxy renders at both sizes were inspected and are behaviorally/layout-clean; independent-process hashes differ because its visible star field directly uses `Time.get_ticks_msec()`, so no false byte-identity claim is made. The removed Jump helper is non-visual; the existing seeded capture harness cannot restart Jump because its `_start_level` requires a level argument, so `runtime_number_suite` plus `unicorn_jump_layout_test` are the authoritative checks rather than an unsupported capture claim.
 
 ## Phase 0: Blockers, the build is broken right now
 

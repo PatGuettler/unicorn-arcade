@@ -8,7 +8,6 @@ const WordTypedEntryStrategy = preload("res://scripts/games/word_typed_entry_str
 const WordFallingStrategy = preload("res://scripts/games/word_falling_strategy.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const NAVY := Color("08112f")
-const PANEL := Color("14214a")
 const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 
