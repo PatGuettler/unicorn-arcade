@@ -5,7 +5,6 @@ const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const ArcadePictogramScene = preload("res://scripts/ui/arcade_pictogram.gd")
 
 const PANEL := Color("14214a")
-const CYAN := Color("58d6e8")
 const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 
@@ -22,7 +21,7 @@ func build_dashboard(category_callback: Callable) -> void:
 	intro.add_theme_color_override("font_color", Color("f7f1ff"))
 	add_child(intro)
 	for category in [
-		{"name": "Number", "desc": "Logic & arithmetic", "color": CYAN},
+		{"name": "Number", "desc": "Logic & arithmetic", "color": StorybookUI.CYAN},
 		{"name": "Word", "desc": "Vocabulary, spelling & rhymes", "color": PINK},
 		{"name": "Mystery", "desc": "Detective word puzzles", "color": Color("9b8cff")},
 		{"name": "Arcade", "desc": "Experimental action", "color": Color("62e6a7")},
@@ -177,4 +176,4 @@ func _label(value: String, font_size: int, color: Color, alignment: HorizontalAl
 
 
 func _category_color(category: String) -> Color:
-	return {"Number": CYAN, "Word": PINK, "Mystery": Color("9b8cff"), "Arcade": Color("62e6a7")}.get(category, YELLOW)
+	return {"Number": StorybookUI.CYAN, "Word": PINK, "Mystery": Color("9b8cff"), "Arcade": Color("62e6a7")}.get(category, YELLOW)

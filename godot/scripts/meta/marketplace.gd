@@ -13,10 +13,6 @@ const MarketplaceCatalogController = preload("res://scripts/meta/marketplace_cat
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
 const PINK := Color("b83f7c")
-const GOLD := Color("e1ae4f")
-const CREAM := Color("fff3d6")
-const MUTED := Color("c9d3ef")
-const CYAN := Color("58d6e8")
 const DECOR_SLOTS := 8
 const DECOR_CARD_HEIGHT := 188.0
 const CATALOG_CONTENT_HEIGHT := 1636.0
@@ -105,7 +101,7 @@ func _build_fixed_tree() -> void:
 
 	_build_header()
 	_build_tabs()
-	message_label = _label("MarketplaceMessage", "", Vector2.ZERO, Vector2.ZERO, CREAM, 18)
+	message_label = _label("MarketplaceMessage", "", Vector2.ZERO, Vector2.ZERO, StorybookUI.CREAM, 18)
 	_anchor_rect(message_label, 0.0, 1.0, 14, -14, 140, 167)
 	message_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	message_label.clip_text = true
@@ -236,7 +232,7 @@ func _build_companion_pool() -> void:
 		_anchor_rect(card, 0.0 if col == 0 else 0.5, 0.5 if col == 0 else 1.0, 4 if col == 0 else 3, -3 if col == 0 else -4, 8 + row * 262, 264 + row * 262)
 		card.set_meta("source_model_id", str(definitions[index].get("id", "")))
 		card.mouse_filter = Control.MOUSE_FILTER_PASS
-		card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("111c41"), GOLD, 15))
+		card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("111c41"), StorybookUI.GOLD, 15))
 		_companions_panel.add_child(card)
 		var portrait := TextureRect.new()
 		portrait.name = "CompanionPortrait"
@@ -246,10 +242,10 @@ func _build_companion_pool() -> void:
 		portrait.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		portrait.set_meta("source_model_id", str(definitions[index].get("id", "")))
 		card.add_child(portrait)
-		var name := _label("CompanionName", "", Vector2.ZERO, Vector2.ZERO, CREAM, 18, card)
+		var name := _label("CompanionName", "", Vector2.ZERO, Vector2.ZERO, StorybookUI.CREAM, 18, card)
 		_anchor_rect(name, 0.0, 1.0, 10, -10, 112, 137)
 		name.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		var description := _label("CompanionDescription", "", Vector2.ZERO, Vector2.ZERO, MUTED, 16, card)
+		var description := _label("CompanionDescription", "", Vector2.ZERO, Vector2.ZERO, StorybookUI.MUTED, 16, card)
 		_anchor_rect(description, 0.0, 1.0, 10, -10, 140, 191)
 		description.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		description.vertical_alignment = VERTICAL_ALIGNMENT_TOP
@@ -272,7 +268,7 @@ func _build_decor_pool() -> void:
 		var card := Panel.new()
 		card.name = "DecorCardSlot_%d" % index
 		_anchor_rect(card, 0.0, 1.0, 2, -2, index * DECOR_CARD_HEIGHT, index * DECOR_CARD_HEIGHT + DECOR_CARD_HEIGHT - 8)
-		card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("111c41"), GOLD, 14))
+		card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("111c41"), StorybookUI.GOLD, 14))
 		card.mouse_filter = Control.MOUSE_FILTER_PASS
 		_decor_panel.add_child(card)
 		var thumbnail := TextureRect.new()
@@ -282,16 +278,16 @@ func _build_decor_pool() -> void:
 		thumbnail.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		thumbnail.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		card.add_child(thumbnail)
-		var name := _label("DecorName", "", Vector2.ZERO, Vector2.ZERO, CREAM, 18, card)
+		var name := _label("DecorName", "", Vector2.ZERO, Vector2.ZERO, StorybookUI.CREAM, 18, card)
 		_anchor_rect(name, 0.0, 1.0, 142, -164, 12, 36)
-		var rarity := _label("DecorRarity", "", Vector2.ZERO, Vector2.ZERO, GOLD, 14, card)
+		var rarity := _label("DecorRarity", "", Vector2.ZERO, Vector2.ZERO, StorybookUI.GOLD, 14, card)
 		_anchor_rect(rarity, 1.0, 1.0, -156, -12, 12, 36)
 		rarity.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		rarity.clip_text = false
 		_restore_catalog_rarity_font.call_deferred(rarity)
-		var description := _label("DecorDescription", "", Vector2.ZERO, Vector2.ZERO, MUTED, 15, card)
+		var description := _label("DecorDescription", "", Vector2.ZERO, Vector2.ZERO, StorybookUI.MUTED, 15, card)
 		_anchor_rect(description, 0.0, 1.0, 142, -12, 40, 83)
-		var counts := _label("DecorCounts", "", Vector2.ZERO, Vector2.ZERO, CYAN, 14, card)
+		var counts := _label("DecorCounts", "", Vector2.ZERO, Vector2.ZERO, StorybookUI.CYAN, 14, card)
 		_anchor_rect(counts, 0.0, 1.0, 142, -12, 97, 119)
 		var buy := _button("DecorBuy", "", Vector2.ZERO, Vector2.ZERO, PANEL, card)
 		_anchor_rect(buy, 0.0, 0.5, 142, 82, 124, 180)
@@ -303,12 +299,12 @@ func _build_decor_pool() -> void:
 	var pager := Panel.new()
 	pager.name = "DecorPager"
 	_anchor_rect(pager, 0.0, 1.0, 2, -2, DECOR_SLOTS * DECOR_CARD_HEIGHT, DECOR_SLOTS * DECOR_CARD_HEIGHT + 62)
-	pager.add_theme_stylebox_override("panel", StorybookUI.button_style(PANEL, GOLD, 2, 12))
+	pager.add_theme_stylebox_override("panel", StorybookUI.button_style(PANEL, StorybookUI.GOLD, 2, 12))
 	_decor_panel.add_child(pager)
 	_previous_button = _button("DecorPrevious", "PREVIOUS", Vector2.ZERO, Vector2.ZERO, PANEL, pager)
 	_anchor_rect(_previous_button, 0.0, 0.0, 8, 146, 7, 55)
 	_previous_button.pressed.connect(_previous_decor_page)
-	_page_label = _label("DecorPage", "", Vector2.ZERO, Vector2.ZERO, CREAM, 16, pager)
+	_page_label = _label("DecorPage", "", Vector2.ZERO, Vector2.ZERO, StorybookUI.CREAM, 16, pager)
 	_anchor_rect(_page_label, 0.0, 1.0, 152, -152, 8, 54)
 	_page_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_page_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

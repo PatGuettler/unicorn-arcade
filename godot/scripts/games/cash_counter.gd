@@ -13,7 +13,6 @@ const BILL_ART := {
 }
 const BILL_NAMES := {1: "ONE DOLLAR", 5: "FIVE DOLLARS", 10: "TEN DOLLARS", 20: "TWENTY DOLLARS", 50: "FIFTY DOLLARS", 100: "ONE HUNDRED DOLLARS"}
 const NAVY := Color("08112f")
-const CYAN := Color("58d6e8")
 const YELLOW := Color("ffd166")
 
 var rng := RandomNumberGenerator.new()
@@ -131,7 +130,7 @@ func _build_ui() -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title.add_theme_font_size_override("font_size", 27)
-	title.add_theme_color_override("font_color", CYAN)
+	title.add_theme_color_override("font_color", StorybookUI.CYAN)
 	header.add_child(title)
 	coin_label = Label.new()
 	coin_label.text = "★ %d" % AppState.coins()
@@ -146,7 +145,7 @@ func _build_ui() -> void:
 	StorybookUI.apply_story_label(level_label, Color("c8d2ff"), 20, true)
 	layout.add_child(level_label)
 	var target_plaque := PanelContainer.new()
-	StorybookUI.apply_prompt_plaque(target_plaque, Color("fff3d6"))
+	StorybookUI.apply_prompt_plaque(target_plaque, StorybookUI.CREAM)
 	layout.add_child(target_plaque)
 	var target_stack := VBoxContainer.new()
 	target_plaque.add_child(target_stack)
@@ -179,9 +178,9 @@ func _build_ui() -> void:
 		button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		for color_name in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_disabled_color"]:
 			button.add_theme_color_override(color_name, Color.TRANSPARENT)
-		button.add_theme_stylebox_override("normal", StorybookUI.button_style(Color("fff7dc"), Color("e1ae4f"), 3, 14))
-		button.add_theme_stylebox_override("hover", StorybookUI.button_style(Color("ffffff"), Color("58d6e8"), 4, 14))
-		button.add_theme_stylebox_override("pressed", StorybookUI.button_style(Color("e8ddbd"), Color("e1ae4f"), 3, 14))
+		button.add_theme_stylebox_override("normal", StorybookUI.button_style(Color("fff7dc"), StorybookUI.GOLD, 3, 14))
+		button.add_theme_stylebox_override("hover", StorybookUI.button_style(Color("ffffff"), StorybookUI.CYAN, 4, 14))
+		button.add_theme_stylebox_override("pressed", StorybookUI.button_style(Color("e8ddbd"), StorybookUI.GOLD, 3, 14))
 		var art := TextureRect.new()
 		art.name = "OfficialBillPortrait"
 		art.texture = load(BILL_ART[bill])
@@ -196,7 +195,7 @@ func _build_ui() -> void:
 		badge.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 		badge.add_theme_font_size_override("font_size", 20)
 		badge.add_theme_color_override("font_color", Color("172143"))
-		badge.add_theme_color_override("font_outline_color", Color("fff3d6"))
+		badge.add_theme_color_override("font_outline_color", StorybookUI.CREAM)
 		badge.add_theme_constant_override("outline_size", 4)
 		badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		badge.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)

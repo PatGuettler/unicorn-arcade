@@ -1,8 +1,8 @@
 class_name CoinChoiceButton
 extends Button
 
+const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const SILVER_LIGHT := Color("eef3fa")
-const CREAM := Color("fff3d6")
 const PORTRAIT_TOP_Y := 2.0
 const PORTRAIT_BOTTOM_Y := 116.0
 const DENOMINATION_BASELINE_Y := 140.0
@@ -58,14 +58,14 @@ func setup(coin_name: String, coin_cents: int, ratio: float) -> void:
 
 func _draw() -> void:
 	var font := ThemeDB.fallback_font
-	var label_color := Color(CREAM, 0.48) if disabled else CREAM
+	var label_color := Color(StorybookUI.CREAM, 0.48) if disabled else StorybookUI.CREAM
 	var value_color := Color(SILVER_LIGHT, 0.62) if disabled else SILVER_LIGHT
 	draw_string(font, Vector2(0, DENOMINATION_BASELINE_Y), denomination.to_upper(), HORIZONTAL_ALIGNMENT_CENTER, size.x, 20, label_color)
 	draw_string(font, Vector2(0, 165), _value_label(), HORIZONTAL_ALIGNMENT_CENTER, size.x, 18, value_color)
 	if has_focus():
 		# Outline the entire accessible portrait region rather than drawing a
 		# second, procedural coin below the official denomination art.
-		draw_rect(Rect2(8, 2, maxf(0.0, size.x - 16.0), 138), Color("58d6e8"), false, 4.0, true)
+		draw_rect(Rect2(8, 2, maxf(0.0, size.x - 16.0), 138), StorybookUI.CYAN, false, 4.0, true)
 
 
 func _value_label() -> String:

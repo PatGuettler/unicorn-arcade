@@ -9,7 +9,6 @@ const WordFallingStrategy = preload("res://scripts/games/word_falling_strategy.g
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 const NAVY := Color("08112f")
 const PANEL := Color("14214a")
-const CYAN := Color("58d6e8")
 const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 
@@ -696,7 +695,7 @@ func _build_ui() -> void:
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_label.add_theme_font_size_override("font_size", 25)
-	title_label.add_theme_color_override("font_color", PINK if game_info.get("category") == "Word" else CYAN)
+	title_label.add_theme_color_override("font_color", PINK if game_info.get("category") == "Word" else StorybookUI.CYAN)
 	header.add_child(title_label)
 	coin_label = Label.new()
 	coin_label.text = "★ %d" % AppState.coins()
@@ -735,7 +734,7 @@ func _build_ui() -> void:
 	content.add_child(instruction_label)
 	var prompt_plaque := PanelContainer.new()
 	prompt_plaque.name = "WordPromptPlaque"
-	StorybookUI.apply_prompt_plaque(prompt_plaque, Color("fff3d6"))
+	StorybookUI.apply_prompt_plaque(prompt_plaque, StorybookUI.CREAM)
 	content.add_child(prompt_plaque)
 	prompt_label = Label.new()
 	prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -750,7 +749,7 @@ func _build_ui() -> void:
 	content.add_child(secondary_label)
 	var play_frame := PanelContainer.new()
 	play_frame.name = "WordPlayFrame"
-	play_frame.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("14214a"), Color("e1ae4f"), 18))
+	play_frame.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("14214a"), StorybookUI.GOLD, 18))
 	content.add_child(play_frame)
 	play_area = Control.new()
 	play_area.custom_minimum_size = Vector2(0, 350)

@@ -177,7 +177,7 @@ func _build_ui() -> void:
 	StorybookUI.apply_story_label(title, Color("f26fa7"), 38, true)
 	layout.add_child(title)
 	var prompt_plaque := PanelContainer.new()
-	StorybookUI.apply_prompt_plaque(prompt_plaque, Color("fff3d6"))
+	StorybookUI.apply_prompt_plaque(prompt_plaque, StorybookUI.CREAM)
 	layout.add_child(prompt_plaque)
 	var prompt_stack := VBoxContainer.new()
 	prompt_plaque.add_child(prompt_stack)

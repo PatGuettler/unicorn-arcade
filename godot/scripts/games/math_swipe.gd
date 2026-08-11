@@ -173,10 +173,10 @@ func _build_ui() -> void:
 	root.add_child(title)
 	progress_label = Label.new()
 	progress_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	StorybookUI.apply_story_label(progress_label, Color("fff3d6"), 18, true)
+	StorybookUI.apply_story_label(progress_label, StorybookUI.CREAM, 18, true)
 	root.add_child(progress_label)
 	var prompt_plaque := PanelContainer.new()
-	StorybookUI.apply_prompt_plaque(prompt_plaque, Color("fff3d6"))
+	StorybookUI.apply_prompt_plaque(prompt_plaque, StorybookUI.CREAM)
 	root.add_child(prompt_plaque)
 	var prompt_stack := VBoxContainer.new()
 	prompt_plaque.add_child(prompt_stack)

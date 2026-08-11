@@ -53,6 +53,7 @@ func _room_item(items: Array, instance_id: String) -> Dictionary:
 
 
 func _run() -> void:
+	_test_storybook_palette_contract()
 	_test_word_choice_strategy()
 	_test_word_sequence_strategy()
 	_test_word_typed_entry_strategy()
@@ -479,6 +480,81 @@ func _run() -> void:
 	else:
 		for failure in failures: push_error(failure)
 		get_tree().quit(1)
+
+
+func _test_storybook_palette_contract() -> void:
+	var removed_aliases := {
+		"res://scripts/games/cash_counter.gd": ["const CYAN := Color(\"58d6e8\")"],
+		"res://scripts/games/word_game.gd": ["const CYAN := Color(\"58d6e8\")"],
+		"res://scripts/main.gd": ["const CYAN := Color(\"58d6e8\")"],
+		"res://scripts/meta/marketplace.gd": [
+			"const GOLD := Color(\"e1ae4f\")",
+			"const CREAM := Color(\"fff3d6\")",
+			"const MUTED := Color(\"c9d3ef\")",
+			"const CYAN := Color(\"58d6e8\")",
+		],
+		"res://scripts/meta/room_editor.gd": ["const CYAN := Color(\"58d6e8\")"],
+		"res://scripts/meta/unicorn_alley.gd": ["const CYAN := Color(\"58d6e8\")"],
+		"res://scripts/ui/game_catalog_view.gd": ["const CYAN := Color(\"58d6e8\")"],
+		"res://scripts/ui/profile_view.gd": ["const CYAN := Color(\"58d6e8\")"],
+		"res://scripts/ui/arcade_pictogram.gd": [
+			"const NAVY := Color(\"17254d\")",
+			"const CREAM := Color(\"fff3d6\")",
+			"const GOLD := Color(\"f4d37f\")",
+			"const CYAN := Color(\"58d6e8\")",
+		],
+		"res://scripts/games/coin_choice_button.gd": ["const CREAM := Color(\"fff3d6\")"],
+	}
+	for path in removed_aliases:
+		var source := FileAccess.get_file_as_string(path)
+		for alias in removed_aliases[path]:
+			_check(not source.contains(alias), "%s removes exact local Storybook palette alias %s" % [path, alias])
+	var shared_references := {
+		"res://scripts/games/cash_counter.gd": ["StorybookUI.CYAN", "StorybookUI.CREAM", "StorybookUI.GOLD"],
+		"res://scripts/games/coin_count.gd": ["StorybookUI.CYAN", "StorybookUI.CREAM"],
+		"res://scripts/games/word_game.gd": ["StorybookUI.CYAN", "StorybookUI.CREAM", "StorybookUI.GOLD"],
+		"res://scripts/games/galaxy_unicorn.gd": ["StorybookUI.NAVY", "StorybookUI.CREAM"],
+		"res://scripts/games/mathtris.gd": ["StorybookUI.CREAM", "StorybookUI.GOLD"],
+		"res://scripts/games/math_swipe.gd": ["StorybookUI.CREAM"],
+		"res://scripts/games/rhyme_rally.gd": ["StorybookUI.CREAM"],
+		"res://scripts/games/sliding_window.gd": ["StorybookUI.CREAM", "StorybookUI.GOLD_BRIGHT"],
+		"res://scripts/games/unicorn_jump.gd": ["StorybookUI.CREAM"],
+		"res://scripts/meta/marketplace.gd": ["StorybookUI.CYAN", "StorybookUI.CREAM", "StorybookUI.GOLD", "StorybookUI.MUTED"],
+		"res://scripts/meta/room_editor.gd": ["StorybookUI.CYAN"],
+		"res://scripts/ui/game_catalog_view.gd": ["StorybookUI.CYAN"],
+		"res://scripts/ui/profile_view.gd": ["StorybookUI.NAVY", "StorybookUI.CYAN", "StorybookUI.CREAM", "StorybookUI.GOLD_BRIGHT", "StorybookUI.MUTED"],
+		"res://scripts/ui/arcade_pictogram.gd": ["StorybookUI.NAVY", "StorybookUI.CYAN", "StorybookUI.CREAM", "StorybookUI.GOLD_BRIGHT"],
+		"res://scripts/ui/game_experience_chrome_presenter.gd": ["StorybookUI.NAVY", "StorybookUI.CREAM", "StorybookUI.GOLD"],
+		"res://scripts/ui/game_experience_outcome_presenter.gd": ["StorybookUI.CREAM", "StorybookUI.GOLD_BRIGHT"],
+		"res://scripts/ui/unicorn_header.gd": ["StorybookUI.NAVY"],
+		"res://scripts/games/coin_choice_button.gd": ["StorybookUI.CYAN", "StorybookUI.CREAM"],
+	}
+	var exact_palette_literals := [
+		"Color(\"17254d\")",
+		"Color(\"58d6e8\")",
+		"Color(\"e1ae4f\")",
+		"Color(\"f4d37f\")",
+		"Color(\"fff3d6\")",
+		"Color(\"c9d3ef\")",
+	]
+	for path in shared_references:
+		var source := FileAccess.get_file_as_string(path)
+		_check(shared_references[path].all(func(token: String) -> bool: return source.contains(token)), "%s sources every exact presentation color from StorybookUI" % path)
+		_check(exact_palette_literals.all(func(literal: String) -> bool: return not source.contains(literal)), "%s does not redeclare an exact Storybook palette literal" % path)
+	var cash_source := FileAccess.get_file_as_string("res://scripts/games/cash_counter.gd")
+	var word_source := FileAccess.get_file_as_string("res://scripts/games/word_game.gd")
+	var main_source := FileAccess.get_file_as_string("res://scripts/main.gd")
+	var room_source := FileAccess.get_file_as_string("res://scripts/meta/room_editor.gd")
+	var alley_source := FileAccess.get_file_as_string("res://scripts/meta/unicorn_alley.gd")
+	var catalog_source := FileAccess.get_file_as_string("res://scripts/ui/game_catalog_view.gd")
+	var profile_source := FileAccess.get_file_as_string("res://scripts/ui/profile_view.gd")
+	var pictogram_source := FileAccess.get_file_as_string("res://scripts/ui/arcade_pictogram.gd")
+	var header_source := FileAccess.get_file_as_string("res://scripts/ui/unicorn_header.gd")
+	_check(cash_source.contains("const NAVY := Color(\"08112f\")") and word_source.contains("const NAVY := Color(\"08112f\")") and main_source.contains("const NAVY := Color(\"08112f\")") and room_source.contains("const NAVY := Color(\"08112f\")"), "the distinct 08112f game/meta background navy remains intentionally local")
+	_check(alley_source.contains("const NAVY := Color(\"07142c\")"), "the distinct 07142c Unicorn Alley background navy remains intentionally local")
+	_check(word_source.contains("const PINK := Color(\"f26fa7\")") and main_source.contains("const PINK := Color(\"f26fa7\")") and room_source.contains("const PINK := Color(\"f26fa7\")") and alley_source.contains("const PINK := Color(\"f26fa7\")") and catalog_source.contains("const PINK := Color(\"f26fa7\")") and profile_source.contains("const PINK := Color(\"f26fa7\")") and pictogram_source.contains("const PINK := Color(\"f26fa7\")"), "the distinct f26fa7 category accent remains intentionally local")
+	_check(main_source.contains("const MUTED := Color(\"aab7e8\")") and room_source.contains("const MUTED := Color(\"aab7e8\")") and alley_source.contains("const MUTED := Color(\"aab7e8\")"), "the distinct aab7e8 secondary text color remains intentionally local")
+	_check(header_source.contains("const CURRENCY_STAR := Color(\"ffd166\")"), "the intentionally brighter ffd166 currency star remains separate from StorybookUI.GOLD")
 
 
 func _test_word_choice_strategy() -> void:

@@ -6,7 +6,6 @@ const ArcadePictogramScene = preload("res://scripts/ui/arcade_pictogram.gd")
 const ProgressRingScene = preload("res://scripts/ui/progress_ring.gd")
 
 const PENNY_TEXTURE_PATH := "res://assets/games/currency/penny.png"
-const CYAN := Color("58d6e8")
 const PINK := Color("f26fa7")
 const YELLOW := Color("ffd166")
 
@@ -127,7 +126,7 @@ func _build_unicorn_banner() -> PanelContainer:
 	eyebrow.text = "EQUIPPED UNICORN"
 	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	eyebrow.add_theme_font_size_override("font_size", 15)
-	eyebrow.add_theme_color_override("font_color", Color("f4d37f"))
+	eyebrow.add_theme_color_override("font_color", StorybookUI.GOLD_BRIGHT)
 	stack.add_child(eyebrow)
 
 	var hero_row := HBoxContainer.new()
@@ -149,7 +148,7 @@ func _build_unicorn_banner() -> PanelContainer:
 	identity.alignment = BoxContainer.ALIGNMENT_CENTER
 	identity.add_theme_constant_override("separation", 8)
 	hero_row.add_child(identity)
-	identity.add_child(_label(AppState.player_name().to_upper(), 28, Color("fff3d6"), HORIZONTAL_ALIGNMENT_CENTER))
+	identity.add_child(_label(AppState.player_name().to_upper(), 28, StorybookUI.CREAM, HORIZONTAL_ALIGNMENT_CENTER))
 	identity.add_child(_label(str(companion.get("name", "Sparkle")).to_upper(), 24, PINK, HORIZONTAL_ALIGNMENT_CENTER))
 	var power := Label.new()
 	power.text = "%s %s\n%s" % [
@@ -160,7 +159,7 @@ func _build_unicorn_banner() -> PanelContainer:
 	power.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	power.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	power.add_theme_font_size_override("font_size", 17)
-	power.add_theme_color_override("font_color", Color("c9d3ef"))
+	power.add_theme_color_override("font_color", StorybookUI.MUTED)
 	identity.add_child(power)
 
 	var alley := _button("VISIT UNICORN ALLEY", Color("c45186"), 54)
@@ -195,7 +194,7 @@ func _build_progress_rings() -> PanelContainer:
 	var card := PanelContainer.new()
 	card.name = "ProfileProgressRings"
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("17254d"), StorybookUI.GOLD, 20))
+	card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(StorybookUI.NAVY, StorybookUI.GOLD, 20))
 	var grid := GridContainer.new()
 	grid.columns = 2
 	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -275,7 +274,7 @@ func _build_game_tile(game: Dictionary, category: String) -> PanelContainer:
 	tile.custom_minimum_size = Vector2(0, 126)
 	tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	tile.mouse_filter = Control.MOUSE_FILTER_PASS
-	tile.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), _category_color(category), 14))
+	tile.add_theme_stylebox_override("panel", StorybookUI.plaque_style(StorybookUI.CREAM, _category_color(category), 14))
 	var stack := VBoxContainer.new()
 	stack.alignment = BoxContainer.ALIGNMENT_CENTER
 	stack.add_theme_constant_override("separation", 4)
@@ -305,7 +304,7 @@ func _build_settings() -> PanelContainer:
 	var settings_card := PanelContainer.new()
 	settings_card.name = "ProfileSettings"
 	settings_card.mouse_filter = Control.MOUSE_FILTER_PASS
-	settings_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(Color("fff3d6"), StorybookUI.GOLD, 18))
+	settings_card.add_theme_stylebox_override("panel", StorybookUI.plaque_style(StorybookUI.CREAM, StorybookUI.GOLD, 18))
 	var settings_stack := VBoxContainer.new()
 	settings_stack.add_theme_constant_override("separation", 8)
 	settings_card.add_child(settings_stack)
@@ -392,7 +391,7 @@ func _label(value: String, font_size: int, color: Color, alignment: HorizontalAl
 
 func _category_color(category: String) -> Color:
 	return {
-		"Number": CYAN,
+		"Number": StorybookUI.CYAN,
 		"Word": PINK,
 		"Mystery": Color("9b8cff"),
 		"Arcade": Color("62e6a7"),
