@@ -2,8 +2,8 @@
 # Export Godot Android release (AAB) + debug APK. Run from repo root on Ubuntu CI or locally.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-PROJECT="$ROOT/godot"
+ROOT="${GODOT_CI_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+PROJECT="${GODOT_PROJECT:-$ROOT/godot}"
 GODOT_VERSION="${GODOT_VERSION:-4.7.1}"
 GODOT_CHANNEL="${GODOT_CHANNEL:-stable}"
 GODOT_TAG="${GODOT_VERSION}-${GODOT_CHANNEL}"
@@ -27,10 +27,14 @@ restore_export_preset() {
 }
 
 export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
-if [[ -z "${ANDROID_SDK_ROOT}" ]]; then
-	echo "ANDROID_SDK_ROOT or ANDROID_HOME must be set" >&2
-	exit 1
-fi
+
+
+require_android_sdk() {
+	if [[ -z "${ANDROID_SDK_ROOT}" ]]; then
+		echo "ANDROID_SDK_ROOT or ANDROID_HOME must be set" >&2
+		return 1
+	fi
+}
 
 configure_godot_android_paths() {
 	local settings_dir="$HOME/.config/godot"
@@ -141,19 +145,29 @@ sanitize_android_build_template() {
 
 ensure_android_build_template() {
 	local marker="$PROJECT/android/build/build.gradle"
-	local godot_aar template_dir android_source
+	local build_version_marker="$PROJECT/android/build/.build_version"
+	local actual_version=""
+	local expected_version godot_aar template_dir android_source
+	validate_tracked_android_build_version
+	expected_version="$(expected_android_build_version)"
 	godot_aar="$(find "$PROJECT/android/build/libs" -name 'godot-lib*.aar' -type f 2>/dev/null | head -1 || true)"
-	if [[ -f "$marker" && -n "$godot_aar" && -s "$godot_aar" ]]; then
+	if [[ -f "$build_version_marker" ]]; then
+		actual_version="$(tr -d '\r\n' <"$build_version_marker")"
+	fi
+	if [[ -f "$marker" && -n "$godot_aar" && -s "$godot_aar" && "$actual_version" == "$expected_version" ]]; then
 		sanitize_android_build_template
-		echo "Android build template already present; skipping install."
+		echo "Android build template cache accepted (${expected_version}); skipping install."
 		return 0
+	fi
+	if [[ -f "$marker" || -n "$godot_aar" ]]; then
+		echo "Rejecting Android build template cache: marker '${actual_version:-missing}', expected '${expected_version}'."
 	fi
 
 	# Never call `godot --install-android-build-template` alone in CI: headless Godot
 	# prints the engine banner and then sits in the editor until the job times out.
 	# Extract android_source.zip from the export templates instead (same payload).
 	template_dir="$(android_export_template_dir)"
-	android_source="$HOME/.local/share/godot/export_templates/${template_dir}/android_source.zip"
+	android_source="$GODOT_SHARE_DIR/export_templates/${template_dir}/android_source.zip"
 	[[ -s "$android_source" ]] || {
 		echo "ERROR: missing Android source template at $android_source" >&2
 		exit 1
@@ -164,8 +178,7 @@ ensure_android_build_template() {
 	mkdir -p "$PROJECT/android/build"
 	unzip -qo "$android_source" -d "$PROJECT/android/build"
 	chmod +x "$PROJECT/android/build/gradlew"
-	printf '%s\n' "$template_dir" >"$PROJECT/android/build/.build_version"
-	printf '%s\n' "$template_dir" >"$PROJECT/android/.build_version"
+	printf '%s\n' "$expected_version" >"$PROJECT/android/build/.build_version"
 	sanitize_android_build_template
 
 	godot_aar="$(find "$PROJECT/android/build/libs" -name 'godot-lib*.aar' -type f 2>/dev/null | head -1 || true)"
@@ -332,8 +345,17 @@ export_android() {
 	trap - EXIT
 }
 
-install_godot
-install_godot_export_templates
-export_android
-echo "Done: $PROJECT/build/android/UnicornArcade.aab"
-echo "Done: $PROJECT/build/android/UnicornArcade-debug.apk"
+main() {
+	require_android_sdk
+	validate_tracked_android_build_version
+	install_godot
+	install_godot_export_templates
+	export_android
+	echo "Done: $PROJECT/build/android/UnicornArcade.aab"
+	echo "Done: $PROJECT/build/android/UnicornArcade-debug.apk"
+}
+
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+	main "$@"
+fi

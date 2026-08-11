@@ -47,7 +47,7 @@ jobs:
 
       - name: Run Godot test manifest
         run: |
-          chmod +x scripts/ci/install-godot.sh scripts/ci/godot-tests.sh
+          chmod +x scripts/ci/install-godot.sh scripts/ci/godot-tests.sh scripts/ci/test-android-template-cache.sh
           ./scripts/ci/godot-tests.sh
 
   build-and-deploy:
@@ -81,9 +81,9 @@ jobs:
         uses: actions/cache@v4
         with:
           path: godot/android/build
-          key: godot-android-build-${{ runner.os }}-${{ env.GODOT_VERSION }}-${{ hashFiles('godot/export_presets.cfg', 'godot/android/.build_version') }}
-          restore-keys: |
-            godot-android-build-${{ runner.os }}-${{ env.GODOT_VERSION }}-
+          # Exact key only: ensure_android_build_template also verifies the
+          # extracted cache's .build_version before accepting any AARs.
+          key: godot-android-build-${{ runner.os }}-${{ env.GODOT_VERSION }}-${{ env.GODOT_CHANNEL }}-${{ hashFiles('godot/export_presets.cfg', 'godot/android/.build_version') }}
 
       - name: Cache Gradle (Android export)
         uses: actions/cache@v4
