@@ -262,3 +262,7 @@ For each phase: run the headless suites from 0.3 locally, then confirm the same 
 ## Note on provenance
 
 The Phase 0.1 breakage was introduced by my own conflict resolution earlier in this session. When merging `codex/godot-performance-maintainability` into `main` I kept that branch's `super(delta)` and `gameplay_paused` guard, without noticing `main` had deleted the declaration in `1675c56`. Fix it first.
+
+## PR32 Android delivery verification (2026-08-10)
+
+The Android build-template cache now requires an exact `4.7.1.stable` marker: a missing or stale marker forces a fresh template extract rather than reusing a structurally valid but incompatible cache. CI has no fallback cache key for that directory. Local PR32 evidence is recorded in `docs/android-build-evidence-pr32.md`: signed release AAB and debug APK built at version 32 / 1.32, and the debug package was installed in place on the authorized Pixel 9 Pro without clearing data.

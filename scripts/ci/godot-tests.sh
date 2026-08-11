@@ -9,6 +9,9 @@ export GODOT_PROJECT="$PROJECT"
 # shellcheck source=install-godot.sh
 source "$ROOT/scripts/ci/install-godot.sh"
 
+echo "=== Android build-template cache contract ==="
+bash "$ROOT/scripts/ci/test-android-template-cache.sh"
+
 install_godot
 
 TEST_TIMEOUT_SECONDS="${GODOT_TEST_TIMEOUT_SECONDS:-180}"

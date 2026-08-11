@@ -13,12 +13,30 @@ GODOT_BIN_DIR="${GODOT_BIN_DIR:-$HOME/.local/bin}"
 GODOT_SHARE_DIR="${GODOT_SHARE_DIR:-$HOME/.local/share/godot}"
 
 
+expected_android_build_version() {
+	printf '%s.%s\n' "$GODOT_VERSION" "$GODOT_CHANNEL"
+}
+
+
+validate_tracked_android_build_version() {
+	local marker="$GODOT_PROJECT/android/.build_version"
+	local expected actual
+	expected="$(expected_android_build_version)"
+	[[ -f "$marker" ]] || {
+		echo "ERROR: tracked Android build marker is missing: $marker (expected $expected)" >&2
+		return 1
+	}
+	actual="$(tr -d '\r\n' <"$marker")"
+	[[ "$actual" == "$expected" ]] || {
+		echo "ERROR: tracked Android build marker is '$actual'; requested engine requires '$expected'" >&2
+		return 1
+	}
+}
+
+
 android_export_template_dir() {
-	local template_dir="${GODOT_VERSION}.stable"
-	if [[ -f "$GODOT_PROJECT/android/.build_version" ]]; then
-		template_dir="$(tr -d '\r\n' <"$GODOT_PROJECT/android/.build_version")"
-	fi
-	printf '%s\n' "$template_dir"
+	validate_tracked_android_build_version || return 1
+	expected_android_build_version
 }
 
 
