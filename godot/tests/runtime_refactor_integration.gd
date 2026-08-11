@@ -11,6 +11,7 @@ const GameExperienceTutorialPresenter = preload("res://scripts/ui/game_experienc
 const GameExperienceOutcomePresenter = preload("res://scripts/ui/game_experience_outcome_presenter.gd")
 const WordGameModeStrategy = preload("res://scripts/games/word_game_mode_strategy.gd")
 const WordChoiceStrategy = preload("res://scripts/games/word_choice_strategy.gd")
+const WordSequenceStrategy = preload("res://scripts/games/word_sequence_strategy.gd")
 const WordRules = preload("res://scripts/games/word_game_rules.gd")
 
 class TutorialPauseProbe extends Control:
@@ -45,6 +46,7 @@ func _room_item(items: Array, instance_id: String) -> Dictionary:
 
 func _run() -> void:
 	_test_word_choice_strategy()
+	_test_word_sequence_strategy()
 	var tutorial_presenter := GameExperienceTutorialPresenter.new()
 	var tutorial_source: String = FileAccess.get_file_as_string("res://scripts/ui/game_experience_tutorial_presenter.gd")
 	_check(tutorial_presenter is RefCounted and not tutorial_source.contains("\nvar ") and not tutorial_source.contains("AppState") and not tutorial_source.contains("GameExperience.") and not tutorial_source.contains("TutorialCatalog") and not tutorial_source.contains("attached_scene") and not tutorial_source.contains("CompanionAbilityService"), "tutorial presenter is a stateless RefCounted that does not own game, tutorial catalog, or gameplay state")
@@ -518,3 +520,42 @@ func _choice_correct_payload(game_id: String, current: Dictionary, options: Arra
 				if WordRules.is_chain_link(str(current.get("start", "")), payload):
 					return option.get("payload")
 	return ""
+
+
+func _test_word_sequence_strategy() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/games/word_sequence_strategy.gd")
+	_check(not source.contains("AppState") and not source.contains("ArcadeGameController") and not source.contains("StorybookUI") and not source.contains("GameRegistry"), "sequence strategy stays inside Rules and RoundCatalog data boundaries")
+	var strategy := WordSequenceStrategy.new()
+	var supported := ["sentence_sprout", "syllable_stamp", "scramble_spell", "size_line_up"]
+	_check(strategy.family() == "sequence" and supported.all(func(game_id: String) -> bool: return strategy.supports(game_id)) and not strategy.supports("missing_magic") and strategy.begin_round({"game_id": "missing_magic"}) == {"handled": false}, "sequence strategy exposes exactly the ordered-mode IDs and safe fallback")
+	for game_id in supported:
+		var rng := RandomNumberGenerator.new()
+		rng.seed = 1337
+		var round := strategy.begin_round({"game_id": game_id, "level": 1, "round_index": 0, "rng": rng})
+		var current: Dictionary = round.get("current", {})
+		var sequence: Array = round.get("sequence", [])
+		var pool: Array = round.get("pool", [])
+		_check(bool(round.get("handled", false)) and bool(round.get("ok", false)) and not current.is_empty() and not sequence.is_empty() and not pool.is_empty() and not str(round.get("phase", "")).is_empty() and not str(round.get("instruction", "")).is_empty(), "%s begins with a renderable ordered-round contract" % game_id)
+		var context := {"game_id": game_id, "current": current, "sequence": sequence, "pool": pool, "picked": []}
+		var sequence_before := sequence.duplicate(true)
+		var pool_before := pool.duplicate(true)
+		var first_value = sequence[0]
+		var first_index := pool.find(first_value)
+		var hint_a := strategy.hint(context)
+		var hint_b := strategy.hint(context)
+		_check(hint_a == hint_b and str(hint_a.get("next", "")) == str(first_value) and sequence == sequence_before and pool == pool_before, "%s hint reads only the current sequence and picks without reordering" % game_id)
+		var failed := strategy.submit(context, {"value": "__wrong_sequence__", "index": -1})
+		var continued := strategy.submit(context, {"value": first_value, "index": first_index})
+		var expected_pool := pool.duplicate()
+		if first_index >= 0:
+			expected_pool.remove_at(first_index)
+		_check(failed.get("outcome") == "failure" and continued.get("outcome") == ("success" if sequence.size() == 1 else "continue") and continued.get("picked") == [first_value] and continued.get("pool") == expected_pool and pool == pool_before, "%s submit returns immutable failure/continue state with exact index removal" % game_id)
+		var final_value = sequence[sequence.size() - 1]
+		var final_result := strategy.submit({"game_id": game_id, "sequence": sequence, "pool": [final_value], "picked": sequence.slice(0, sequence.size() - 1)}, {"value": final_value, "index": 0})
+		_check(final_result.get("outcome") == "success" and final_result.get("picked") == sequence and (final_result.get("pool") as Array).is_empty(), "%s submit completes only after the final ordered item" % game_id)
+	var saved_cache := WordRules._cache.duplicate(true)
+	WordRules._cache = {"sentence_build": []}
+	var empty_rng := RandomNumberGenerator.new()
+	_check(not bool(strategy.begin_round({"game_id": "sentence_sprout", "level": 1, "round_index": 0, "rng": empty_rng}).get("ok", true)), "sequence strategy reports an invalid round when its source is empty")
+	WordRules._cache = saved_cache
+	_check(strategy.failure_reason({"game_id": "sentence_sprout"}) == "Tap words in the right order!" and strategy.failure_reason({"game_id": "size_line_up"}) == "Tap shortest word first, then longer ones!", "sequence strategy preserves the exact failure copy")

@@ -194,6 +194,11 @@ func _capture() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await get_tree().process_frame
+	if mode == "word_choice_fixture":
+		captured.set("started_ms", Time.get_ticks_msec())
+		var word_timer := captured.get("timer_label") as Label
+		if is_instance_valid(word_timer):
+			word_timer.text = "0.0s"
 	DirAccess.make_dir_recursive_absolute(output.get_base_dir())
 	var error := get_viewport().get_texture().get_image().save_png(output)
 	if error == OK:
