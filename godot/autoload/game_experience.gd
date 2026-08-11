@@ -5,11 +5,13 @@ const LevelRunController = preload("res://scripts/games/level_run_controller.gd"
 const TutorialCatalog = preload("res://scripts/tutorial_catalog.gd")
 const ProgressRingScene = preload("res://scripts/ui/progress_ring.gd")
 const GameExperienceChromePresenter = preload("res://scripts/ui/game_experience_chrome_presenter.gd")
+const GameExperienceTutorialPresenter = preload("res://scripts/ui/game_experience_tutorial_presenter.gd")
 
 var attached_scene: Node
 var attached_controller: ArcadeGameController
 var attached_game_id := ""
 var chrome_presenter := GameExperienceChromePresenter.new()
+var tutorial_presenter := GameExperienceTutorialPresenter.new()
 var objective_primary: Label
 var objective_detail: Label
 var coin_button: Button
@@ -761,52 +763,13 @@ func _maybe_show_tutorial(force_replay: bool) -> void:
 	overlay.set_meta("step", 0)
 	overlay.set_meta("game_id", attached_game_id)
 	overlay.set_meta("tutorial_level", tutorial_level)
-	var stack := VBoxContainer.new()
-	stack.alignment = BoxContainer.ALIGNMENT_CENTER
-	stack.add_theme_constant_override("separation", 18)
-	card.add_child(stack)
-	var heading := _modal_title("GUIDED LEVEL %d  •  STEP 1 OF 3" % tutorial_level)
-	heading.name = "TutorialHeading"
-	stack.add_child(heading)
-	var sparkle := Label.new()
-	sparkle.text = "✦  🦄  ✦"
-	sparkle.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sparkle.add_theme_font_size_override("font_size", 42)
-	stack.add_child(sparkle)
-	var lesson := Label.new()
-	lesson.name = "TutorialLesson"
-	lesson.text = lessons[0]
-	lesson.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lesson.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lesson.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lesson.custom_minimum_size.y = 150
-	lesson.add_theme_font_size_override("font_size", 25)
-	lesson.add_theme_color_override("font_color", StorybookUI.INK)
-	stack.add_child(lesson)
-	var next := Button.new()
-	next.name = "TutorialNext"
-	next.text = "SHOW ME THE NEXT STEP"
-	StorybookUI.apply_game_action(next, 280)
-	next.pressed.connect(_advance_tutorial.bind(overlay))
-	stack.add_child(next)
+	tutorial_presenter.build(card, overlay, tutorial_level, lessons, _advance_tutorial)
 
 
 func _advance_tutorial(overlay: Control) -> void:
-	if not is_instance_valid(overlay):
-		return
-	var lessons: Array = overlay.get_meta("lessons")
-	var step := int(overlay.get_meta("step")) + 1
-	if step >= lessons.size():
+	if tutorial_presenter.advance(overlay):
 		AppState.mark_tutorial_complete(str(overlay.get_meta("game_id")), int(overlay.get_meta("tutorial_level")))
 		overlay.queue_free()
-		return
-	overlay.set_meta("step", step)
-	var heading := overlay.find_child("TutorialHeading", true, false) as Label
-	var lesson := overlay.find_child("TutorialLesson", true, false) as Label
-	var next := overlay.find_child("TutorialNext", true, false) as Button
-	heading.text = "GUIDED LEVEL %d  •  STEP %d OF %d" % [int(overlay.get_meta("tutorial_level")), step + 1, lessons.size()]
-	lesson.text = str(lessons[step])
-	next.text = "LET ME PLAY" if step == lessons.size() - 1 else "SHOW ME THE NEXT STEP"
 
 
 func _show_notice(title: String, copy: String) -> void:

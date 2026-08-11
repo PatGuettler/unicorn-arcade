@@ -88,6 +88,10 @@ func _capture() -> void:
 		captured = Control.new()
 		captured.name = "GameChromeFixture"
 		(captured as Control).set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	elif mode == "game_tutorial_fixture":
+		captured = Control.new()
+		captured.name = "GameTutorialFixture"
+		(captured as Control).set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	elif mode == "procedural_preview":
 		# A catalog-miss forces RoomItemPreview3D through the procedural fallback.
 		captured = RoomItemPreview3D.new()
@@ -134,6 +138,8 @@ func _capture() -> void:
 		get_tree().current_scene = captured
 	elif mode == "game_chrome_fixture":
 		_build_game_chrome_fixture(captured as Control, game_id)
+	elif mode == "game_tutorial_fixture":
+		_build_game_tutorial_fixture(captured as Control, game_id)
 	elif captured.has_signal("page_build_complete"):
 		await captured.page_build_complete
 	if mode == "companion_preview_static":
@@ -260,3 +266,11 @@ func _build_game_chrome_fixture(fixture: Control, game_id: String) -> void:
 	GameExperience._restyle_controls(fixture)
 	GameExperience._polish_game_labels(fixture)
 	GameExperience._hide_game_scrollbars(fixture)
+
+
+func _build_game_tutorial_fixture(fixture: Control, game_id: String) -> void:
+	GameExperience._apply_storybook_atmosphere(fixture)
+	GameExperience.attached_controller = null
+	GameExperience.attached_scene = fixture
+	GameExperience.attached_game_id = game_id
+	GameExperience._maybe_show_tutorial(true)
