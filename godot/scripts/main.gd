@@ -232,11 +232,6 @@ func _show_home() -> void:
 	page_build_complete.emit()
 
 
-func _show_home_status(message: String) -> void:
-	if is_instance_valid(status_label):
-		status_label.text = message
-
-
 func _show_dashboard() -> void:
 	AppState.shell_view = "dashboard"
 	if await _reset_page() == null:

@@ -25,7 +25,6 @@ const COMPANION_PORTRAITS := {
 	"mystic": preload("res://assets/characters/unicorns/thumbnails/mystic.png"),
 }
 
-signal scene_change_ready
 signal catalog_build_complete
 
 var content: Control

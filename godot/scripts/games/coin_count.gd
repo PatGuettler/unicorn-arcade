@@ -11,14 +11,6 @@ var message_label: Label
 var coin_buttons: Array[Button] = []
 
 
-static func target_bounds(for_level: int) -> Vector2i:
-	if for_level <= 3:
-		return Vector2i(5, 45)
-	if for_level <= 8:
-		return Vector2i(25, 124)
-	return Vector2i(100, 499)
-
-
 func _ready() -> void:
 	configure_money_counter("coin_count", COINS.values())
 	level = AppState.current_level("coin_count")

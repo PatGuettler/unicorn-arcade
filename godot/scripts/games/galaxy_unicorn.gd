@@ -32,7 +32,6 @@ var boss_spawned := false
 var opening_left := 0
 var opening_timer := 0.0
 var started_ms := 0
-var hud_label: Label
 var message_label: Label
 var action_button: Button
 var player_preview: RoomItemPreview3D
@@ -80,7 +79,6 @@ func _process(delta: float) -> void:
 			_spawn_enemy(false)
 	_move_world(ms)
 	_resolve_collisions()
-	_update_hud()
 	if is_instance_valid(player_preview):
 		player_preview.position = Vector2(player_x * size.x - 78.0, _player_y() - 92.0)
 	queue_redraw()
@@ -130,7 +128,6 @@ func _start_level_with_lifecycle(for_level: int, begin_run: bool) -> void:
 	var companion_name := str(AppState.equipped_companion()).capitalize()
 	message_label.text = "Drag %s left and right. Rainbow bolts fire automatically." % companion_name
 	action_button.hide()
-	_update_hud()
 
 
 func set_gameplay_paused(paused: bool) -> void:
@@ -393,10 +390,6 @@ func _star_points(center: Vector2, outer_radius: float, inner_radius: float, poi
 	return vertices
 
 
-func _update_hud() -> void:
-	hud_label.text = "LEVEL %d    LIVES %d    %d / %d    SCORE %d" % [level, lives, kills, target_kills, score]
-
-
 func _build_ui() -> void:
 	player_preview = RoomItemPreviewScene.new()
 	player_preview.name = "GalaxyEquippedCompanion"
@@ -405,15 +398,6 @@ func _build_ui() -> void:
 	player_preview.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": true, "presentation": "marketplace"})
 	player_preview.z_index = 20
 	add_child(player_preview)
-	hud_label = Label.new()
-	hud_label.name = "LegacyGalaxyHUD"
-	hud_label.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	hud_label.position.y = 205
-	hud_label.hide()
-	hud_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	hud_label.add_theme_font_size_override("font_size", 21)
-	hud_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(hud_label)
 	bottom_safe_band = PanelContainer.new()
 	bottom_safe_band.name = "GalaxyBottomSafeBand"
 	bottom_safe_band.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
