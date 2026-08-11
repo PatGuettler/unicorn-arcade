@@ -53,6 +53,7 @@ var play_area: Control
 var hint_button: Button
 var retry_button: Button
 var flash_timer: Timer
+var _displayed_timer_tenth := -1
 
 
 func _ready() -> void:
@@ -72,7 +73,7 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	super(delta)
 	if active:
-		timer_label.text = "%.1fs" % ((Time.get_ticks_msec() - started_ms) / 1000.0)
+		_update_timer_display(Time.get_ticks_msec())
 	if active and game_id == "unicorn_blast":
 		_update_blast(delta * CompanionAbilityService.time_scale())
 
@@ -98,6 +99,8 @@ func _start_level_with_lifecycle(begin_run: bool) -> void:
 	lives = 3 if game_id in ["caption_quest", "odd_one_out", "unicorn_blast"] else 0
 	started_ms = level_run.started_ms
 	active = level_run.active
+	_displayed_timer_tenth = -1
+	_update_timer_display(started_ms)
 	blast_source_exhausted = false
 	hint_visible = level == 1
 	phase = "choice"
@@ -107,6 +110,15 @@ func _start_level_with_lifecycle(begin_run: bool) -> void:
 	hint_button.text = "FREE HINT" if level == 1 else "HINT  ★5"
 	message_label.text = ""
 	_load_round()
+
+
+func _update_timer_display(now_ms: int) -> bool:
+	var elapsed_tenth := roundi(float(maxi(0, now_ms - started_ms)) / 100.0)
+	if elapsed_tenth == _displayed_timer_tenth:
+		return false
+	_displayed_timer_tenth = elapsed_tenth
+	timer_label.text = "%.1fs" % (elapsed_tenth / 10.0)
+	return true
 
 
 func _load_round() -> void:

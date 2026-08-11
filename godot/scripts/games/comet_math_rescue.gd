@@ -33,6 +33,8 @@ var fire_button: Button
 var player_preview: RoomItemPreview3D
 var bolt_lane := -1
 var bolt_ms := 0.0
+var _lane_geometry_size := Vector2(-1, -1)
+var _lane_geometry_rebuild_count := 0
 
 
 func _ready() -> void:
@@ -41,6 +43,11 @@ func _ready() -> void:
 	level = AppState.current_level("comet_math_rescue")
 	_build_ui()
 	_start_level(level)
+
+
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED and lane_buttons.size() == LANES:
+		_update_comet_positions()
 
 
 static func generate_problem(for_level: int, generator: RandomNumberGenerator) -> Dictionary:
@@ -288,10 +295,16 @@ func _update_hud() -> void:
 func _update_comet_positions() -> void:
 	var progress := clampf(wave_elapsed_ms / maxf(1.0, decision_ms), 0.0, 1.0)
 	var y := START_Y + progress * maxf(180.0, size.y * 0.46)
+	if not _lane_geometry_size.is_equal_approx(size):
+		_lane_geometry_size = size
+		_lane_geometry_rebuild_count += 1
+		for lane in LANES:
+			var lane_button := lane_buttons[lane]
+			lane_button.size = Vector2(maxf(112.0, size.x / LANES - 20.0), 76.0)
+			lane_button.position.x = (lane + 0.5) * size.x / LANES - lane_button.size.x * 0.5
 	for lane in LANES:
 		var button := lane_buttons[lane]
-		button.size = Vector2(maxf(112.0, size.x / LANES - 20.0), 76.0)
-		button.position = Vector2((lane + 0.5) * size.x / LANES - button.size.x * 0.5, y)
+		button.position.y = y
 		var selected := lane == selected_lane
 		var hinted := hint_ms > 0.0 and lane == correct_lane
 		button.modulate = Color("fff2a8") if hinted else (Color("ffffff") if selected else Color("d9e9ff"))

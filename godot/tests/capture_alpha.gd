@@ -26,6 +26,7 @@ func _capture() -> void:
 	var owned_all := false
 	var background_walk := false
 	var skip_tutorial := false
+	var capture_seed := -1
 	for argument in OS.get_cmdline_user_args():
 		if argument.begins_with("--mode="):
 			mode = argument.trim_prefix("--mode=")
@@ -54,6 +55,8 @@ func _capture() -> void:
 			background_walk = true
 		elif argument == "--skip-tutorial":
 			skip_tutorial = true
+		elif argument.begins_with("--seed="):
+			capture_seed = int(argument.trim_prefix("--seed="))
 	if output.is_empty():
 		push_error("capture_alpha requires --output=<absolute png path>")
 		get_tree().quit(2)
@@ -74,6 +77,7 @@ func _capture() -> void:
 		AppState.data["owned_companions"].append(companion_id)
 	AppState.data["inventory"]["companion_%s" % companion_id] = maxi(1, int(AppState.data["inventory"].get("companion_%s" % companion_id, 0)))
 	var captured: Node
+	var capture_viewport: SubViewport
 	if mode == "game":
 		AppState.selected_game_id = game_id
 		if skip_tutorial:
@@ -140,13 +144,34 @@ func _capture() -> void:
 			AppState.selected_category = "Word"
 		captured = MAIN_SCENE.instantiate()
 	if mode == "game":
-		get_tree().root.add_child(captured)
+		capture_viewport = SubViewport.new()
+		capture_viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+		add_child(capture_viewport)
+		capture_viewport.size = DisplayServer.window_get_size()
+		capture_viewport.add_child(captured)
+		if captured is Control:
+			(captured as Control).set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	else:
 		add_child(captured)
-	# Game captures must become the active scene so the shared runtime shell,
-	# objective plaque, tutorial layer, and safe-area behavior are included in QA.
+	# Game captures render inside a deterministic viewport so game roots receive
+	# the requested phone dimensions even while this capture scene remains active.
 	if mode == "game":
-		get_tree().current_scene = captured
+		if capture_seed >= 0:
+			seed(capture_seed)
+			var capture_rng := captured.get("rng") as RandomNumberGenerator
+			if is_instance_valid(capture_rng):
+				capture_rng.seed = capture_seed
+			if captured.has_method("set_random_seed"):
+				captured.call("set_random_seed", capture_seed)
+			match game_id:
+				"mathtris": captured.call("_start_game")
+				"galaxy_unicorn", "comet_math_rescue": captured.call("_start_level", int(captured.get("level")))
+				_: captured.call("_start_level")
+		# Freeze time-driven gameplay after deterministic setup so pixel evidence
+		# compares rendering and layout, not scheduler-dependent animation frames.
+		captured.process_mode = Node.PROCESS_MODE_DISABLED
+		if game_id == "opposite_orbit" and is_instance_valid(captured.get("timer_label")):
+			(captured.get("timer_label") as Label).text = "0.0s"
 	elif mode == "word_choice_fixture":
 		seed(1337)
 		var word_rng := captured.get("rng") as RandomNumberGenerator
@@ -215,11 +240,14 @@ func _capture() -> void:
 		captured.call("_mark_selected")
 	elif mode in ["room_bag", "room_bag_empty"]:
 		captured.call("_show_bag")
+	if is_instance_valid(capture_viewport):
+		capture_viewport.size = DisplayServer.window_get_size()
 	await get_tree().process_frame
 	await get_tree().process_frame
 	await get_tree().process_frame
 	DirAccess.make_dir_recursive_absolute(output.get_base_dir())
-	var error := get_viewport().get_texture().get_image().save_png(output)
+	var capture_texture := capture_viewport.get_texture() if is_instance_valid(capture_viewport) else get_viewport().get_texture()
+	var error := capture_texture.get_image().save_png(output)
 	if error == OK:
 		print("ALPHA_CAPTURE_OK: %s" % output)
 		get_tree().quit(0)
