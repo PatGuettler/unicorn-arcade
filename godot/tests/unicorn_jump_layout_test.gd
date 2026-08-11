@@ -41,7 +41,8 @@ func _run() -> void:
 	_check(is_instance_valid(jump.companion_preview) and jump.companion_preview != first_preview and jump.companion_preview.get_parent() == jump.node_buttons[landing] and jump.companion_preview.preview_viewport.viewport.render_target_update_mode != SubViewport.UPDATE_DISABLED, "moving to a new stone creates an active unicorn renderer instead of reparenting a shut-down viewport")
 	# Leave the scene exactly as the following dialog-layout checks expect it.
 	jump.current_index = 0
-	jump.visited = [0]
+	jump.visited.clear()
+	jump.visited.append(0)
 	jump._update_path()
 	await get_tree().process_frame
 
