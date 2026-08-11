@@ -1,16 +1,10 @@
-extends ArcadeGameController
+extends "res://scripts/games/money_counter_base.gd"
 
 const COINS := {"Penny": 1, "Nickel": 5, "Dime": 10, "Quarter": 25}
 const COIN_SIZES := {"Penny": 0.86, "Nickel": 0.96, "Dime": 0.76, "Quarter": 1.0}
 const CoinChoiceButtonScene = preload("res://scripts/games/coin_choice_button.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
 
-var level := 1
-var target := 0
-var total := 0
-var started_ms := 0
-var failed := false
-var active := false
 var target_label: Label
 var total_label: Label
 var message_label: Label
@@ -26,6 +20,7 @@ static func target_bounds(for_level: int) -> Vector2i:
 
 
 func _ready() -> void:
+	configure_money_counter("coin_count", COINS.values())
 	level = AppState.current_level("coin_count")
 	_build_ui()
 	_start_round()
@@ -36,10 +31,7 @@ func _start_round() -> void:
 
 
 func _start_round_with_lifecycle(begin_run: bool) -> void:
-	if begin_run:
-		level_run.begin("coin_count", level)
-	else:
-		level = level_run.level
+	_begin_money_round(begin_run)
 	var rng := RandomNumberGenerator.new()
 	rng.randomize()
 	if level <= 3:
@@ -48,10 +40,6 @@ func _start_round_with_lifecycle(begin_run: bool) -> void:
 		target = rng.randi_range(25, 124)
 	else:
 		target = rng.randi_range(100, 499)
-	total = 0
-	failed = false
-	active = level_run.active
-	started_ms = level_run.started_ms
 	target_label.text = "Make %s" % _money(target)
 	total_label.text = _money(total)
 	message_label.text = "Tap coins. Exact wins; overshoot ends the round."
@@ -61,31 +49,25 @@ func _start_round_with_lifecycle(begin_run: bool) -> void:
 
 
 func _add_coin(value: int) -> void:
-	if not active:
+	var transition := _apply_money_value(value, "Too much—try this level again.")
+	if transition.get("outcome") == OUTCOME_IGNORED:
 		return
-	total += value
 	total_label.text = _money(total)
-	if total == target:
-		var reward := level_run.complete()
-		active = level_run.active
+	if transition.get("outcome") == OUTCOME_EXACT:
+		var reward := int(transition.get("reward", 0))
 		_set_buttons_enabled(false)
 		message_label.text = "Perfect! +%d coins" % reward
-		level += 1
-	elif total > target:
-		level_run.fail("Too much—try this level again.")
-		active = level_run.active
-		failed = level_run.outcome == LevelRunController.Outcome.FAILURE
+	elif transition.get("outcome") == OUTCOME_OVERSHOOT:
 		message_label.text = "Too much—try this level again."
 		_set_buttons_enabled(false)
 
 
 func can_retry_failure() -> bool:
-	return level_run.can_retry()
+	return _can_retry_money_failure()
 
 
 func retry_failure() -> void:
-	if level_run.can_retry():
-		level = level_run.retry()
+	if _retry_money_failure():
 		_start_round_with_lifecycle(false)
 
 
@@ -100,11 +82,7 @@ func _advance_round() -> void:
 func _show_hint() -> void:
 	if not active or total >= target:
 		return
-	var remaining := target - total
-	var best := 1
-	for value in COINS.values():
-		if int(value) <= remaining and int(value) > best:
-			best = int(value)
+	var best := _best_fitting_denomination()
 	for button in coin_buttons:
 		button.modulate = Color("ffe172") if int(button.get_meta("coin_value", 0)) == best else Color.WHITE
 	message_label.text = "%s is the biggest coin that still fits." % _money(best)

@@ -3,6 +3,7 @@ extends Node
 const MAIN_SCENE = preload("res://scenes/main.tscn")
 const WORD_SCENE = preload("res://scenes/games/word_game.tscn")
 const CASH_SCENE = preload("res://scenes/games/cash_counter.tscn")
+const COIN_SCENE = preload("res://scenes/games/coin_count.tscn")
 const RoomItemPreview3D = preload("res://scripts/meta/room_item_preview_3d.gd")
 
 
@@ -87,6 +88,9 @@ func _capture() -> void:
 	elif mode == "word_choice_fixture":
 		AppState.selected_game_id = game_id
 		captured = WORD_SCENE.instantiate()
+	elif mode == "money_counter_fixture":
+		AppState.selected_game_id = game_id
+		captured = (COIN_SCENE if game_id == "coin_count" else CASH_SCENE).instantiate()
 	elif mode == "game_chrome_fixture":
 		captured = Control.new()
 		captured.name = "GameChromeFixture"
@@ -157,6 +161,17 @@ func _capture() -> void:
 		var word_timer := captured.get("timer_label") as Label
 		if is_instance_valid(word_timer):
 			word_timer.text = "0.0s"
+	elif mode == "money_counter_fixture":
+		captured.set_process(false)
+		captured.set("target", 75)
+		captured.set("total", 0)
+		captured.set("active", false)
+		if game_id == "coin_count":
+			captured.get("target_label").text = "Make $0.75"
+			captured.get("total_label").text = "$0.00"
+		else:
+			captured.get("target_label").text = "TARGET  $75"
+			captured.get("total_label").text = "$0"
 	elif mode == "game_chrome_fixture":
 		_build_game_chrome_fixture(captured as Control, game_id)
 	elif mode == "game_tutorial_fixture":
