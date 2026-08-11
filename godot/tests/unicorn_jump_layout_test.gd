@@ -33,6 +33,7 @@ func _run() -> void:
 			break
 		await get_tree().process_frame
 	_check(is_instance_valid(jump.companion_preview) and jump.companion_preview.mesh_count > 0 and jump.companion_preview.find_child("LiveUnicornModel", true, false) != null, "the current stone displays the equipped unicorn after its async model load")
+	_check(jump.companion_preview.size == jump.COMPANION_DISPLAY_SIZE and (jump.companion_preview.position + jump.companion_preview.size * 0.5).is_equal_approx(jump.node_buttons[0].size * 0.5 + jump.COMPANION_CENTER_LIFT), "the standing unicorn uses the jumping unicorn's exact size and center point")
 	var first_preview = jump.companion_preview
 	jump.current_index = landing
 	jump.visited.append(landing)

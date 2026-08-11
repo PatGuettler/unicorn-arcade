@@ -15,6 +15,8 @@ const PATH_WIDTH := 520.0
 const BASE_STONE_SIZE := Vector2(150.0, 101.0)
 const BASE_ROW_HEIGHT := 132.0
 const BASE_TOP_CLEARANCE := 88.0
+const COMPANION_DISPLAY_SIZE := Vector2(178.0, 138.0)
+const COMPANION_CENTER_LIFT := Vector2(0.0, -42.0)
 const INITIAL_TRAIL_MAX_ZOOM := 0.72
 const INITIAL_TRAIL_MIN_ZOOM := 0.42
 
@@ -350,9 +352,11 @@ func _attach_active_companion(button: TextureButton) -> void:
 			"presentation": "marketplace",
 		})
 		button.add_child(companion_preview)
-	companion_preview.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	companion_preview.position = Vector2(-2.0, -79.0)
-	companion_preview.size = Vector2(158.0, 120.0)
+	companion_preview.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	companion_preview.size = COMPANION_DISPLAY_SIZE
+	# Match the jumping preview's unscaled canvas and center point exactly. The
+	# trail camera then applies the same zoom that _animate_jump applies below.
+	companion_preview.position = button.size * 0.5 + COMPANION_CENTER_LIFT - COMPANION_DISPLAY_SIZE * 0.5
 	companion_preview.move_to_front()
 	(button.get_node("JumpValue") as Label).move_to_front()
 
@@ -372,14 +376,14 @@ func _animate_jump(from_index: int, to_index: int) -> void:
 		return
 	var from_button := node_buttons[from_index]
 	var to_button := node_buttons[to_index]
-	var start := from_button.global_position + from_button.size * 0.5 + Vector2(0, -42)
-	var finish := to_button.global_position + to_button.size * 0.5 + Vector2(0, -42)
+	var start := from_button.global_position + from_button.size * 0.5 + COMPANION_CENTER_LIFT
+	var finish := to_button.global_position + to_button.size * 0.5 + COMPANION_CENTER_LIFT
 	var flight := RoomItemPreviewScene.new()
 	flight.name = "JumpingCompanion"
 	flight.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	flight.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": true, "presentation": "marketplace"})
 	var camera_zoom: float = float(world_viewport.zoom) if is_instance_valid(world_viewport) else 1.0
-	flight.size = Vector2(178, 138) * camera_zoom
+	flight.size = COMPANION_DISPLAY_SIZE * camera_zoom
 	flight.z_index = 110
 	add_child(flight)
 	flight.global_position = start - flight.size * 0.5
