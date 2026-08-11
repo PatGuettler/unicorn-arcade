@@ -7,6 +7,7 @@ extends Control
 const Catalog = preload("res://scripts/meta_catalog.gd")
 const Rules = preload("res://scripts/room_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
+const UnicornHeader = preload("res://scripts/ui/unicorn_header.gd")
 const MarketplaceCatalogController = preload("res://scripts/meta/marketplace_catalog_controller.gd")
 
 const NAVY := Color("08112f")
@@ -143,47 +144,25 @@ func _build_fixed_tree() -> void:
 
 
 func _build_header() -> void:
-	var header := Panel.new()
+	var header := UnicornHeader.build("MARKETPLACE", "HOME", Callable(), Callable(self, "_go_home"))
 	header.name = "MarketplaceHeader"
+	header.set_meta("shared_unicorn_header_contract", true)
 	header.set_anchors_preset(Control.PRESET_TOP_WIDE)
 	header.offset_left = 16
 	header.offset_right = -16
 	header.offset_top = 14
-	header.offset_bottom = 72
-	header.add_theme_stylebox_override("panel", StorybookUI.button_style(PANEL, GOLD, 3, 14))
-	add_child(header)
-	var title := _label("MarketplaceTitle", "MARKETPLACE", Vector2.ZERO, Vector2.ZERO, CREAM, 20, header)
-	_anchor_rect(title, 0.5, 0.5, -90, 90, 7, 51)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	var home := Button.new()
+	header.offset_bottom = 78
+	var title := header.find_child("HeaderTitle", true, false) as Label
+	title.name = "MarketplaceTitle"
+	var home := header.find_child("HeaderHomeButton", true, false) as Button
 	home.name = "MarketplaceHome"
-	home.set_meta("compact_header_control", true)
-	home.set_meta("standard_game_chrome", true)
-	home.tooltip_text = "Home"
-	home.text = ""
-	StorybookUI.apply_button(home, Color("22345f"), false, 12)
-	_compact_header_button(home)
-	home.custom_minimum_size = Vector2(48, 48)
-	_anchor_rect(home, 1.0, 1.0, -138, -90, 5, 53)
-	var home_glyph := TextureRect.new()
+	var home_glyph := home.find_child("HeaderHomeGlyph", true, false) as TextureRect
 	home_glyph.name = "MarketplaceHomeGlyph"
-	home_glyph.texture = load(StorybookUI.UNICORN_HOUSE_HOME_ICON_PATH) as Texture2D
-	home_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	home_glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	home_glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_anchor_rect(home_glyph, 0.5, 0.5, -12, 12, 12, 36)
-	home.add_child(home_glyph)
-	home.pressed.connect(_go_home)
-	header.add_child(home)
-	var coin_icon := _label("MarketplaceCoinIcon", "★", Vector2.ZERO, Vector2.ZERO, GOLD, 26, header)
-	coin_icon.text = "★"
-	_anchor_rect(coin_icon, 1.0, 1.0, -86, -60, 9, 47)
-	coin_icon.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	coin_label = _label("MarketplaceCoinBalance", str(AppState.coins()), Vector2.ZERO, Vector2.ZERO, CREAM, 18, header)
-	_anchor_rect(coin_label, 1.0, 1.0, -56, -8, 11, 45)
-	coin_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	coin_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	var coin_icon := header.find_child("SharedCoinIcon", true, false) as Label
+	coin_icon.name = "MarketplaceCoinIcon"
+	coin_label = header.find_child("SharedCoinBalance", true, false) as Label
+	coin_label.name = "MarketplaceCoinBalance"
+	add_child(header)
 
 
 func _build_tabs() -> void:
@@ -542,20 +521,6 @@ func _anchor_rect(control: Control, left_anchor: float, right_anchor: float, lef
 	control.offset_right = right_offset
 	control.offset_top = top_offset
 	control.offset_bottom = bottom_offset
-
-
-func _compact_header_button(button: Button) -> void:
-	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
-		var style := button.get_theme_stylebox(state)
-		if style is StyleBoxFlat:
-			var compact := (style as StyleBoxFlat).duplicate() as StyleBoxFlat
-			compact.content_margin_left = 4
-			compact.content_margin_right = 4
-			compact.content_margin_top = 2
-			compact.content_margin_bottom = 2
-			compact.shadow_size = 0
-			compact.shadow_offset = Vector2.ZERO
-			button.add_theme_stylebox_override(state, compact)
 
 
 func _restore_catalog_rarity_font(rarity: Label) -> void:
