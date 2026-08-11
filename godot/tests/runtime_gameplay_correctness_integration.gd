@@ -39,8 +39,11 @@ func _run() -> void:
 		AppState._has_unsaved_changes = false
 		await _test_coin_and_rhyme(issues)
 		await _test_word_hints_and_empty_sources(issues)
+		await _test_word_timer_display_gate(issues)
 		await _test_comet_timeout(issues)
+		await _test_comet_resize_geometry(issues)
 		await _test_mathtris_fallback(issues)
+		await _test_mathtris_style_cache(issues)
 		await _test_jump_copy(issues)
 		await _test_stale_id_pruning(issues)
 	SaveService.end_test_session()
@@ -123,6 +126,21 @@ func _test_word_hints_and_empty_sources(issues: Array[String]) -> void:
 	_unmount(word)
 
 
+func _test_word_timer_display_gate(issues: Array[String]) -> void:
+	AppState.selected_game_id = "opposite_orbit"
+	var word: Node = await _mount(WORD_SCENE)
+	word.started_ms = 1000
+	word._displayed_timer_tenth = -1
+	var initial_update: bool = word.call("_update_timer_display", 1109)
+	var initial_text: String = word.timer_label.text
+	var same_tenth_update: bool = word.call("_update_timer_display", 1199)
+	var same_tenth_text: String = word.timer_label.text
+	var next_tenth_update: bool = word.call("_update_timer_display", 1200)
+	if not initial_update or initial_text != "0.1s" or not same_tenth_update or same_tenth_text != "0.2s" or next_tenth_update or word.timer_label.text != "0.2s":
+		issues.append("Word Game timer display preserves rounded tenths and skips unchanged text")
+	_unmount(word)
+
+
 func _test_comet_timeout(issues: Array[String]) -> void:
 	var comet: Node = await _mount(COMET_SCENE)
 	comet.selected_lane = comet.correct_lane
@@ -136,6 +154,29 @@ func _test_comet_timeout(issues: Array[String]) -> void:
 	_unmount(comet)
 
 
+func _test_comet_resize_geometry(issues: Array[String]) -> void:
+	var comet: Node = await _mount(COMET_SCENE)
+	comet.size = Vector2(704, 1200)
+	comet.wave_elapsed_ms = 100.0
+	comet.call("_update_comet_positions")
+	var rebuilds_before: int = comet._lane_geometry_rebuild_count
+	var first_button: Control = comet.lane_buttons[1]
+	var initial_x := first_button.position.x
+	var initial_width := first_button.size.x
+	var initial_y := first_button.position.y
+	comet.wave_elapsed_ms = 500.0
+	comet.call("_update_comet_positions")
+	var stable_geometry: bool = comet._lane_geometry_rebuild_count == rebuilds_before and is_equal_approx(first_button.position.x, initial_x) and is_equal_approx(first_button.size.x, initial_width) and not is_equal_approx(first_button.position.y, initial_y)
+	comet.size = Vector2(900, 1000)
+	comet.call("_update_comet_positions")
+	var resized_geometry: bool = comet._lane_geometry_rebuild_count > rebuilds_before and not is_equal_approx(first_button.position.x, initial_x) and not is_equal_approx(first_button.size.x, initial_width)
+	var resized_rebuilds: int = comet._lane_geometry_rebuild_count
+	comet.call("_update_comet_positions")
+	if not stable_geometry or not resized_geometry or comet._lane_geometry_rebuild_count != resized_rebuilds:
+		issues.append("Comet lane geometry rebuilds only when its control size changes")
+	_unmount(comet)
+
+
 func _test_mathtris_fallback(issues: Array[String]) -> void:
 	var mathtris: Node = await _mount(MATHTRIS_SCENE)
 	var initial_clear := (mathtris.call("_find_matches") as Array).is_empty()
@@ -145,6 +186,20 @@ func _test_mathtris_fallback(issues: Array[String]) -> void:
 	var fallback_clear := (mathtris.call("_find_matches") as Array).is_empty()
 	if not initial_clear or not fallback_clear:
 		issues.append("Mathtris seed and deterministic fallback are match-free")
+	_unmount(mathtris)
+
+
+func _test_mathtris_style_cache(issues: Array[String]) -> void:
+	var mathtris: Node = await _mount(MATHTRIS_SCENE)
+	var filled_a: StyleBoxFlat = mathtris.call("_tile_style", "4", false, false, 3)
+	var filled_b: StyleBoxFlat = mathtris.call("_tile_style", "8", false, false, 5)
+	var falling: StyleBoxFlat = mathtris.call("_tile_style", "4", true, false, 3)
+	var selected: StyleBoxFlat = mathtris.call("_tile_style", "4", false, true, 3)
+	var empty_spawn: StyleBoxFlat = mathtris.call("_tile_style", "", false, false, 0)
+	var cache_reused := filled_a == filled_b
+	var variants_preserved := filled_a.bg_color == Color("ffd2ed") and falling.bg_color == Color("fff1a8") and selected.border_color == Color("62dce9") and selected.border_width_left == 3 and empty_spawn.border_width_left == 0 and empty_spawn.shadow_size == 0
+	if not cache_reused or not variants_preserved or mathtris._tile_style_cache.size() < 4:
+		issues.append("Mathtris tile styles reuse immutable visual variants")
 	_unmount(mathtris)
 
 

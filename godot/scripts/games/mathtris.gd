@@ -27,6 +27,7 @@ var swipe_consumed := false
 var equation_charge := 0
 var slow_until_ms := 0
 var _test_force_seed_failure := false
+var _tile_style_cache := {}
 
 
 func _ready() -> void:
@@ -665,14 +666,19 @@ func _refresh() -> void:
 
 
 func _tile_style(value: String, is_falling: bool, is_selected: bool, row: int = -1) -> StyleBoxFlat:
+	var filled := value != ""
+	var empty_spawn := not filled and not is_falling and row == 0
+	var cache_key := int(filled) | (int(is_falling) << 1) | (int(is_selected) << 2) | (int(empty_spawn) << 3)
+	if _tile_style_cache.has(cache_key):
+		return _tile_style_cache[cache_key] as StyleBoxFlat
 	var style := StyleBoxFlat.new()
-	var empty_spawn := value == "" and not is_falling and row == 0
-	style.bg_color = Color("fff1a8") if is_falling else (Color("ffd2ed") if value != "" else Color(0.34, 0.45, 0.72, 0.08 if empty_spawn else 0.14))
-	style.border_color = Color("62dce9") if is_selected else (Color("f4c75b") if value != "" else Color(0.60, 0.70, 0.92, 0.0 if empty_spawn else 0.22))
+	style.bg_color = Color("fff1a8") if is_falling else (Color("ffd2ed") if filled else Color(0.34, 0.45, 0.72, 0.08 if empty_spawn else 0.14))
+	style.border_color = Color("62dce9") if is_selected else (Color("f4c75b") if filled else Color(0.60, 0.70, 0.92, 0.0 if empty_spawn else 0.22))
 	style.set_border_width_all(3 if is_selected else (0 if empty_spawn else 2))
 	style.set_corner_radius_all(9)
 	style.shadow_color = Color(0.08, 0.03, 0.20, 0.45)
-	style.shadow_size = 3 if value != "" else 0
+	style.shadow_size = 3 if filled else 0
+	_tile_style_cache[cache_key] = style
 	return style
 
 
