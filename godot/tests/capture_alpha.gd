@@ -84,6 +84,10 @@ func _capture() -> void:
 			get_tree().quit(2)
 			return
 		captured = load(scene_path).instantiate()
+	elif mode == "game_chrome_fixture":
+		captured = Control.new()
+		captured.name = "GameChromeFixture"
+		(captured as Control).set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	elif mode == "procedural_preview":
 		# A catalog-miss forces RoomItemPreview3D through the procedural fallback.
 		captured = RoomItemPreview3D.new()
@@ -128,6 +132,8 @@ func _capture() -> void:
 	# objective plaque, tutorial layer, and safe-area behavior are included in QA.
 	if mode == "game":
 		get_tree().current_scene = captured
+	elif mode == "game_chrome_fixture":
+		_build_game_chrome_fixture(captured as Control, game_id)
 	elif captured.has_signal("page_build_complete"):
 		await captured.page_build_complete
 	if mode == "companion_preview_static":
@@ -191,3 +197,66 @@ func _find_camera(node: Node) -> Camera3D:
 		if found != null:
 			return found
 	return null
+
+
+func _build_game_chrome_fixture(fixture: Control, game_id: String) -> void:
+	var title := "GALAXY UNICORN" if game_id == "galaxy_unicorn" else "COIN COUNT"
+	var primary := "RAINBOW DEFENSE" if game_id == "galaxy_unicorn" else "MAKE 75 cents"
+	var detail := "LEVEL 2 - LIVES 3 - 4/12 ENEMIES" if game_id == "galaxy_unicorn" else "BUILD THE EXACT TOTAL WITH REAL US COINS"
+	GameExperience._apply_storybook_atmosphere(fixture)
+	var margin := MarginContainer.new()
+	margin.name = "GameChromeFixtureMargin"
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	margin.add_theme_constant_override("margin_left", 14)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_right", 14)
+	margin.add_theme_constant_override("margin_bottom", 14)
+	fixture.add_child(margin)
+	var layout := VBoxContainer.new()
+	layout.name = "GameChromeFixtureLayout"
+	layout.add_theme_constant_override("separation", 12)
+	margin.add_child(layout)
+	var header := GameExperience._build_header(title)
+	layout.add_child(header)
+	var objective := GameExperience._build_objective_plaque()
+	layout.add_child(objective)
+	GameExperience.objective_primary.text = primary
+	GameExperience.objective_detail.text = detail
+	GameExperience._update_coin_button(275 if game_id == "galaxy_unicorn" else 75)
+	GameExperience._update_ability_button()
+	var sample := PanelContainer.new()
+	sample.name = "FixtureGameplaySample"
+	sample.custom_minimum_size.y = 300
+	layout.add_child(sample)
+	var sample_stack := VBoxContainer.new()
+	sample_stack.alignment = BoxContainer.ALIGNMENT_CENTER
+	sample_stack.add_theme_constant_override("separation", 10)
+	sample.add_child(sample_stack)
+	var label := Label.new()
+	label.name = "FixtureGameplayLabel"
+	label.text = "A LITTLE PRACTICE ADVENTURE"
+	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	label.add_theme_font_size_override("font_size", 20)
+	sample_stack.add_child(label)
+	var action := Button.new()
+	action.name = "FixtureGameplayAction"
+	action.text = "CAST A RAINBOW"
+	action.custom_minimum_size = Vector2(220, 60)
+	sample_stack.add_child(action)
+	var scroll := ScrollContainer.new()
+	scroll.name = "FixtureGameplayScroll"
+	scroll.custom_minimum_size = Vector2(0, 150)
+	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_AUTO
+	sample_stack.add_child(scroll)
+	var tips := VBoxContainer.new()
+	tips.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	scroll.add_child(tips)
+	for copy in ["CHOOSE A KIND PATH", "WATCH THE OBJECTIVE", "YOUR COMPANION IS READY", "KEEP EXPLORING"]:
+		var tip := Label.new()
+		tip.text = copy
+		tip.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		tip.add_theme_font_size_override("font_size", 18)
+		tips.add_child(tip)
+	GameExperience._restyle_controls(fixture)
+	GameExperience._polish_game_labels(fixture)
+	GameExperience._hide_game_scrollbars(fixture)
