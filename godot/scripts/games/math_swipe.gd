@@ -2,6 +2,7 @@ extends ArcadeGameController
 
 const Rules = preload("res://scripts/games/gameplay_rules.gd")
 const StorybookUI = preload("res://scripts/ui/storybook_ui.gd")
+const EquationGenerator = preload("res://scripts/games/equation_generator.gd")
 
 var level := 1
 var target := 0
@@ -46,45 +47,11 @@ func generate_problem(for_level: int, rng: RandomNumberGenerator = null) -> Dict
 	if rng == null:
 		rng = RandomNumberGenerator.new()
 		rng.randomize()
-	var operation := "+"
-	var num1 := 0
-	var num2 := 0
-	var answer := 0
-	if for_level <= 3:
-		num1 = rng.randi_range(1, 8)
-		num2 = rng.randi_range(1, 8)
-		answer = num1 + num2
-	elif for_level <= 6:
-		operation = "-"
-		answer = rng.randi_range(1, 8)
-		num2 = rng.randi_range(1, answer)
-		num1 = answer + num2
-	elif for_level <= 10:
-		operation = "+" if rng.randf() > 0.5 else "-"
-		if operation == "+":
-			num1 = rng.randi_range(5, 19)
-			num2 = rng.randi_range(5, 19)
-			answer = num1 + num2
-		else:
-			answer = rng.randi_range(5, 19)
-			num2 = rng.randi_range(1, answer)
-			num1 = answer + num2
-	else:
-		var choice := rng.randf()
-		if choice < 0.4:
-			operation = "×"
-			num1 = rng.randi_range(2, 11)
-			num2 = rng.randi_range(2, 11)
-			answer = num1 * num2
-		elif choice < 0.7:
-			num1 = rng.randi_range(10, 29)
-			num2 = rng.randi_range(10, 29)
-			answer = num1 + num2
-		else:
-			operation = "-"
-			answer = rng.randi_range(10, 29)
-			num2 = rng.randi_range(1, answer)
-			num1 = answer + num2
+	var core := EquationGenerator.math_swipe_core(for_level, rng)
+	var operation := str(core["operation"])
+	var num1 := int(core["left"])
+	var num2 := int(core["right"])
+	var answer := int(core["answer"])
 	var missing := rng.randi_range(0, 2)
 	var correct: int = [num1, num2, answer][missing]
 	var display := "? %s %d = %d" % [operation, num2, answer]
