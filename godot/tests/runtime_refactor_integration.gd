@@ -15,6 +15,8 @@ const WordSequenceStrategy = preload("res://scripts/games/word_sequence_strategy
 const WordTypedEntryStrategy = preload("res://scripts/games/word_typed_entry_strategy.gd")
 const WordFallingStrategy = preload("res://scripts/games/word_falling_strategy.gd")
 const WordRules = preload("res://scripts/games/word_game_rules.gd")
+const RhymeScene = preload("res://scenes/games/rhyme_rally.tscn")
+const GalaxyScene = preload("res://scenes/games/galaxy_unicorn.tscn")
 
 class TutorialPauseProbe extends Control:
 	var level := 1
@@ -51,6 +53,7 @@ func _run() -> void:
 	_test_word_sequence_strategy()
 	_test_word_typed_entry_strategy()
 	_test_word_falling_strategy()
+	await _test_owned_rng_contracts()
 	var tutorial_presenter := GameExperienceTutorialPresenter.new()
 	var tutorial_source: String = FileAccess.get_file_as_string("res://scripts/ui/game_experience_tutorial_presenter.gd")
 	_check(tutorial_presenter is RefCounted and not tutorial_source.contains("\nvar ") and not tutorial_source.contains("AppState") and not tutorial_source.contains("GameExperience.") and not tutorial_source.contains("TutorialCatalog") and not tutorial_source.contains("attached_scene") and not tutorial_source.contains("CompanionAbilityService"), "tutorial presenter is a stateless RefCounted that does not own game, tutorial catalog, or gameplay state")
@@ -540,6 +543,88 @@ func _test_word_falling_strategy() -> void:
 	var escaped := strategy.tick({"game_id": "unicorn_blast", "level": 1, "spawn_elapsed": 0.0, "blast_models": [{"text": "late", "x": 1.0, "y": 78.0}], "blast_source_exhausted": true}, 0.01)
 	_check(match_result.get("outcome") == "success" and int(match_result.get("match_index", -1)) == 1 and ignored_result.get("outcome") == "ignored" and hint.get("message") == "Blast: moon" and escaped.get("escaped") == [0] and submit_models == submit_before, "falling submit normalizes input, hint selects max-y urgency, and escape uses the strict 78 boundary immutably")
 	_check(strategy.failure_reason({"game_id": "unicorn_blast"}) == "Words reached your cannon!", "falling strategy preserves exact failure copy")
+
+
+func _test_owned_rng_contracts() -> void:
+	var selection_equivalent := true
+	for size in [1, 3, 4, 24]:
+		for seed in range(-2, 41):
+			var safe_seed := maxi(1, seed)
+			var old_ceiling := mini(size, maxi(4, roundi(safe_seed * 1.5)))
+			var old_floor := maxi(0, old_ceiling - maxi(5, roundi(old_ceiling * 0.6)))
+			if WordRules.selection_window(size, seed) != Vector2i(old_floor, old_ceiling):
+				selection_equivalent = false
+	_check(selection_equivalent and WordRules.selection_window(0, 1) == Vector2i.ZERO and WordRules.selection_window(1, 1) == Vector2i(0, 1) and WordRules.selection_window(24, 100) == Vector2i(10, 24), "selection window matches the former Rhyme formula across level boundaries and clamps empty, tiny, and exhausted ranges")
+
+	var rhyme_source := FileAccess.get_file_as_string("res://scripts/games/rhyme_rally.gd")
+	var galaxy_source := FileAccess.get_file_as_string("res://scripts/games/galaxy_unicorn.gd")
+	var rhyme_scrubbed := rhyme_source.replace("rng.randi_range(", "").replace("rng.randi(", "").replace("rng.randf_range(", "").replace("rng.randf(", "")
+	var galaxy_scrubbed := galaxy_source.replace("rng.randi_range(", "").replace("rng.randi(", "").replace("rng.randf_range(", "").replace("rng.randf(", "")
+	_check(not rhyme_scrubbed.contains("randi_range(") and not rhyme_scrubbed.contains("randi(") and not rhyme_scrubbed.contains("randf_range(") and not rhyme_scrubbed.contains("randf(") and not rhyme_source.contains(".shuffle(") and rhyme_source.count("rng.randomize()") == 1 and rhyme_source.count("rng.seed = seed") == 1, "Rhyme owns all random selection and Fisher-Yates state with one startup randomization and one test seed hook")
+	_check(not galaxy_scrubbed.contains("randi_range(") and not galaxy_scrubbed.contains("randi(") and not galaxy_scrubbed.contains("randf_range(") and not galaxy_scrubbed.contains("randf(") and not galaxy_source.contains(".shuffle(") and galaxy_source.count("rng.randomize()") == 1 and galaxy_source.count("rng.seed = seed") == 1, "Galaxy owns enemy and pickup randomness with one startup randomization and one test seed hook")
+
+	var rhyme_a = RhymeScene.instantiate()
+	var rhyme_b = RhymeScene.instantiate()
+	add_child(rhyme_a)
+	add_child(rhyme_b)
+	await get_tree().process_frame
+	rhyme_a.set_process(false)
+	rhyme_b.set_process(false)
+	for rhyme in [rhyme_a, rhyme_b]:
+		rhyme.level = 9
+		rhyme.round_index = 4
+		rhyme.set_random_seed(25025)
+		rhyme.call("_show_round")
+	var rhyme_order_a: Array = rhyme_a.option_buttons.map(func(button: Button) -> String: return button.text)
+	var rhyme_order_b: Array = rhyme_b.option_buttons.map(func(button: Button) -> String: return button.text)
+	_check(rhyme_a.challenge == rhyme_b.challenge and rhyme_order_a == rhyme_order_b, "equal Rhyme seeds reproduce both the selected challenge and Fisher-Yates option order")
+	var rhyme_signatures := {}
+	for seed in [3, 11, 29, 47, 83]:
+		rhyme_a.set_random_seed(seed)
+		rhyme_a.call("_show_round")
+		var order: Array = rhyme_a.option_buttons.map(func(button: Button) -> String: return button.text)
+		rhyme_signatures["%s:%s" % [rhyme_a.challenge.get("prompt", ""), ",".join(order)]] = true
+	_check(rhyme_signatures.size() >= 2, "different Rhyme seeds produce diverse challenge and option signatures")
+
+	var galaxy_a = GalaxyScene.instantiate()
+	var galaxy_b = GalaxyScene.instantiate()
+	add_child(galaxy_a)
+	add_child(galaxy_b)
+	await get_tree().process_frame
+	for galaxy in [galaxy_a, galaxy_b]:
+		galaxy.set_process(false)
+		galaxy.size = Vector2(720.0, 1280.0)
+		galaxy.level = 6
+		galaxy.enemies.clear()
+		galaxy.set_random_seed(25025)
+		galaxy.call("_spawn_enemy", false)
+	var enemy_a: Dictionary = galaxy_a.enemies[0]
+	var enemy_b: Dictionary = galaxy_b.enemies[0]
+	_check(enemy_a.get("kind") == enemy_b.get("kind") and enemy_a.get("position") == enemy_b.get("position") and is_equal_approx(float(enemy_a.get("phase", -1.0)), float(enemy_b.get("phase", -2.0))), "equal Galaxy seeds reproduce enemy template, position, and phase")
+	galaxy_a.set_random_seed(811)
+	galaxy_b.set_random_seed(811)
+	var pickup_rolls_a: Array = []
+	var pickup_rolls_b: Array = []
+	for index in 64:
+		pickup_rolls_a.append(galaxy_a.call("_roll_pickup", Vector2(index, 10.0)))
+		pickup_rolls_b.append(galaxy_b.call("_roll_pickup", Vector2(index, 10.0)))
+	_check(pickup_rolls_a == pickup_rolls_b and pickup_rolls_a.any(func(pickup: Dictionary) -> bool: return not pickup.is_empty()), "equal Galaxy seeds reproduce pickup drop and kind rolls, including successful drops")
+	var galaxy_signatures := {}
+	for seed in [3, 11, 29, 47, 83]:
+		galaxy_a.enemies.clear()
+		galaxy_a.set_random_seed(seed)
+		galaxy_a.call("_spawn_enemy", false)
+		var enemy: Dictionary = galaxy_a.enemies[0]
+		galaxy_signatures["%s:%s:%s" % [enemy.get("kind", ""), enemy.get("position", Vector2.ZERO), enemy.get("phase", 0.0)]] = true
+	_check(galaxy_signatures.size() >= 2, "different Galaxy seeds produce diverse enemy templates, positions, or phases")
+	remove_child(rhyme_a)
+	remove_child(rhyme_b)
+	rhyme_a.free()
+	rhyme_b.free()
+	remove_child(galaxy_a)
+	remove_child(galaxy_b)
+	galaxy_a.free()
+	galaxy_b.free()
 
 
 func _choice_correct_payload(game_id: String, current: Dictionary, options: Array):

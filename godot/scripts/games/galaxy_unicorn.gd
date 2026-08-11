@@ -37,13 +37,19 @@ var message_label: Label
 var action_button: Button
 var player_preview: RoomItemPreview3D
 var bottom_safe_band: PanelContainer
+var rng := RandomNumberGenerator.new()
 
 
 func _ready() -> void:
+	rng.randomize()
 	level = AppState.current_level("galaxy_unicorn")
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_build_ui()
 	_start_level(level)
+
+
+func set_random_seed(seed: int) -> void:
+	rng.seed = seed
 
 
 func _process(delta: float) -> void:
@@ -70,7 +76,7 @@ func _process(delta: float) -> void:
 	if spawn_timer >= Rules.galaxy_spawn_ms(level) and enemies.size() < 8 + level:
 		spawn_timer = 0.0
 		_spawn_enemy(false)
-		if randf() < 0.25 + level * 0.03:
+		if rng.randf() < 0.25 + level * 0.03:
 			_spawn_enemy(false)
 	_move_world(ms)
 	_resolve_collisions()
@@ -137,7 +143,7 @@ func _spawn_enemy(force_boss: bool) -> void:
 	if is_boss:
 		template = ENEMIES[4]
 	else:
-		var roll := randf()
+		var roll := rng.randf()
 		var weights := [0.7, 0.2, 0.1, 0.0] if level <= 2 else ([0.4, 0.25, 0.2, 0.15] if level <= 5 else [0.25, 0.25, 0.25, 0.25])
 		var accumulator := 0.0
 		template = ENEMIES[0]
@@ -149,10 +155,10 @@ func _spawn_enemy(force_boss: bool) -> void:
 	var hp := int(template["hp"]) + level / 6
 	var enemy := template.duplicate(true)
 	enemy["speed"] = float(template["speed"]) * Rules.galaxy_enemy_speed_scale(level)
-	enemy["position"] = Vector2(randf_range(0.1, 0.9) * size.x, -30.0)
+	enemy["position"] = Vector2(rng.randf_range(0.1, 0.9) * size.x, -30.0)
 	enemy["hp"] = hp
 	enemy["max_hp"] = hp
-	enemy["phase"] = randf() * TAU
+	enemy["phase"] = rng.randf() * TAU
 	enemies.append(enemy)
 	if is_boss:
 		boss_spawned = true
@@ -192,8 +198,9 @@ func _resolve_collisions() -> void:
 				if int(enemy["hp"]) <= 0:
 					kills += 1
 					score += int(enemy["score"])
-					if randf() < 0.12:
-						pickups.append({"position": enemy["position"], "kind": "heal" if randf() < 0.5 else "rapid", "radius": 14.0})
+					var pickup := _roll_pickup(enemy["position"])
+					if not pickup.is_empty():
+						pickups.append(pickup)
 				break
 	for bullet in spent_bullets:
 		bullets.erase(bullet)
@@ -226,6 +233,12 @@ func _resolve_collisions() -> void:
 		message_label.text = "Sector cleared! +%d coins" % reward
 		action_button.text = "Next Sector"
 		action_button.show()
+
+
+func _roll_pickup(position: Vector2) -> Dictionary:
+	if rng.randf() >= 0.12:
+		return {}
+	return {"position": position, "kind": "heal" if rng.randf() < 0.5 else "rapid", "radius": 14.0}
 
 
 func _segment_hits_circle(start: Vector2, finish: Vector2, center: Vector2, radius: float) -> bool:
