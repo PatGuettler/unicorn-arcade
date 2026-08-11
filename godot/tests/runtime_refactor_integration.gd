@@ -8,6 +8,7 @@ const RoomAuthoredFurnitureLoader = preload("res://scripts/meta/room_authored_fu
 const RoomProceduralFurnitureBuilder = preload("res://scripts/meta/room_procedural_furniture_builder.gd")
 const GameExperienceChromePresenter = preload("res://scripts/ui/game_experience_chrome_presenter.gd")
 const GameExperienceTutorialPresenter = preload("res://scripts/ui/game_experience_tutorial_presenter.gd")
+const GameExperienceOutcomePresenter = preload("res://scripts/ui/game_experience_outcome_presenter.gd")
 
 class TutorialPauseProbe extends Control:
 	var level := 1
@@ -90,6 +91,68 @@ func _run() -> void:
 	AppState.data["tutorials"] = saved_tutorials
 	tutorial_host.free()
 	galaxy_probe.free()
+	var outcome_presenter := GameExperienceOutcomePresenter.new()
+	var outcome_source: String = FileAccess.get_file_as_string("res://scripts/ui/game_experience_outcome_presenter.gd")
+	_check(outcome_presenter is RefCounted and not outcome_source.contains("\nvar ") and not outcome_source.contains("AppState") and not outcome_source.contains("GameExperience.") and not outcome_source.contains("LevelRunController") and not outcome_source.contains("ArcadeGameController") and not outcome_source.contains("attached_scene") and not outcome_source.contains("CompanionAbilityService"), "outcome presenter is a stateless RefCounted with only visual dependencies")
+	var outcome_host := Control.new()
+	add_child(outcome_host)
+	var success_presentation := outcome_presenter.build_game_outcome(outcome_host, false, "A new adventure is ready.")
+	var success_overlay := success_presentation.get("overlay") as Control
+	var success_primary := success_presentation.get("primary") as Button
+	var success_category := success_presentation.get("category") as Button
+	_check(is_instance_valid(success_overlay) and success_overlay.name == "GameOutcomeOverlay" and success_overlay.z_index == 1500 and is_equal_approx(success_overlay.anchor_right, 1.0) and is_instance_valid(success_primary) and success_primary.name == "GameOutcomePrimaryAction" and success_primary.text == "KEEP GOING" and is_instance_valid(success_category) and success_category.name == "GameOutcomeReturnToCategory" and success_category.text == "RETURN TO CATEGORY" and (success_overlay.find_child("GameOutcomeMessage", true, false) as Label).text == "A new adventure is ready.", "outcome presenter returns the exact success overlay and action-node contract")
+	var failure_host := Control.new()
+	add_child(failure_host)
+	var failure_presentation := outcome_presenter.build_game_outcome(failure_host, true, "Try once more.")
+	var failure_overlay := failure_presentation.get("overlay") as Control
+	var failure_primary := failure_presentation.get("primary") as Button
+	_check(is_instance_valid(failure_overlay) and failure_primary.text == "TRY AGAIN" and (failure_overlay.find_child("GameOutcomeMessage", true, false) as Label).text == "Try once more.", "outcome presenter preserves the failure copy and retry action contract")
+	var sparkle_host := Control.new()
+	add_child(sparkle_host)
+	var sparkle_presentation := outcome_presenter.build_sparkle_retry(sparkle_host, "A comet reached the meadow.")
+	var sparkle_overlay := sparkle_presentation.get("overlay") as Control
+	var sparkle_continue := sparkle_presentation.get("continue_button") as Button
+	_check(is_instance_valid(sparkle_overlay) and sparkle_overlay.name == "SecondSparkleRetryOverlay" and sparkle_overlay.z_index == 1550 and sparkle_overlay.find_child("SecondSparkleRetryCard", true, false) != null and (sparkle_overlay.find_child("SecondSparkleFailureReason", true, false) as Label).text == "A comet reached the meadow." and is_instance_valid(sparkle_continue) and sparkle_continue.name == "SecondSparkleContinue" and sparkle_continue.text == "CONTINUE", "outcome presenter returns the exact Second Sparkle overlay and continue-node contract")
+	var saved_outcome_scene := GameExperience.attached_scene
+	var saved_outcome_controller := GameExperience.attached_controller
+	var saved_outcome_game_id := GameExperience.attached_game_id
+	var saved_outcome_overlay := GameExperience.outcome_overlay
+	var saved_sparkle_overlay := GameExperience.sparkle_retry_overlay
+	var wrapper_outcome_host := Control.new()
+	add_child(wrapper_outcome_host)
+	GameExperience.attached_scene = wrapper_outcome_host
+	GameExperience.attached_controller = null
+	GameExperience.attached_game_id = "coin_count"
+	GameExperience.outcome_overlay = null
+	GameExperience.sparkle_retry_overlay = null
+	GameExperience._show_game_outcome()
+	var wrapper_outcome := wrapper_outcome_host.get_node_or_null("GameOutcomeOverlay") as Control
+	GameExperience._show_game_outcome()
+	_check(is_instance_valid(wrapper_outcome) and GameExperience.outcome_overlay == wrapper_outcome and wrapper_outcome_host.find_children("GameOutcomeOverlay", "Control", true, false).size() == 1, "GameExperience outcome wrapper assigns its overlay field and guards against duplicate overlays")
+	if is_instance_valid(wrapper_outcome):
+		wrapper_outcome.queue_free()
+	await get_tree().process_frame
+	_check(GameExperience.outcome_overlay == null, "GameExperience clears its outcome overlay field after presentation exit")
+	GameExperience.attached_scene = wrapper_outcome_host
+	GameExperience.attached_controller = null
+	GameExperience.attached_game_id = "coin_count"
+	GameExperience._show_sparkle_retry_notice("A comet reached the meadow.")
+	var wrapper_sparkle := wrapper_outcome_host.get_node_or_null("SecondSparkleRetryOverlay") as Control
+	GameExperience._show_sparkle_retry_notice("A comet reached the meadow.")
+	_check(is_instance_valid(wrapper_sparkle) and GameExperience.sparkle_retry_overlay == wrapper_sparkle and wrapper_outcome_host.find_children("SecondSparkleRetryOverlay", "Control", true, false).size() == 1, "GameExperience Second Sparkle wrapper assigns its overlay field and guards against duplicates")
+	if is_instance_valid(wrapper_sparkle):
+		wrapper_sparkle.queue_free()
+	await get_tree().process_frame
+	_check(GameExperience.sparkle_retry_overlay == null, "GameExperience clears its Second Sparkle overlay field after presentation exit")
+	GameExperience.attached_scene = saved_outcome_scene
+	GameExperience.attached_controller = saved_outcome_controller
+	GameExperience.attached_game_id = saved_outcome_game_id
+	GameExperience.outcome_overlay = saved_outcome_overlay
+	GameExperience.sparkle_retry_overlay = saved_sparkle_overlay
+	outcome_host.free()
+	failure_host.free()
+	sparkle_host.free()
+	wrapper_outcome_host.free()
 	var chrome_presenter := GameExperienceChromePresenter.new()
 	var presenter_source: String = FileAccess.get_file_as_string("res://scripts/ui/game_experience_chrome_presenter.gd")
 	_check(chrome_presenter is RefCounted and not presenter_source.contains("\nvar ") and not presenter_source.contains("AppState") and not presenter_source.contains("CompanionAbilityService"), "chrome presenter is a stateless RefCounted that receives presentation inputs instead of owning game state")
