@@ -12,6 +12,7 @@ const GameExperienceOutcomePresenter = preload("res://scripts/ui/game_experience
 const WordGameModeStrategy = preload("res://scripts/games/word_game_mode_strategy.gd")
 const WordChoiceStrategy = preload("res://scripts/games/word_choice_strategy.gd")
 const WordSequenceStrategy = preload("res://scripts/games/word_sequence_strategy.gd")
+const WordTypedEntryStrategy = preload("res://scripts/games/word_typed_entry_strategy.gd")
 const WordRules = preload("res://scripts/games/word_game_rules.gd")
 
 class TutorialPauseProbe extends Control:
@@ -47,6 +48,7 @@ func _room_item(items: Array, instance_id: String) -> Dictionary:
 func _run() -> void:
 	_test_word_choice_strategy()
 	_test_word_sequence_strategy()
+	_test_word_typed_entry_strategy()
 	var tutorial_presenter := GameExperienceTutorialPresenter.new()
 	var tutorial_source: String = FileAccess.get_file_as_string("res://scripts/ui/game_experience_tutorial_presenter.gd")
 	_check(tutorial_presenter is RefCounted and not tutorial_source.contains("\nvar ") and not tutorial_source.contains("AppState") and not tutorial_source.contains("GameExperience.") and not tutorial_source.contains("TutorialCatalog") and not tutorial_source.contains("attached_scene") and not tutorial_source.contains("CompanionAbilityService"), "tutorial presenter is a stateless RefCounted that does not own game, tutorial catalog, or gameplay state")
@@ -559,3 +561,34 @@ func _test_word_sequence_strategy() -> void:
 	_check(not bool(strategy.begin_round({"game_id": "sentence_sprout", "level": 1, "round_index": 0, "rng": empty_rng}).get("ok", true)), "sequence strategy reports an invalid round when its source is empty")
 	WordRules._cache = saved_cache
 	_check(strategy.failure_reason({"game_id": "sentence_sprout"}) == "Tap words in the right order!" and strategy.failure_reason({"game_id": "size_line_up"}) == "Tap shortest word first, then longer ones!", "sequence strategy preserves the exact failure copy")
+
+
+func _test_word_typed_entry_strategy() -> void:
+	var source := FileAccess.get_file_as_string("res://scripts/games/word_typed_entry_strategy.gd")
+	_check(not source.contains("AppState") and not source.contains("ArcadeGameController") and not source.contains("StorybookUI") and not source.contains("GameRegistry"), "typed-entry strategy stays inside Rules and RoundCatalog data boundaries")
+	var strategy := WordTypedEntryStrategy.new()
+	_check(strategy.family() == "typed_entry" and strategy.supports("sight_spark") and strategy.supports("letter_lift") and not strategy.supports("sentence_sprout") and strategy.begin_round({"game_id": "sentence_sprout"}) == {"handled": false}, "typed-entry strategy exposes exactly the two typed mode IDs and safe fallback")
+	for game_id in ["sight_spark", "letter_lift"]:
+		var round := strategy.begin_round({"game_id": game_id, "level": 1, "round_index": 0})
+		var expected_word := str(round.get("expected_word", ""))
+		_check(bool(round.get("handled", false)) and bool(round.get("ok", false)) and not expected_word.is_empty() and not str(round.get("phase", "")).is_empty() and not str(round.get("instruction", "")).is_empty(), "%s begins with an expected word and typed presentation contract" % game_id)
+		var hint_context := {"game_id": game_id, "expected_word": expected_word, "phase": round.get("phase", ""), "picked": []}
+		_check(strategy.hint(hint_context) == strategy.hint(hint_context) and str(hint_context.get("expected_word", "")) == expected_word, "%s hint derives from current typed state without repicking" % game_id)
+	var sight_round := strategy.begin_round({"game_id": "sight_spark", "level": 1, "round_index": 0})
+	var sight_word := str(sight_round.get("expected_word", ""))
+	var sight_transition := strategy.tick({"game_id": "sight_spark", "expected_word": sight_word, "phase": "flash", "hint_visible": false, "flash_expired": true}, 0.0)
+	var sight_success := strategy.submit({"game_id": "sight_spark", "expected_word": sight_word, "phase": "type"}, ("  %s  " % sight_word).to_upper())
+	var sight_failure := strategy.submit({"game_id": "sight_spark", "expected_word": sight_word, "phase": "type"}, "__wrong_word__")
+	_check(sight_transition.get("phase") == "type" and sight_transition.get("prompt") == "?" and sight_success.get("outcome") == "success" and sight_failure.get("outcome") == "failure", "Sight Spark keeps flash transition plus whitespace/case-insensitive submitted-word outcomes")
+	var letter_round := strategy.begin_round({"game_id": "letter_lift", "level": 1, "round_index": 0})
+	var letter_word := str(letter_round.get("expected_word", ""))
+	var first_letter := letter_word.substr(0, 1)
+	var first_result := strategy.submit({"game_id": "letter_lift", "expected_word": letter_word, "picked": []}, first_letter.to_upper())
+	var backspace_result := strategy.submit({"game_id": "letter_lift", "expected_word": letter_word, "picked": first_result.get("picked", [])}, "")
+	var final_result := strategy.submit({"game_id": "letter_lift", "expected_word": letter_word, "picked": letter_word.split("", false).slice(0, letter_word.length() - 1)}, letter_word)
+	_check(first_result.get("outcome") == "continue" and first_result.get("input") == first_letter and backspace_result.get("outcome") == "ignored" and backspace_result.get("input") == first_letter and final_result.get("outcome") == "success" and final_result.get("input") == letter_word, "Letter Lift preserves lowercase input normalization, backspace reset, and final-letter success")
+	var saved_cache := WordRules._cache.duplicate(true)
+	WordRules._cache = {"falling_words": {"easy": []}}
+	_check(not bool(strategy.begin_round({"game_id": "sight_spark", "level": 1, "round_index": 0}).get("ok", true)), "typed-entry strategy reports an invalid round when its word source is empty")
+	WordRules._cache = saved_cache
+	_check(strategy.failure_reason({"game_id": "sight_spark"}) == "Spell the spark word from memory!" and strategy.failure_reason({"game_id": "letter_lift"}) == "Type each letter in order!", "typed-entry strategy preserves the exact failure copy")
