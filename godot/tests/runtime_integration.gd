@@ -125,7 +125,7 @@ func _run() -> void:
 	jump.call("_choose_node", landing)
 	await get_tree().create_timer(1.15).timeout
 	_check(jump.current_index == landing and jump.active, "Unicorn Jump accepts the exact indexed landing")
-	_check(trail_companion.get_parent() == jump.node_buttons[landing], "the active companion moves to the newly reached stone")
+	_check(is_instance_valid(trail_companion) and trail_companion == jump.companion_preview and trail_companion.get_parent() == jump.world_viewport.world and trail_companion.position.is_equal_approx(jump._companion_world_position(landing)) and trail_companion.size == jump.COMPANION_DISPLAY_SIZE, "the same full-size companion lands in trail-world coordinates on the newly reached stone")
 	_check(jump.fx_layer.burst_amount > 0.0 and jump.find_child("JumpingCompanion", true, false) == null, "Unicorn Jump leaves a rainbow tail-puff landing burst after its animated arc")
 	jump.call("_choose_node", jump.current_index)
 	GameExperience.attached_scene = jump

@@ -197,7 +197,6 @@ func can_show_hint() -> bool:
 
 
 func _rebuild_path() -> void:
-	companion_preview = null
 	for child in path_box.get_children():
 		child.queue_free()
 	node_buttons.clear()
@@ -256,6 +255,7 @@ func _rebuild_path() -> void:
 		row.add_child(button)
 		path_box.add_child(row)
 		node_buttons.push_back(button)
+	_ensure_companion()
 
 
 func _update_path() -> void:
@@ -276,7 +276,6 @@ func _update_path() -> void:
 			value_label.text = ""
 			value_label.add_theme_color_override("font_color", Color("173f68"))
 			button.tooltip_text = "Current stone. %s" % _jump_instruction(level_data[index]) if index < level_data.size() else "Goal reached"
-			_attach_active_companion(button)
 		elif index in visited:
 			button.texture_normal = STONE_VISITED
 			value_label.text = "✓"
@@ -294,13 +293,21 @@ func _update_path() -> void:
 	for connector_index in connector_lines.size():
 		var connector := connector_lines[connector_index]
 		connector.default_color = Color("f2a5d4") if connector_index <= current_index else Color("9788d8")
+	if is_instance_valid(companion_preview) and not jump_in_progress:
+		companion_preview.position = _companion_world_position(current_index)
 	await get_tree().process_frame
-	_focus_current_stone()
+	await _focus_current_stone()
 
 
 func _focus_current_stone() -> void:
 	if not is_instance_valid(world_viewport) or current_index < 0 or current_index >= node_buttons.size():
 		return
+	var layout_attempts := 0
+	while world_viewport.size.x <= 1.0 or world_viewport.size.y <= 1.0:
+		if layout_attempts >= 8:
+			return
+		layout_attempts += 1
+		await get_tree().process_frame
 	if current_index == 0:
 		world_viewport.set_camera(Vector2.ZERO, _initial_trail_zoom(), false)
 	world_viewport.focus_control(node_buttons[current_index], Vector2(0.5, 0.34))
@@ -310,9 +317,7 @@ func _initial_trail_zoom() -> float:
 	if not is_instance_valid(world_viewport) or node_buttons.is_empty():
 		return INITIAL_TRAIL_MAX_ZOOM
 	var forward_index := mini(current_index + 4, node_buttons.size() - 1)
-	var current_center := node_buttons[current_index].global_position.y + node_buttons[current_index].size.y * 0.5
-	var forward_center := node_buttons[forward_index].global_position.y + node_buttons[forward_index].size.y * 0.5
-	var span := maxf(BASE_ROW_HEIGHT, absf(forward_center - current_center))
+	var span := maxf(BASE_ROW_HEIGHT, absf(_stone_world_center(forward_index).y - _stone_world_center(current_index).y))
 	# Current is focused about one-third down the viewport, leaving roughly 60%
 	# of its height for the next four landings. Clamp only for tiny viewports.
 	var available := maxf(1.0, world_viewport.size.y * 0.60)
@@ -334,31 +339,36 @@ func _restore_path_after_dialog() -> void:
 	_update_path.call_deferred()
 
 
-func _attach_active_companion(button: TextureButton) -> void:
-	if is_instance_valid(companion_preview) and companion_preview.get_parent() != button:
-		# Removing a SubViewportContainer from the tree intentionally shuts its
-		# renderer down. Build a fresh preview for the new landing stone instead
-		# of reparenting the disabled one.
-		companion_preview.queue_free()
-		companion_preview = null
-	if not is_instance_valid(companion_preview):
-		companion_preview = RoomItemPreviewScene.new()
-		companion_preview.name = "ActiveCompanionOnStone"
-		companion_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		companion_preview.setup({
-			"id": "companion_%s" % AppState.equipped_companion(),
-			"category": "companions",
-			"animate": false,
-			"presentation": "marketplace",
-		})
-		button.add_child(companion_preview)
+func _ensure_companion() -> void:
+	if is_instance_valid(companion_preview):
+		return
+	companion_preview = RoomItemPreviewScene.new()
+	companion_preview.name = "ActiveCompanionOnStone"
+	companion_preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	companion_preview.z_index = 10
 	companion_preview.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	# Set the final canvas before setup creates the stretched SubViewport.
 	companion_preview.size = COMPANION_DISPLAY_SIZE
-	# Match the jumping preview's unscaled canvas and center point exactly. The
-	# trail camera then applies the same zoom that _animate_jump applies below.
-	companion_preview.position = button.size * 0.5 + COMPANION_CENTER_LIFT - COMPANION_DISPLAY_SIZE * 0.5
-	companion_preview.move_to_front()
-	(button.get_node("JumpValue") as Label).move_to_front()
+	companion_preview.setup({
+		"id": "companion_%s" % AppState.equipped_companion(),
+		"category": "companions",
+		"animate": true,
+		"presentation": "marketplace",
+	})
+	world_viewport.world.add_child(companion_preview)
+	companion_preview.position = _companion_world_position(current_index)
+	companion_preview.set_motion_state(false)
+
+
+func _stone_world_center(index: int) -> Vector2:
+	return Vector2(
+		_stone_center_x(index),
+		BASE_TOP_CLEARANCE + index * BASE_ROW_HEIGHT + BASE_ROW_HEIGHT * 0.22 + BASE_STONE_SIZE.y * 0.5
+	)
+
+
+func _companion_world_position(index: int) -> Vector2:
+	return _stone_world_center(index) + COMPANION_CENTER_LIFT - COMPANION_DISPLAY_SIZE * 0.5
 
 
 func _normal_stone_texture(index: int) -> Texture2D:
@@ -373,41 +383,35 @@ func _stone_center_x(index: int) -> float:
 func _animate_jump(from_index: int, to_index: int) -> void:
 	if AppState.setting("reduced_motion", false):
 		await get_tree().create_timer(0.16).timeout
+		if is_instance_valid(companion_preview):
+			companion_preview.position = _companion_world_position(to_index)
 		return
-	var from_button := node_buttons[from_index]
-	var to_button := node_buttons[to_index]
-	var start := from_button.global_position + from_button.size * 0.5 + COMPANION_CENTER_LIFT
-	var finish := to_button.global_position + to_button.size * 0.5 + COMPANION_CENTER_LIFT
-	var flight := RoomItemPreviewScene.new()
-	flight.name = "JumpingCompanion"
-	flight.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	flight.setup({"id": "companion_%s" % AppState.equipped_companion(), "category": "companions", "animate": true, "presentation": "marketplace"})
-	var camera_zoom: float = float(world_viewport.zoom) if is_instance_valid(world_viewport) else 1.0
-	flight.size = COMPANION_DISPLAY_SIZE * camera_zoom
-	flight.z_index = 110
-	add_child(flight)
-	flight.global_position = start - flight.size * 0.5
-	if is_instance_valid(companion_preview):
-		companion_preview.hide()
+	_ensure_companion()
+	var start := _companion_world_position(from_index)
+	var finish := _companion_world_position(to_index)
+	companion_preview.position = start
+	companion_preview.set_motion_state(true)
 	fx_layer.clear_flight()
 	var distance_stones := maxi(1, absi(to_index - from_index))
 	var duration := minf(1.1, 0.62 + distance_stones * 0.06)
+	var midpoint := (start + finish) * 0.5 + Vector2(0, -92.0 - distance_stones * 5.0)
 	var tween := create_tween()
 	tween.tween_method(func(progress: float) -> void:
-		var midpoint := (start + finish) * 0.5 + Vector2(0, -92.0 - distance_stones * 5.0)
 		var first := start.lerp(midpoint, progress)
 		var second := midpoint.lerp(finish, progress)
 		var point := first.lerp(second, progress)
-		flight.global_position = point - flight.size * 0.5
-		flight.rotation = sin(progress * PI * 2.0) * 0.035
-		fx_layer.set_flight_point(_fx_local(point + Vector2(-flight.size.x * 0.32, 8)))
+		companion_preview.position = point
+		companion_preview.rotation = sin(progress * PI * 2.0) * 0.035
+		var tail_world_point := point + companion_preview.size * Vector2(0.18, 0.56)
+		fx_layer.set_flight_point(_fx_local(_world_to_global(tail_world_point)))
 	, 0.0, 1.0, duration).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 	await tween.finished
+	companion_preview.position = finish
+	companion_preview.rotation = 0.0
+	companion_preview.set_motion_state(false)
 	fx_layer.clear_flight()
-	fx_layer.landing_burst(_fx_local(finish + Vector2(-36, 20)), true)
-	flight.queue_free()
-	if is_instance_valid(companion_preview):
-		companion_preview.show()
+	var landing_world_point := finish + companion_preview.size * Vector2(0.30, 0.65)
+	fx_layer.landing_burst(_fx_local(_world_to_global(landing_world_point)), true)
 
 
 func _bounce_stone(button: TextureButton) -> void:
@@ -420,6 +424,10 @@ func _bounce_stone(button: TextureButton) -> void:
 
 func _fx_local(global_point: Vector2) -> Vector2:
 	return fx_layer.get_global_transform_with_canvas().affine_inverse() * global_point
+
+
+func _world_to_global(world_point: Vector2) -> Vector2:
+	return world_viewport.world.get_global_transform_with_canvas() * world_point
 
 
 func _build_ui() -> void:

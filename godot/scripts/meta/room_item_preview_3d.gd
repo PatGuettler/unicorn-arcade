@@ -22,6 +22,13 @@ var display_yaw_degrees := 0.0
 var companion_builder: RoomCompanionPreviewBuilder
 
 
+func _notification(what: int) -> void:
+	if what == NOTIFICATION_RESIZED and not animate_character and preview_viewport != null:
+		# Stretching recreates the SubViewport target. Static previews only render
+		# once, so resize must explicitly arm one fresh frame.
+		preview_viewport.request_redraw()
+
+
 func setup(definition: Dictionary) -> void:
 	item_id = str(definition.get("id", definition.get("item_id", "decor")))
 	category = str(definition.get("category", "cozy"))

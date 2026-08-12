@@ -250,6 +250,9 @@ func _run() -> void:
 	for frame in 120:
 		await get_tree().process_frame
 	_check(received.size() == 2 and received[0] != null and received[0] == received[1], "loader coalesces duplicate successful requests")
+	var cached_scene := load("res://scenes/games/sliding_window.tscn") as PackedScene
+	RuntimeAssetLoader.cache_packed_scene("res://scenes/games/sliding_window.tscn", cached_scene)
+	_check(RuntimeAssetLoader.cached_packed_scene("res://scenes/games/sliding_window.tscn") == cached_scene, "loader accepts synchronous character loads into its shared scene cache")
 	var missing: Array = []
 	RuntimeAssetLoader.load_packed_scene("res://missing/refactor-test.tscn", func(scene: PackedScene) -> void: missing.append(scene))
 	for frame in 3:
@@ -270,6 +273,9 @@ func _run() -> void:
 	rotation_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	rotation_preview.set_display_yaw(90.0)
 	_check(rotation_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE, "static furniture yaw requests one redraw after a disabled viewport")
+	rotation_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
+	rotation_preview.size += Vector2.ONE
+	_check(rotation_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE, "resizing a static preview re-arms its one-shot render target")
 	var static_companion := RoomItemPreview3D.new()
 	static_companion.setup({"id": "companion_sparkle", "category": "companions", "animate": false, "presentation": "game_hud"})
 	var companion_viewport := static_companion.get_node_or_null("SubViewport") as SubViewport

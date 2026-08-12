@@ -42,6 +42,11 @@ func cached_packed_scene(path: String) -> PackedScene:
 	return _cache.get(path) as PackedScene
 
 
+func cache_packed_scene(path: String, scene: PackedScene) -> void:
+	if not path.is_empty() and scene != null:
+		_cache[path] = scene
+
+
 func is_cached(path: String) -> bool:
 	return _cache.has(path)
 

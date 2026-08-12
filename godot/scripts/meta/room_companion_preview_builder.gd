@@ -51,6 +51,7 @@ func build(request_host: SubViewportContainer, rotation_root: Node3D, owner, req
 		if active_scene == null:
 			active_scene = ResourceLoader.load(model_path, "PackedScene") as PackedScene
 		if active_scene != null:
+			RuntimeAssetLoader.cache_packed_scene(model_path, active_scene)
 			_instantiate_companion(active_scene, companion_id, travel_root)
 	else:
 		RuntimeAssetLoader.load_packed_scene(model_path, func(packed_scene: PackedScene) -> void:

@@ -28,18 +28,19 @@ func _run() -> void:
 	for index in range(mini(5, jump.node_buttons.size())):
 		first_five_centers_visible = first_five_centers_visible and view_rect.has_point(jump.node_buttons[index].get_global_rect().get_center())
 	_check(jump.world_viewport.zoom < 1.0 and first_five_centers_visible, "the initial camera frames the current stone and four forward stones while keeping pinch zoom available")
-	for _frame in 120:
-		if is_instance_valid(jump.companion_preview) and jump.companion_preview.mesh_count > 0:
-			break
-		await get_tree().process_frame
-	_check(is_instance_valid(jump.companion_preview) and jump.companion_preview.mesh_count > 0 and jump.companion_preview.find_child("LiveUnicornModel", true, false) != null, "the current stone displays the equipped unicorn after its async model load")
-	_check(jump.companion_preview.size == jump.COMPANION_DISPLAY_SIZE and (jump.companion_preview.position + jump.companion_preview.size * 0.5).is_equal_approx(jump.node_buttons[0].size * 0.5 + jump.COMPANION_CENTER_LIFT), "the standing unicorn uses the jumping unicorn's exact size and center point")
+	_check(not jump.world_viewport.pan.is_equal_approx(Vector2.ZERO), "the startup camera applies its initial focus instead of leaving the trail at zero pan")
+	_check(is_instance_valid(jump.companion_preview) and jump.companion_preview.animate_character and jump.companion_preview.mesh_count > 0 and jump.companion_preview.find_child("LiveUnicornModel", true, false) != null and jump.companion_preview.preview_viewport.viewport.render_target_update_mode == SubViewport.UPDATE_ALWAYS, "the current stone immediately displays the equipped unicorn through the live renderer")
+	_check(jump.find_children("ActiveCompanionOnStone", "", true, false).size() == 1 and jump.companion_preview.get_parent() == jump.world_viewport.world and jump.companion_preview.size == jump.COMPANION_DISPLAY_SIZE and jump.companion_preview.position.is_equal_approx(jump._companion_world_position(0)), "one full-size unicorn is positioned in trail-world coordinates on the starting stone")
+	await RenderingServer.frame_post_draw
+	_check(_non_transparent_pixels(jump.companion_preview.preview_viewport.viewport) > 0, "the unicorn preview contains rendered pixels before the first input")
 	var first_preview = jump.companion_preview
-	jump.current_index = landing
-	jump.visited.append(landing)
-	jump._update_path()
-	await get_tree().process_frame
-	_check(is_instance_valid(jump.companion_preview) and jump.companion_preview != first_preview and jump.companion_preview.get_parent() == jump.node_buttons[landing] and jump.companion_preview.preview_viewport.viewport.render_target_update_mode != SubViewport.UPDATE_DISABLED, "moving to a new stone creates an active unicorn renderer instead of reparenting a shut-down viewport")
+	var first_global_size: Vector2 = first_preview.get_global_rect().size
+	jump._choose_node(landing)
+	await get_tree().create_timer(1.2).timeout
+	await RenderingServer.frame_post_draw
+	_check(jump.current_index == landing and jump.companion_preview == first_preview and jump.find_child("JumpingCompanion", true, false) == null, "the same unicorn preview moves through the complete jump")
+	_check(jump.companion_preview.position.is_equal_approx(jump._companion_world_position(landing)) and jump.companion_preview.get_global_rect().size.is_equal_approx(first_global_size), "the unicorn lands centered without changing its rendered size")
+	_check(_non_transparent_pixels(jump.companion_preview.preview_viewport.viewport) > 0, "the unicorn preview still contains rendered pixels after landing")
 	# Leave the scene exactly as the following dialog-layout checks expect it.
 	jump.current_index = 0
 	jump.visited.clear()
@@ -101,3 +102,19 @@ func _run() -> void:
 func _check(condition: bool, message: String) -> void:
 	if not condition:
 		failures.append(message)
+
+
+func _non_transparent_pixels(viewport: SubViewport) -> int:
+	if not is_instance_valid(viewport):
+		return 0
+	var image := viewport.get_texture().get_image()
+	if image == null or image.is_empty():
+		return 0
+	if image.get_format() != Image.FORMAT_RGBA8:
+		image.convert(Image.FORMAT_RGBA8)
+	var data := image.get_data()
+	var visible := 0
+	for offset in range(3, data.size(), 4):
+		if data[offset] > 0:
+			visible += 1
+	return visible
