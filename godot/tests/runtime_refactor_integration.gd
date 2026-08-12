@@ -273,6 +273,8 @@ func _run() -> void:
 	rotation_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	rotation_preview.set_display_yaw(90.0)
 	_check(rotation_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE, "static furniture yaw requests one redraw after a disabled viewport")
+	add_child(rotation_preview)
+	await get_tree().process_frame
 	rotation_viewport.render_target_update_mode = SubViewport.UPDATE_DISABLED
 	rotation_preview.size += Vector2.ONE
 	_check(rotation_viewport.render_target_update_mode == SubViewport.UPDATE_ONCE, "resizing a static preview re-arms its one-shot render target")

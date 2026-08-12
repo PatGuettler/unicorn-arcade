@@ -242,6 +242,8 @@ build_legacy_profile_bridge() {
 	GODOT_ANDROID_LIBRARY_AAR="$godot_aar" LEGACY_BRIDGE_OUTPUT_DIR="$output" \
 		"$PROJECT/android/build/gradlew" -p "$bridge" copyReleaseAar
 	[[ -s "$output/legacy_profile_bridge.aar" ]] || { echo "ERROR: legacy bridge AAR was not built" >&2; exit 1; }
+	cp "$bridge/legacy_profile_bridge.gdap" "$output/legacy_profile_bridge.gdap"
+	[[ -s "$output/legacy_profile_bridge.gdap" ]] || { echo "ERROR: legacy bridge plugin descriptor was not installed" >&2; exit 1; }
 }
 
 set_export_format() {
