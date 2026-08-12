@@ -31,16 +31,19 @@ func _run() -> void:
 	_check(not jump.world_viewport.pan.is_equal_approx(Vector2.ZERO), "the startup camera applies its initial focus instead of leaving the trail at zero pan")
 	_check(is_instance_valid(jump.companion_preview) and jump.companion_preview.animate_character and jump.companion_preview.mesh_count > 0 and jump.companion_preview.find_child("LiveUnicornModel", true, false) != null and jump.companion_preview.preview_viewport.viewport.render_target_update_mode == SubViewport.UPDATE_ALWAYS, "the current stone immediately displays the equipped unicorn through the live renderer")
 	_check(jump.find_children("ActiveCompanionOnStone", "", true, false).size() == 1 and jump.companion_preview.get_parent() == jump.world_viewport.world and jump.companion_preview.size == jump.COMPANION_DISPLAY_SIZE and jump.companion_preview.position.is_equal_approx(jump._companion_world_position(0)), "one full-size unicorn is positioned in trail-world coordinates on the starting stone")
-	await RenderingServer.frame_post_draw
-	_check(_non_transparent_pixels(jump.companion_preview.preview_viewport.viewport) > 0, "the unicorn preview contains rendered pixels before the first input")
+	if _supports_render_readback():
+		await RenderingServer.frame_post_draw
+		_check(_non_transparent_pixels(jump.companion_preview.preview_viewport.viewport) > 0, "the unicorn preview contains rendered pixels before the first input")
 	var first_preview = jump.companion_preview
 	var first_global_size: Vector2 = first_preview.get_global_rect().size
 	jump._choose_node(landing)
 	await get_tree().create_timer(1.2).timeout
-	await RenderingServer.frame_post_draw
+	if _supports_render_readback():
+		await RenderingServer.frame_post_draw
 	_check(jump.current_index == landing and jump.companion_preview == first_preview and jump.find_child("JumpingCompanion", true, false) == null, "the same unicorn preview moves through the complete jump")
 	_check(jump.companion_preview.position.is_equal_approx(jump._companion_world_position(landing)) and jump.companion_preview.get_global_rect().size.is_equal_approx(first_global_size), "the unicorn lands centered without changing its rendered size")
-	_check(_non_transparent_pixels(jump.companion_preview.preview_viewport.viewport) > 0, "the unicorn preview still contains rendered pixels after landing")
+	if _supports_render_readback():
+		_check(_non_transparent_pixels(jump.companion_preview.preview_viewport.viewport) > 0, "the unicorn preview still contains rendered pixels after landing")
 	# Leave the scene exactly as the following dialog-layout checks expect it.
 	jump.current_index = 0
 	jump.visited.clear()
@@ -102,6 +105,12 @@ func _run() -> void:
 func _check(condition: bool, message: String) -> void:
 	if not condition:
 		failures.append(message)
+
+
+func _supports_render_readback() -> bool:
+	# The dummy renderer used by `godot --headless` never emits frame_post_draw;
+	# waiting for it would hang CI. Desktop/device runs retain pixel assertions.
+	return DisplayServer.get_name() != "headless"
 
 
 func _non_transparent_pixels(viewport: SubViewport) -> int:
