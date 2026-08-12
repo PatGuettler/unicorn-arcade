@@ -141,6 +141,7 @@ func _run() -> void:
 	_check(narrow_decor_card.get_rect().end.x >= market.content.size.x - 3.0 and alley.get_rect().end.x >= market.content.size.x - 3.0, "Decor cards and Unicorn Alley reach the narrow catalog right margin")
 	_check(_decor_card_usable(market._decor_cards[0]), "Decor card text and buy/sell actions remain non-overlapping and touch-sized at narrow width")
 	_check(_decor_rarity_field_usable(market._decor_cards[0]), "Decor rarity reserves 144px with an eight-pixel name gap and fully renders UNCOMMON and LEGENDARY at narrow width")
+	_check(market._decor_panel.mouse_filter == Control.MOUSE_FILTER_PASS and ["name", "rarity", "description", "counts"].all(func(field: String) -> bool: return (market._decor_cards[0][field] as Label).mouse_filter == Control.MOUSE_FILTER_IGNORE), "Decor catalog panels pass vertical swipes through while presentation-only card text ignores pointer input")
 	var decor_scroll_before: int = market.catalog_scroll.scroll_vertical
 	var decor_press := InputEventScreenTouch.new()
 	decor_press.index = 8

@@ -221,6 +221,7 @@ func _build_companion_pool() -> void:
 	_companions_panel.offset_bottom = CATALOG_CONTENT_HEIGHT
 	_companions_panel.custom_minimum_size = Vector2(0, CATALOG_CONTENT_HEIGHT)
 	_companions_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_companions_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	content.add_child(_companions_panel)
 	var definitions := Catalog.companions()
 	for index in definitions.size():
@@ -261,6 +262,7 @@ func _build_decor_pool() -> void:
 	_decor_panel.offset_bottom = CATALOG_CONTENT_HEIGHT
 	_decor_panel.custom_minimum_size = Vector2(0, CATALOG_CONTENT_HEIGHT)
 	_decor_panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_decor_panel.mouse_filter = Control.MOUSE_FILTER_PASS
 	_decor_panel.visible = false
 	content.add_child(_decor_panel)
 	for index in DECOR_SLOTS:
@@ -297,6 +299,7 @@ func _build_decor_pool() -> void:
 		_decor_cards.append({"card": card, "thumbnail": thumbnail, "name": name, "rarity": rarity, "description": description, "counts": counts, "buy": buy, "sell": sell, "item": {}})
 	var pager := Panel.new()
 	pager.name = "DecorPager"
+	pager.mouse_filter = Control.MOUSE_FILTER_PASS
 	_anchor_rect(pager, 0.0, 1.0, 2, -2, DECOR_SLOTS * DECOR_CARD_HEIGHT, DECOR_SLOTS * DECOR_CARD_HEIGHT + 62)
 	pager.add_theme_stylebox_override("panel", StorybookUI.button_style(PANEL, StorybookUI.GOLD, 2, 12))
 	_decor_panel.add_child(pager)
@@ -544,6 +547,9 @@ func _label(node_name: String, text: String, position_value: Vector2, size_value
 	label.text = text
 	label.position = position_value
 	label.size = size_value
+	# Labels are presentation-only. Ignoring pointer input lets a catalog swipe
+	# reach the ScrollContainer even when it begins over card copy.
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.clip_text = true
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF
 	label.add_theme_font_size_override("font_size", font_size)
