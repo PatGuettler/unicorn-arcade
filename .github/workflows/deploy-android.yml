@@ -166,8 +166,12 @@ jobs:
           # Same as main Capacitor CI: versionCode=run_number, versionName=1.<run_number>
           VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: 1.${{ github.run_number }}
+          MIN_PLAY_VERSION_CODE: "182"
           ADMOB_ADS_ENABLED: "true"
-          ADMOB_BANNER_UNIT_ID: ca-app-pub-3940256099942544/6300978111
+          # Play AAB uses the production unit; the installable debug APK is
+          # rewritten to Google's test unit before its separate export.
+          ADMOB_RELEASE_BANNER_UNIT_ID: ca-app-pub-2846735043546429/2606475202
+          ADMOB_DEBUG_BANNER_UNIT_ID: ca-app-pub-3940256099942544/6300978111
           RELEASE_PACKAGE_NAME: com.grapegames.wlarcade
           DEBUG_PACKAGE_NAME: com.guettler.unicornarcade
           GODOT_ANDROID_KEYSTORE_RELEASE_PATH: /home/runner/.android/release.keystore

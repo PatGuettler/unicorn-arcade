@@ -11,6 +11,7 @@ EXPORT_PRESET="${EXPORT_PRESET:-Android Alpha}"
 VERSION_CODE="${VERSION_CODE:-1}"
 RELEASE_PACKAGE_NAME="${RELEASE_PACKAGE_NAME:-com.grapegames.wlarcade}"
 DEBUG_PACKAGE_NAME="${DEBUG_PACKAGE_NAME:-com.guettler.unicornarcade}"
+GOOGLE_TEST_BANNER_UNIT_ID="ca-app-pub-3940256099942544/6300978111"
 
 # shellcheck source=install-godot.sh
 source "$ROOT/scripts/ci/install-godot.sh"
@@ -63,8 +64,8 @@ start_adb_server() {
 }
 
 write_admob_config() {
+	local banner="${1:-${ADMOB_BANNER_UNIT_ID:-$GOOGLE_TEST_BANNER_UNIT_ID}}"
 	local enabled="${ADMOB_ADS_ENABLED:-true}"
-	local banner="${ADMOB_BANNER_UNIT_ID:-ca-app-pub-3940256099942544/6300978111}"
 	mkdir -p "$PROJECT/config"
 	cat >"$PROJECT/config/admob.json" <<EOF
 {
@@ -114,6 +115,16 @@ install_admob_android_binaries() {
 bump_version() {
 	local preset="$PROJECT/export_presets.cfg"
 	local version_name="${VERSION_NAME:-1.${VERSION_CODE}}"
+	if [[ -n "${MIN_PLAY_VERSION_CODE:-}" ]]; then
+		[[ "$VERSION_CODE" =~ ^[0-9]+$ && "$MIN_PLAY_VERSION_CODE" =~ ^[0-9]+$ ]] || {
+			echo "ERROR: VERSION_CODE and MIN_PLAY_VERSION_CODE must be integers" >&2
+			exit 1
+		}
+		if (( VERSION_CODE < MIN_PLAY_VERSION_CODE )); then
+			echo "ERROR: Android versionCode=${VERSION_CODE} is below the required Play versionCode=${MIN_PLAY_VERSION_CODE}" >&2
+			exit 1
+		fi
+	fi
 	sed -i "s/^version\\/code=.*/version\\/code=${VERSION_CODE}/" "$preset"
 	sed -i "s/^version\\/name=.*/version\\/name=\"${version_name}\"/" "$preset"
 	echo "Android versionCode=${VERSION_CODE} versionName=${version_name}"
@@ -141,6 +152,27 @@ sanitize_android_build_template() {
 	# such as icon_background.webp.import, which Android's resource merger rejects.
 	: >"$build_dir/.gdignore"
 	find "$build_dir" -type f -name '*.import' -delete
+}
+
+# This app is directed solely to children. Keep Advertising ID out of the final
+# merged manifest even when the AdMob SDK or plugin declares it transitively.
+enforce_child_directed_manifest() {
+	local manifest="$PROJECT/android/build/src/main/AndroidManifest.xml"
+	[[ -f "$manifest" ]] || {
+		echo "ERROR: Android manifest is missing: $manifest" >&2
+		exit 1
+	}
+	if ! grep -Fq 'com.google.android.gms.permission.AD_ID" tools:node="remove"' "$manifest"; then
+		sed -i '/^[[:space:]]*<supports-screens/i\
+    <!-- Child-directed app: prevent AdMob dependencies from merging Advertising ID permissions. -->\
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />\
+    <uses-permission android:name="android.permission.AD_ID" tools:node="remove" />\
+' "$manifest"
+	fi
+	grep -Fq 'com.google.android.gms.permission.AD_ID" tools:node="remove"' "$manifest" || {
+		echo "ERROR: Failed to install the Advertising ID manifest-removal rule" >&2
+		exit 1
+	}
 }
 
 ensure_android_build_template() {
@@ -269,21 +301,29 @@ standalone_bundletool() {
 
 validate_artifact() {
 	local artifact="$1" package_name="$2" expected_code="$3" expected_name="$4"
+	local manifest_xml=""
 	[[ -s "$artifact" ]] || { echo "ERROR: missing Android artifact $artifact" >&2; exit 1; }
 	if [[ "$artifact" == *.apk ]]; then
 		local apkanalyzer="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/apkanalyzer"
 		[[ -x "$apkanalyzer" ]] || apkanalyzer="$(find "${ANDROID_SDK_ROOT}/cmdline-tools" -name apkanalyzer -type f | head -1)"
 		[[ -x "$apkanalyzer" ]] || { echo "ERROR: apkanalyzer is required for APK metadata validation" >&2; exit 1; }
+		manifest_xml="$("$apkanalyzer" manifest print "$artifact")"
 		[[ "$("$apkanalyzer" manifest application-id "$artifact")" == "$package_name" ]] || { echo "ERROR: APK package mismatch" >&2; exit 1; }
 		[[ "$("$apkanalyzer" manifest version-code "$artifact")" == "$expected_code" ]] || { echo "ERROR: APK versionCode mismatch" >&2; exit 1; }
 		[[ "$("$apkanalyzer" manifest version-name "$artifact")" == "$expected_name" ]] || { echo "ERROR: APK versionName mismatch" >&2; exit 1; }
 	else
 		local bundletool
 		bundletool="$(standalone_bundletool)"
+		manifest_xml="$(java -jar "$bundletool" dump manifest --bundle="$artifact")"
 		[[ "$(java -jar "$bundletool" dump manifest --bundle="$artifact" --xpath=/manifest/@package)" == "$package_name" ]] || { echo "ERROR: AAB package mismatch" >&2; exit 1; }
 		[[ "$(java -jar "$bundletool" dump manifest --bundle="$artifact" --xpath=/manifest/@android:versionCode)" == "$expected_code" ]] || { echo "ERROR: AAB versionCode mismatch" >&2; exit 1; }
 		[[ "$(java -jar "$bundletool" dump manifest --bundle="$artifact" --xpath=/manifest/@android:versionName)" == "$expected_name" ]] || { echo "ERROR: AAB versionName mismatch" >&2; exit 1; }
 	fi
+	if grep -Eq 'android:name="(com\.google\.android\.gms\.permission\.AD_ID|android\.permission\.AD_ID)"' <<<"$manifest_xml"; then
+		echo "ERROR: Advertising ID permission leaked into $artifact" >&2
+		exit 1
+	fi
+	echo "Advertising ID manifest check OK: no AD_ID permission in $(basename "$artifact")"
 }
 
 ensure_godot_import() {
@@ -309,7 +349,9 @@ export_android() {
 	cp "$PRESET_PATH" "$PRESET_BACKUP"
 	trap restore_export_preset EXIT
 	install_admob_android_binaries
-	write_admob_config
+	local release_banner="${ADMOB_RELEASE_BANNER_UNIT_ID:-${ADMOB_BANNER_UNIT_ID:-$GOOGLE_TEST_BANNER_UNIT_ID}}"
+	local debug_banner="${ADMOB_DEBUG_BANNER_UNIT_ID:-$GOOGLE_TEST_BANNER_UNIT_ID}"
+	write_admob_config "$release_banner"
 	bump_version
 	set_export_format 1
 	configure_godot_android_paths
@@ -317,6 +359,7 @@ export_android() {
 	ensure_godot_import
 	# Template install before bridge + export so we only pay for one Godot project load.
 	ensure_android_build_template
+	enforce_child_directed_manifest
 	preflight_android_sdk
 	build_legacy_profile_bridge
 
@@ -334,6 +377,7 @@ export_android() {
 	validate_artifact "$PROJECT/build/android/UnicornArcade.aab" "$RELEASE_PACKAGE_NAME" "$VERSION_CODE" "${VERSION_NAME:-1.${VERSION_CODE}}"
 
 	echo "Exporting installable debug APK as ${DEBUG_PACKAGE_NAME}..."
+	write_admob_config "$debug_banner"
 	set_package_name "$DEBUG_PACKAGE_NAME"
 	local preset="$PROJECT/export_presets.cfg"
 	set_export_format 0
