@@ -162,15 +162,28 @@ enforce_child_directed_manifest() {
 		echo "ERROR: Android manifest is missing: $manifest" >&2
 		exit 1
 	}
-	if ! grep -Fq 'com.google.android.gms.permission.AD_ID" tools:node="remove"' "$manifest"; then
-		sed -i '/^[[:space:]]*<supports-screens/i\
-    <!-- Child-directed app: prevent AdMob dependencies from merging Advertising ID permissions. -->\
+	# Recreate the complete block on every run so cached templates cannot retain
+	# an older, incomplete version of this policy.
+	sed -i \
+		-e '/Child-directed app: prevent AdMob dependencies from merging advertising identifiers/d' \
+		-e '/com.google.android.gms.permission.AD_ID" tools:node="remove"/d' \
+		-e '/android.permission.AD_ID" tools:node="remove"/d' \
+		-e '/android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove"/d' \
+		-e '/android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove"/d' \
+		-e '/android.permission.ACCESS_ADSERVICES_TOPICS" tools:node="remove"/d' \
+		"$manifest"
+	sed -i '/^[[:space:]]*<supports-screens/i\
+    <!-- Child-directed app: prevent AdMob dependencies from merging advertising identifiers. -->\
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />\
     <uses-permission android:name="android.permission.AD_ID" tools:node="remove" />\
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_AD_ID" tools:node="remove" />\
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_ATTRIBUTION" tools:node="remove" />\
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_TOPICS" tools:node="remove" />\
 ' "$manifest"
-	fi
-	grep -Fq 'com.google.android.gms.permission.AD_ID" tools:node="remove"' "$manifest" || {
-		echo "ERROR: Failed to install the Advertising ID manifest-removal rule" >&2
+	local removal_count
+	removal_count="$(grep -Ec 'permission\.(AD_ID|ACCESS_ADSERVICES_(AD_ID|ATTRIBUTION|TOPICS))" tools:node="remove"' "$manifest")"
+	[[ "$removal_count" == "5" ]] || {
+		echo "ERROR: Failed to install all advertising-identifier manifest-removal rules" >&2
 		exit 1
 	}
 }
@@ -301,29 +314,30 @@ standalone_bundletool() {
 
 validate_artifact() {
 	local artifact="$1" package_name="$2" expected_code="$3" expected_name="$4"
-	local manifest_xml=""
+	local permissions=""
 	[[ -s "$artifact" ]] || { echo "ERROR: missing Android artifact $artifact" >&2; exit 1; }
 	if [[ "$artifact" == *.apk ]]; then
 		local apkanalyzer="${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/apkanalyzer"
 		[[ -x "$apkanalyzer" ]] || apkanalyzer="$(find "${ANDROID_SDK_ROOT}/cmdline-tools" -name apkanalyzer -type f | head -1)"
 		[[ -x "$apkanalyzer" ]] || { echo "ERROR: apkanalyzer is required for APK metadata validation" >&2; exit 1; }
-		manifest_xml="$("$apkanalyzer" manifest print "$artifact")"
+		permissions="$("$apkanalyzer" manifest permissions "$artifact")"
 		[[ "$("$apkanalyzer" manifest application-id "$artifact")" == "$package_name" ]] || { echo "ERROR: APK package mismatch" >&2; exit 1; }
 		[[ "$("$apkanalyzer" manifest version-code "$artifact")" == "$expected_code" ]] || { echo "ERROR: APK versionCode mismatch" >&2; exit 1; }
 		[[ "$("$apkanalyzer" manifest version-name "$artifact")" == "$expected_name" ]] || { echo "ERROR: APK versionName mismatch" >&2; exit 1; }
 	else
 		local bundletool
 		bundletool="$(standalone_bundletool)"
-		manifest_xml="$(java -jar "$bundletool" dump manifest --bundle="$artifact")"
+		permissions="$(java -jar "$bundletool" dump manifest --bundle="$artifact" --xpath='/manifest/uses-permission/@android:name')"
 		[[ "$(java -jar "$bundletool" dump manifest --bundle="$artifact" --xpath=/manifest/@package)" == "$package_name" ]] || { echo "ERROR: AAB package mismatch" >&2; exit 1; }
 		[[ "$(java -jar "$bundletool" dump manifest --bundle="$artifact" --xpath=/manifest/@android:versionCode)" == "$expected_code" ]] || { echo "ERROR: AAB versionCode mismatch" >&2; exit 1; }
 		[[ "$(java -jar "$bundletool" dump manifest --bundle="$artifact" --xpath=/manifest/@android:versionName)" == "$expected_name" ]] || { echo "ERROR: AAB versionName mismatch" >&2; exit 1; }
 	fi
-	if grep -Eq 'android:name="(com\.google\.android\.gms\.permission\.AD_ID|android\.permission\.AD_ID)"' <<<"$manifest_xml"; then
-		echo "ERROR: Advertising ID permission leaked into $artifact" >&2
+	if grep -Eq '^(com\.google\.android\.gms\.permission\.AD_ID|android\.permission\.(AD_ID|ACCESS_ADSERVICES_(AD_ID|ATTRIBUTION|TOPICS)))$' <<<"$permissions"; then
+		echo "ERROR: Advertising identifier permission leaked into $artifact" >&2
+		grep -E '^(com\.google\.android\.gms\.permission\.AD_ID|android\.permission\.(AD_ID|ACCESS_ADSERVICES_(AD_ID|ATTRIBUTION|TOPICS)))$' <<<"$permissions" >&2
 		exit 1
 	fi
-	echo "Advertising ID manifest check OK: no AD_ID permission in $(basename "$artifact")"
+	echo "Advertising identifier manifest check OK: no advertising ID or AdServices permissions in $(basename "$artifact")"
 }
 
 ensure_godot_import() {

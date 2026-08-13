@@ -166,7 +166,7 @@ jobs:
           # Same as main Capacitor CI: versionCode=run_number, versionName=1.<run_number>
           VERSION_CODE: ${{ github.run_number }}
           VERSION_NAME: 1.${{ github.run_number }}
-          MIN_PLAY_VERSION_CODE: "182"
+          MIN_PLAY_VERSION_CODE: "183"
           ADMOB_ADS_ENABLED: "true"
           # Play AAB uses the production unit; the installable debug APK is
           # rewritten to Google's test unit before its separate export.
